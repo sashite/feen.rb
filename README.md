@@ -1,7 +1,7 @@
 # FEEN.rb
 
 [![Build Status](https://travis-ci.org/sashite/feen.rb.svg?branch=master)](https://travis-ci.org/sashite/feen.rb)
-[![Documentation](https://img.shields.io/:yard-docs-38c800.svg)][https://rubydoc.info/gems/feen/frames]
+[![Documentation](https://img.shields.io/:yard-docs-38c800.svg)](https://rubydoc.info/gems/feen/frames)
 
 > FEEN support for the Ruby language.
 

@@ -1,5 +1,10 @@
 require_relative 'lib/feen'
 
+# Dump an empty 3x8x8 board position
+raise unless FEEN.dump([3, 8, 8],
+  *Array.new(3 * 8 * 8)
+) == '8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 B /'
+
 # Dump Chess's starting position
 raise unless FEEN.dump([8, 8],
   '♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜',
@@ -51,6 +56,15 @@ raise unless FEEN.dump([10, 9],
   '俥', '傌', '相', '仕', '帥', '仕', '相', '傌', '俥'
 ) == '車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 B /'
 
+
+# Parse an empty 3x8x8 board position
+raise unless FEEN.parse('8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 B /').eql?(
+  is_turn_to_topside: false,
+  indexes: [3, 8, 8],
+  squares: Array.new(3 * 8 * 8),
+  bottomside_in_hand_pieces: [],
+  topside_in_hand_pieces: []
+)
 
 # Parse Chess's starting position
 raise unless FEEN.parse('♜,♞,♝,♛,♚,♝,♞,♜/♟,♟,♟,♟,♟,♟,♟,♟/8/8/8/8/♙,♙,♙,♙,♙,♙,♙,♙/♖,♘,♗,♕,♔,♗,♘,♖ B /').eql?(

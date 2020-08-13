@@ -11,17 +11,21 @@ module FEEN
       end
 
       def call(*squares)
-        slice(indexes.reverse, *squares)
+        raise unless squares.length == indexes.inject(:*)
+
+        unflatten(squares, *indexes)
       end
 
       private
 
-      def slice(remaining_indexes, *squares)
+      def unflatten(squares, *remaining_indexes)
         return row(*squares) if remaining_indexes.length == 1
 
-        squares.each_slice(remaining_indexes.fetch(0)).map do |sub_squares|
-          slice(remaining_indexes[1..], *sub_squares)
-        end.join('/' * remaining_indexes.length.pred)
+        squares
+          .each_slice(squares.length / remaining_indexes.fetch(0))
+          .to_a
+          .map { |sub_squares| unflatten(sub_squares, *remaining_indexes[1..]) }
+          .join('/' * remaining_indexes.length.pred)
       end
 
       def row(*squares)

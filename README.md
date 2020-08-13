@@ -23,10 +23,12 @@ This is an implementation of [FEEN](https://developer.sashite.com/specs/forsyth-
 
 ## Usage
 
+### Serialization
+
+The Xiangqi's starting position can be serialized this way:
+
 ```ruby
 require 'feen'
-
-# Serialize Xiangqi's starting position
 
 FEEN.dump([10, 9],
   '車', '馬', '象', '士', '將', '士', '象', '馬', '車',
@@ -38,11 +40,17 @@ FEEN.dump([10, 9],
   '兵', nil, '兵', nil, '兵', nil, '兵', nil, '兵',
   nil, '炮', nil, nil, nil, nil, nil, '炮', nil,
   nil, nil, nil, nil, nil, nil, nil, nil, nil,
-  '俥', '傌', '相', '仕', '帥', '仕', '相', '傌', '俥')
+  '俥', '傌', '相', '仕', '帥', '仕', '相', '傌', '俥',
+  is_turn_to_topside: false, bottomside_in_hand_pieces: [], topside_in_hand_pieces: []
+)
 # => '車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 B /'
+```
 
-# Deserialize Xiangqi's starting position
+### Deserialization
 
+In the other direction, the same Xiangqi starting position can be deserialized this way:
+
+```ruby
 FEEN.parse('車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 B /')
 # => {
 #      is_turn_to_topside: false,

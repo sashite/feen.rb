@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'inconsistent_size_error'
+
 module FEEN
   module Dumper
     # The board class.
@@ -10,8 +12,8 @@ module FEEN
         @indexes = indexes
       end
 
-      def call(*squares)
-        raise unless squares.length == indexes.inject(:*)
+      def to_s(*squares)
+        raise InconsistentSizeError unless squares.length == indexes.inject(:*)
 
         unflatten(squares, *indexes)
       end

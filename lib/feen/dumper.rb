@@ -12,8 +12,8 @@ module FEEN
     # @return [String] The FEEN string representing the position.
     def self.call(indexes, *squares, is_turn_to_topside:, bottomside_in_hand_pieces:, topside_in_hand_pieces:)
       [
-        Board.new(*indexes).call(*squares),
-        Turn.new(is_turn_to_topside).call,
+        Board.new(*indexes).to_s(*squares),
+        Turn.new(is_turn_to_topside).to_s,
         InHand.dump(bottomside_in_hand_pieces, topside_in_hand_pieces)
       ].join(' ')
     end

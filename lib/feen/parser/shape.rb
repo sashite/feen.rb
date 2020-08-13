@@ -2,15 +2,15 @@
 
 module FEEN
   module Parser
-    # The indexes class.
-    class Indexes
+    # The shape class.
+    class Shape
       attr_reader :board
 
       def initialize(board)
         @board = board
       end
 
-      def call
+      def to_a
         indexes(board, board.scan(/\/+/).sort.fetch(-1))
       end
 

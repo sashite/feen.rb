@@ -8,7 +8,7 @@ module FEEN
         [
           bottomside_in_hand_pieces,
           topside_in_hand_pieces
-        ].map { |pieces| new(*pieces).call }.join('/')
+        ].map { |pieces| new(*pieces).to_s }.join('/')
       end
 
       attr_reader :pieces
@@ -17,7 +17,7 @@ module FEEN
         @pieces = pieces
       end
 
-      def call
+      def to_s
         pieces.sort.join(',')
       end
     end

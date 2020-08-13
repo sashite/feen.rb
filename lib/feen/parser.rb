@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'parser/indexes'
-# require_relative 'parser/in_hand'
-# require_relative 'parser/turn'
+require_relative 'parser/board'
+require_relative 'parser/in_hand'
+require_relative 'parser/shape'
+require_relative 'parser/turn'
 
 module FEEN
   # The parser module.
@@ -22,16 +23,14 @@ module FEEN
     #
     # @return [Hash] The position params representing the position.
     private_class_method def self.params(board, turn, in_hand)
-      squares = board.split(/[\/,]+/).flat_map { |sub_string| sub_string.match?(/[0-9]+/) ? Array.new(Integer(sub_string)) : sub_string }
-
-      in_hand_pieces = in_hand.split('/')
+      pieces_in_hand = InHand.new(in_hand)
 
       {
-        indexes: Indexes.new(board).call,
-        squares: squares,
-        is_turn_to_topside: turn.eql?('t'),
-        bottomside_in_hand_pieces: in_hand_pieces.fetch(0, '').split(','),
-        topside_in_hand_pieces: in_hand_pieces.fetch(1, '').split(',')
+        indexes: Shape.new(board).to_a,
+        squares: Board.new(board).to_a,
+        is_turn_to_topside: Turn.new(turn).topside?,
+        bottomside_in_hand_pieces: pieces_in_hand.bottomside_pieces,
+        topside_in_hand_pieces: pieces_in_hand.topside_pieces
       }
     end
   end

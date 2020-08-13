@@ -8,7 +8,7 @@ module FEEN
         @is_topside = is_topside
       end
 
-      def call
+      def to_s
         topside? ? 't' : 'B'
       end
 

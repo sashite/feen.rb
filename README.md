@@ -76,9 +76,9 @@ FEEN.parse('車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,
 #    }
 ```
 
-## Tsume Shogi example
+## Example
 
-Let's generate the FEEN string to identify a classic Tsume Shogi problem:
+Here is the description of the position of a classic Tsume Shogi problem:
 
 ```ruby
 require 'feen'

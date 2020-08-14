@@ -3,11 +3,13 @@
 [![Build Status](https://travis-ci.org/sashite/feen.rb.svg?branch=master)](https://travis-ci.org/sashite/feen.rb)
 [![Documentation](https://img.shields.io/:yard-docs-38c800.svg)](https://rubydoc.info/gems/feen/frames)
 
-> FEEN support for the Ruby language.
+> FEEN (Forsyth–Edwards Expanded Notation) support for the Ruby language.
 
 ## Overview
 
-This is an implementation of [FEEN](https://developer.sashite.com/specs/forsyth-edwards-expanded-notation), a generic format that can be used for serializing and deserializing positions from the main two-player chess variants including _Chess_, _Makruk_, _Shogi_, _Xiangqi_, and even multidimensional ones such as _Millennium 3D chess_, _Space shogi_, _Three-dimensional chess_ 🖖
+This is an implementation of [FEEN](https://developer.sashite.com/specs/forsyth-edwards-expanded-notation), a generic format that can be used for serializing and deserializing chess positions.
+
+The main two-player chess variants are supported, including _Chess_, _Makruk_, _Shogi_, _Xiangqi_, and even some multidimensional variants such as _Millennium 3D chess_, _Space shogi_, _Three-dimensional chess_ 🖖
 
 ![3D chess on Star Trek (from the episode "Court Martial")](https://github.com/sashite/feen.rb/raw/master/star-trek-chess.jpg)
 

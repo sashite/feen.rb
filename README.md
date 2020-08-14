@@ -53,6 +53,8 @@ FEEN.dump([10, 9],
 In the other direction, the same Xiangqi starting position can be deserialized this way:
 
 ```ruby
+require 'feen'
+
 FEEN.parse('車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 B /')
 # => {
 #      is_turn_to_topside: false,

@@ -6,16 +6,18 @@ module FEEN
   module Dumper
     # The board class.
     class Board
-      attr_reader :indexes
-
+      # @param indexes [Array] The shape of the board.
       def initialize(*indexes)
         @indexes = indexes
       end
 
+      # @param squares [Array] The list of squares of on the board.
+      #
+      # @return [String] The string representing the board.
       def to_s(*squares)
-        raise InconsistentSizeError unless squares.length == indexes.inject(:*)
+        raise InconsistentSizeError unless squares.length == @indexes.inject(:*)
 
-        unflatten(squares, *indexes)
+        unflatten(squares, *@indexes)
       end
 
       private

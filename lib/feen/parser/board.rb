@@ -4,22 +4,22 @@ module FEEN
   module Parser
     # The board class.
     class Board
-      attr_reader :board
-
+      # @param board [String] The flatten board.
       def initialize(board)
         @board = board
       end
 
+      # @return [Array] The list of squares on the board.
       def to_a
-        board
-          .split(/[\/,]+/)
+        @board
+          .split(%r{[/,]+})
           .flat_map { |str| row(str) }
       end
 
       private
 
       def row(string)
-        string.match?(/[0-9]+/) ? Array.new(Integer(string)) : string
+        string.match?(/[0-9]+/) ? ::Array.new(Integer(string)) : string
       end
     end
   end

@@ -9,6 +9,12 @@ module FEEN
   module Dumper
     # Dump position params into a FEEN string.
     #
+    # @param indexes [Array] The shape of the board.
+    # @param squares [Array] The list of squares of on the board.
+    # @param is_turn_to_topside [Boolean] The player who must play.
+    # @param bottomside_in_hand_pieces [Array] The list of bottom-side's pieces in hand.
+    # @param topside_in_hand_pieces [Array] The list of top-side's pieces in hand.
+    #
     # @return [String] The FEEN string representing the position.
     def self.call(indexes, *squares, is_turn_to_topside:, bottomside_in_hand_pieces:, topside_in_hand_pieces:)
       [

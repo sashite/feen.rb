@@ -29,8 +29,8 @@ module FEEN
         indexes: Shape.new(board).to_a,
         squares: Board.new(board).to_a,
         is_turn_to_topside: Turn.new(turn).topside?,
-        bottomside_in_hand_pieces: pieces_in_hand.bottomside_pieces,
-        topside_in_hand_pieces: pieces_in_hand.topside_pieces
+        bottomside_in_hand_pieces: pieces_in_hand.bottomside_in_hand_pieces,
+        topside_in_hand_pieces: pieces_in_hand.topside_in_hand_pieces
       }
     end
   end

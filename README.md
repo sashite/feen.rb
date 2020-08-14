@@ -76,6 +76,32 @@ FEEN.parse('車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,
 #    }
 ```
 
+## Tsume Shogi example
+
+Let's generate the FEEN string to identify a classic Tsume Shogi problem:
+
+```ruby
+require 'feen'
+
+FEEN.dump([9, 9],
+  nil, nil, nil, 's', 'k', 's', nil, nil, nil,
+  nil, nil, nil, nil, nil, nil, nil, nil, nil,
+  nil, nil, nil, nil, '+P', nil, nil, nil, nil,
+  nil, nil, nil, nil, nil, nil, nil, nil, nil,
+  nil, nil, nil, nil, nil, nil, nil, '+B', nil,
+  nil, nil, nil, nil, nil, nil, nil, nil, nil,
+  nil, nil, nil, nil, nil, nil, nil, nil, nil,
+  nil, nil, nil, nil, nil, nil, nil, nil, nil,
+  nil, nil, nil, nil, nil, nil, nil, nil, nil,
+  is_turn_to_topside: false,
+  bottomside_in_hand_pieces: %w[S],
+  topside_in_hand_pieces: %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
+)
+# => '3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 B S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s'
+```
+
+Note: checkmate in 2 moves.
+
 ## License
 
 The code is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).

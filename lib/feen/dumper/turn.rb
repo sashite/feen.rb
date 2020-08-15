@@ -4,21 +4,16 @@ module FEEN
   module Dumper
     # The turn class.
     class Turn
-      TOPSIDE = {
-        false => 'B',
-        true => 't'
-      }.freeze
-
-      # @param is_topside [Boolean] Is topside the player who must play?
-      def initialize(is_topside)
-        raise ::TypeError, is_topside.class.inspect unless TOPSIDE.key?(is_topside)
-
-        @is_topside = is_topside
+      # @param active_side [String] The identifier of the active player.
+      # @param sides_count [Integer] The number of players.
+      def initialize(active_side, sides_count)
+        @active_side = active_side
+        @sides_count = sides_count
       end
 
-      # @return [String] The char representing the turn.
-      def to_s
-        TOPSIDE.fetch(@is_topside)
+      # @return [Integer] The number of the player who have to play.
+      def to_i
+        Integer(@active_side) % @sides_count
       end
     end
   end

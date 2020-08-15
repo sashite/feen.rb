@@ -2,8 +2,8 @@
 
 module FEEN
   module Dumper
-    # The in hand class.
-    class InHand
+    # The pieces in hand class.
+    class PiecesInHand
       # Serialize pieces in hand lists into a string.
       #
       # @param bottomside_in_hand_pieces [Array] The list of bottom-side's pieces in hand.
@@ -11,11 +11,8 @@ module FEEN
       #
       # @return [String] A string representing the pieces in hand of both
       #   players.
-      def self.dump(bottomside_in_hand_pieces, topside_in_hand_pieces)
-        [
-          bottomside_in_hand_pieces,
-          topside_in_hand_pieces
-        ].map { |pieces| new(*pieces).to_s }.join('/')
+      def self.dump(*pieces_in_hand_by_players)
+        pieces_in_hand_by_players.map { |pieces| new(*pieces).to_s }.join('/')
       end
 
       # @param pieces [Array] A list of pieces in hand.

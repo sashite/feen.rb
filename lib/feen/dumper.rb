@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'dumper/board'
-require_relative 'dumper/in_hand'
+require_relative 'dumper/pieces_in_hand'
 require_relative 'dumper/turn'
 
 module FEEN
@@ -16,11 +16,11 @@ module FEEN
     # @param topside_in_hand_pieces [Array] The list of top-side's pieces in hand.
     #
     # @return [String] The FEEN string representing the position.
-    def self.call(indexes, *squares, is_turn_to_topside:, bottomside_in_hand_pieces:, topside_in_hand_pieces:)
+    def self.call(active_side:, indexes:, pieces_in_hand_by_players:, squares:)
       [
         Board.new(*indexes).to_s(*squares),
-        Turn.new(is_turn_to_topside).to_s,
-        InHand.dump(bottomside_in_hand_pieces, topside_in_hand_pieces)
+        Turn.new(active_side, pieces_in_hand_by_players.length).to_i,
+        PiecesInHand.dump(*pieces_in_hand_by_players)
       ].join(' ')
     end
   end

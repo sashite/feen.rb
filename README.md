@@ -32,7 +32,7 @@ require "feen"
 
 # Emit a FEEN representing the Shogi's starting position
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [9, 9],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -55,7 +55,7 @@ FEEN.dump(
 # Parse the Shogi's starting position FEEN
 FEEN.parse("l,n,s,g,k,g,s,n,l/1,r,5,b,1/p,p,p,p,p,p,p,p,p/9/9/9/P,P,P,P,P,P,P,P,P/1,B,5,R,1/L,N,S,G,K,G,S,N,L 0 /")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [9, 9],
 #      pieces_in_hand_grouped_by_sides: [
 #        [],
@@ -80,7 +80,7 @@ FEEN.parse("l,n,s,g,k,g,s,n,l/1,r,5,b,1/p,p,p,p,p,p,p,p,p/9/9/9/P,P,P,P,P,P,P,P,
 ```ruby
 # Dump an empty 3x8x8 board position
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [3, 8, 8],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -92,7 +92,7 @@ FEEN.dump(
 
 # Dump Four-player chess's starting position
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [14, 14],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -121,7 +121,7 @@ FEEN.dump(
 
 # Dump Chess's starting position
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [8, 8],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -142,7 +142,7 @@ FEEN.dump(
 
 # Dump Chess's position after the move 1. e4
 FEEN.dump(
-  active_side: 1,
+  active_side_id: 1,
   indexes: [8, 8],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -163,7 +163,7 @@ FEEN.dump(
 
 # Dump Chess's position after the moves 1. e4 c5
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [8, 8],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -184,7 +184,7 @@ FEEN.dump(
 
 # Dump Makruk's starting position
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [8, 8],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -205,7 +205,7 @@ FEEN.dump(
 
 # Dump a classic Tsume Shogi problem
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [9, 9],
   pieces_in_hand_grouped_by_sides: [
     %w[S],
@@ -227,7 +227,7 @@ FEEN.dump(
 
 # Dump Xiangqi's starting position
 FEEN.dump(
-  active_side: 0,
+  active_side_id: 0,
   indexes: [10, 9],
   pieces_in_hand_grouped_by_sides: [
     [],
@@ -251,7 +251,7 @@ FEEN.dump(
 # Parse an empty 3x8x8 board position
 FEEN.parse("8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 0 /")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [3, 8, 8],
 #      pieces_in_hand_grouped_by_sides: [
 #        [],
@@ -263,7 +263,7 @@ FEEN.parse("8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 0 /")
 # Parse Four-player chess's starting position
 FEEN.parse("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,gP,gR/bN,bP,10,gP,gN/bB,bP,10,gP,gB/bK,bP,10,gP,gQ/bQ,bP,10,gP,gK/bB,bP,10,gP,gB/bN,bP,10,gP,gN/bR,bP,10,gP,gR/14/3,rP,rP,rP,rP,rP,rP,rP,rP,3/3,rR,rN,rB,rQ,rK,rB,rN,rR,3 0 ///")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [14, 14],
 #      pieces_in_hand_grouped_by_sides: [
 #        [],
@@ -292,7 +292,7 @@ FEEN.parse("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,
 # Parse Chess's starting position
 FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/♟,♟,♟,♟,♟,♟,♟,♟/8/8/8/8/♙,♙,♙,♙,♙,♙,♙,♙/♖,♘,♗,♕,♔,♗,♘,♖ 0 /")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [8, 8],
 #      pieces_in_hand_grouped_by_sides: [
 #        [],
@@ -313,7 +313,7 @@ FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/♟,♟,♟,♟,♟,♟,♟,♟/8/8/
 # Parse Makruk's starting position
 FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/8/♟,♟,♟,♟,♟,♟,♟,♟/8/8/♙,♙,♙,♙,♙,♙,♙,♙/8/♖,♘,♗,♔,♕,♗,♘,♖ 0 /")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [8, 8],
 #      pieces_in_hand_grouped_by_sides: [
 #        [],
@@ -334,7 +334,7 @@ FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/8/♟,♟,♟,♟,♟,♟,♟,♟/8/
 # Parse a classic Tsume Shogi problem
 FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [9, 9],
 #      pieces_in_hand_grouped_by_sides: [
 #        %w[S],
@@ -356,7 +356,7 @@ FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,
 # Parse Xiangqi's starting position
 FEEN.parse("車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 0 /")
 # => {
-#      active_side: 0,
+#      active_side_id: 0,
 #      indexes: [10, 9],
 #      pieces_in_hand_grouped_by_sides: [
 #        [],

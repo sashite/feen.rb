@@ -15,7 +15,7 @@ module FEEN
     # @example Parse Four-player chess's starting position
     #   call("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,gP,gR/bN,bP,10,gP,gN/bB,bP,10,gP,gB/bK,bP,10,gP,gQ/bQ,bP,10,gP,gK/bB,bP,10,gP,gB/bN,bP,10,gP,gN/bR,bP,10,gP,gR/14/3,rP,rP,rP,rP,rP,rP,rP,rP,3/3,rR,rN,rB,rQ,rK,rB,rN,rR,3 0 ///")
     #   # => {
-    #   #      active_side: 0,
+    #   #      active_side_id: 0,
     #   #      indexes: [14, 14],
     #   #      pieces_in_hand_grouped_by_sides: [
     #   #        [],
@@ -49,13 +49,13 @@ module FEEN
     # Parse the FEEN string's three fields and return the position params.
     #
     # @param board [String] The flatten board.
-    # @param active_side [String] The active side identifier.
+    # @param active_side_id [String] The active side identifier.
     # @param in_hand [String] The captured actors.
     #
     # @return [Hash] The position params representing the position.
-    private_class_method def self.params(board, active_side, in_hand)
+    private_class_method def self.params(board, active_side_id, in_hand)
       {
-        active_side: Turn.parse(active_side),
+        active_side_id: Turn.parse(active_side_id),
         indexes: Shape.new(board).to_a,
         pieces_in_hand_grouped_by_sides: PiecesInHand.parse(in_hand),
         squares: Board.new(board).to_a

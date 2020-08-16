@@ -13,15 +13,15 @@ Gemspec/RequiredRubyVersion:
   Exclude:
     - 'feen.gemspec'
 
-# Offense count: 34
+# Offense count: 94
 # Configuration parameters: AllowedChars.
 Style/AsciiComments:
   Exclude:
     - 'lib/feen.rb'
 
-# Offense count: 1
+# Offense count: 7
 # Cop supports --auto-correct.
 # Configuration parameters: AutoCorrect, AllowHeredoc, AllowURI, URISchemes, IgnoreCopDirectives, IgnoredPatterns.
 # URISchemes: http, https
 Layout/LineLength:
-  Max: 121
+  Max: 261

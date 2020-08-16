@@ -2,7 +2,7 @@
 
 module FEEN
   module Parser
-    # The turn class.
+    # The turn module.
     module Turn
       # @param active_side_id [String] The identifier of bottom-side and
       #   top-side.

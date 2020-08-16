@@ -2,7 +2,7 @@
 
 module FEEN
   module Parser
-    # The pieces in hand class.
+    # The pieces in hand module.
     module PiecesInHand
       # The list of pieces in hand grouped by players.
       #

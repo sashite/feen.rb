@@ -5,6 +5,21 @@ require_relative 'inconsistent_size_error'
 module FEEN
   module Dumper
     # The board class.
+    #
+    # @example Dump the board of Xiangqi's starting position
+    #   Board.new(10, 9).to_s(
+    #     "車", "馬", "象", "士", "將", "士", "象", "馬", "車",
+    #     nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #     nil, "砲", nil, nil, nil, nil, nil, "砲", nil,
+    #     "卒", nil, "卒", nil, "卒", nil, "卒", nil, "卒",
+    #     nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #     nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #     "兵", nil, "兵", nil, "兵", nil, "兵", nil, "兵",
+    #     nil, "炮", nil, nil, nil, nil, nil, "炮", nil,
+    #     nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #     "俥", "傌", "相", "仕", "帥", "仕", "相", "傌", "俥"
+    #   )
+    #   # => "車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥"
     class Board
       # @param indexes [Array] The shape of the board.
       def initialize(*indexes)

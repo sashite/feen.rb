@@ -3,6 +3,9 @@
 module FEEN
   module Parser
     # The shape class.
+    #
+    # @example Parse the shape of a shogiban
+    #   Shape.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a # => [9, 9]
     class Shape
       # @param board [String] The flatten board.
       def initialize(board)

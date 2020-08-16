@@ -11,7 +11,7 @@ module FEEN
         @indexes = indexes
       end
 
-      # @param squares [Array] The list of squares of on the board.
+      # @param squares [Array] The list of squares on the board.
       #
       # @return [String] The string representing the board.
       def to_s(*squares)

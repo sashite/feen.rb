@@ -3,6 +3,20 @@
 module FEEN
   module Parser
     # The board class.
+    #
+    # @example Parse a Shogi problem board
+    #   Board.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a
+    #   # => [
+    #   #      nil, nil, nil, "s", "k", "s", nil, nil, nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #   #      nil, nil, nil, nil, "+P", nil, nil, nil, nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, "+B", nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil,
+    #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil
+    #   #    ]
     class Board
       # @param board [String] The flatten board.
       def initialize(board)

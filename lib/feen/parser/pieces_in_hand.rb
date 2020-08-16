@@ -9,7 +9,14 @@ module FEEN
       # @param pieces_in_hand_by_players_str [String] The serialized list of
       #   pieces in hand grouped by players.
       #
-      # @return [Array] The list of bottomside's pieces in hand.
+      # @example Parse a list of serialized pieces in hand
+      #   parse("S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
+      #   # => [
+      #   #      %w[S],
+      #   #      %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
+      #   #    ]
+      #
+      # @return [Array] The list of pieces in hand grouped by players.
       def self.parse(pieces_in_hand_by_players_str)
         pieces_in_hand_by_players_str
           .split('/', -1)

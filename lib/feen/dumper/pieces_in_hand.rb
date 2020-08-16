@@ -6,8 +6,8 @@ module FEEN
     class PiecesInHand
       # Serialize pieces in hand lists into a string.
       #
-      # @param bottomside_in_hand_pieces [Array] The list of bottom-side's pieces in hand.
-      # @param topside_in_hand_pieces [Array] The list of top-side's pieces in hand.
+      # @param pieces_in_hand_by_players [Array] The list of pieces in hand
+      #   grouped by players.
       #
       # @return [String] A string representing the pieces in hand of both
       #   players.

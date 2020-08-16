@@ -352,11 +352,11 @@ require_relative 'feen/parser'
 module FEEN
   # @example Dumps position params into a FEEN string.
   #
+  # @param active_side [Integer] The identifier of the player who must play.
   # @param indexes [Array] The shape of the board.
-  # @param squares [Array] The list of squares of on the board.
-  # @param is_turn_to_topside [Boolean] The player who must play.
-  # @param bottomside_in_hand_pieces [Array] The list of bottom-side's pieces in hand.
-  # @param topside_in_hand_pieces [Array] The list of top-side's pieces in hand.
+  # @param pieces_in_hand_by_players [Array] The list of pieces in hand
+  #   grouped by players.
+  # @param squares [Array] The list of squares on the board.
   #
   # @example Dump an empty 3x8x8 board position
   #   dump(

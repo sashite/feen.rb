@@ -1,3 +1,10 @@
+# frozen_string_literal: false
+
+require 'simplecov'
+
+::SimpleCov.command_name 'Brutal test suite'
+::SimpleCov.start
+
 require_relative "lib/feen"
 
 # Dump an empty 3x8x8 board position

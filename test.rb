@@ -11,7 +11,7 @@ require_relative "lib/feen"
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [3, 8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -22,7 +22,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [14, 14],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     [],
     [],
@@ -50,7 +50,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -70,7 +70,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 1,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -90,7 +90,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -110,7 +110,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -130,7 +130,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [9, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -151,7 +151,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [9, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     %w[S],
     %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
   ],
@@ -172,7 +172,7 @@ raise unless FEEN.dump(
 raise unless FEEN.dump(
   active_side: 0,
   indexes: [10, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -194,7 +194,7 @@ raise unless FEEN.dump(
 raise unless FEEN.parse("8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 0 /").eql?(
   active_side: 0,
   indexes: [3, 8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -205,7 +205,7 @@ raise unless FEEN.parse("8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 0 /")
 raise unless FEEN.parse("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,gP,gR/bN,bP,10,gP,gN/bB,bP,10,gP,gB/bK,bP,10,gP,gQ/bQ,bP,10,gP,gK/bB,bP,10,gP,gB/bN,bP,10,gP,gN/bR,bP,10,gP,gR/14/3,rP,rP,rP,rP,rP,rP,rP,rP,3/3,rR,rN,rB,rQ,rK,rB,rN,rR,3 0 ///").eql?(
   active_side: 0,
   indexes: [14, 14],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     [],
     [],
@@ -233,7 +233,7 @@ raise unless FEEN.parse("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3
 raise unless FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/♟,♟,♟,♟,♟,♟,♟,♟/8/8/8/8/♙,♙,♙,♙,♙,♙,♙,♙/♖,♘,♗,♕,♔,♗,♘,♖ 0 /").eql?(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -253,7 +253,7 @@ raise unless FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/♟,♟,♟,♟,♟,♟
 raise unless FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/8/♟,♟,♟,♟,♟,♟,♟,♟/8/8/♙,♙,♙,♙,♙,♙,♙,♙/8/♖,♘,♗,♔,♕,♗,♘,♖ 0 /").eql?(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -273,7 +273,7 @@ raise unless FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/8/♟,♟,♟,♟,♟,�
 raise unless FEEN.parse("l,n,s,g,k,g,s,n,l/1,r,5,b,1/p,p,p,p,p,p,p,p,p/9/9/9/P,P,P,P,P,P,P,P,P/1,B,5,R,1/L,N,S,G,K,G,S,N,L 0 /").eql?(
   active_side: 0,
   indexes: [9, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -294,7 +294,7 @@ raise unless FEEN.parse("l,n,s,g,k,g,s,n,l/1,r,5,b,1/p,p,p,p,p,p,p,p,p/9/9/9/P,P
 raise unless FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s").eql?(
   active_side: 0,
   indexes: [9, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     %w[S],
     %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
   ],
@@ -315,7 +315,7 @@ raise unless FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n
 raise unless FEEN.parse("車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 0 /").eql?(
   active_side: 0,
   indexes: [10, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],

@@ -17,7 +17,7 @@ module FEEN
     #   # => {
     #   #      active_side: 0,
     #   #      indexes: [14, 14],
-    #   #      pieces_in_hand_by_players: [
+    #   #      pieces_in_hand_grouped_by_sides: [
     #   #        [],
     #   #        [],
     #   #        [],
@@ -57,7 +57,7 @@ module FEEN
       {
         active_side: Turn.parse(active_side),
         indexes: Shape.new(board).to_a,
-        pieces_in_hand_by_players: PiecesInHand.parse(in_hand),
+        pieces_in_hand_grouped_by_sides: PiecesInHand.parse(in_hand),
         squares: Board.new(board).to_a
       }
     end

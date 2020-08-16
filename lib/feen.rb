@@ -12,7 +12,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [3, 8, 8],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -24,7 +24,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [14, 14],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       [],
 #       [],
@@ -53,7 +53,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [8, 8],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -74,7 +74,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 1,
 #     indexes: [8, 8],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -95,7 +95,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [8, 8],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -116,7 +116,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [8, 8],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -137,7 +137,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [9, 9],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -159,7 +159,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [9, 9],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       %w[S],
 #       %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
 #     ],
@@ -181,7 +181,7 @@ require_relative 'feen/parser'
 #   FEEN.dump(
 #     active_side: 0,
 #     indexes: [10, 9],
-#     pieces_in_hand_by_players: [
+#     pieces_in_hand_grouped_by_sides: [
 #       [],
 #       []
 #     ],
@@ -205,7 +205,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [3, 8, 8],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        [],
 #   #        []
 #   #      ],
@@ -217,7 +217,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [14, 14],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        [],
 #   #        [],
 #   #        [],
@@ -246,7 +246,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [8, 8],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        [],
 #   #        []
 #   #      ],
@@ -267,7 +267,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [8, 8],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        [],
 #   #        []
 #   #      ],
@@ -288,7 +288,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [9, 9],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        [],
 #   #        []
 #   #      ],
@@ -310,7 +310,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [9, 9],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        %w[S],
 #   #        %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
 #   #      ],
@@ -332,7 +332,7 @@ require_relative 'feen/parser'
 #   # => {
 #   #      active_side: 0,
 #   #      indexes: [10, 9],
-#   #      pieces_in_hand_by_players: [
+#   #      pieces_in_hand_grouped_by_sides: [
 #   #        [],
 #   #        []
 #   #      ],
@@ -354,7 +354,7 @@ module FEEN
   #
   # @param active_side [Integer] The identifier of the player who must play.
   # @param indexes [Array] The shape of the board.
-  # @param pieces_in_hand_by_players [Array] The list of pieces in hand
+  # @param pieces_in_hand_grouped_by_sides [Array] The list of pieces in hand
   #   grouped by players.
   # @param squares [Array] The list of squares on the board.
   #
@@ -362,7 +362,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [3, 8, 8],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -374,7 +374,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [14, 14],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       [],
   #       [],
@@ -403,7 +403,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [8, 8],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -424,7 +424,7 @@ module FEEN
   #   dump(
   #     active_side: 1,
   #     indexes: [8, 8],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -445,7 +445,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [8, 8],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -466,7 +466,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [8, 8],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -487,7 +487,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [9, 9],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -509,7 +509,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [9, 9],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       %w[S],
   #       %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
   #     ],
@@ -531,7 +531,7 @@ module FEEN
   #   dump(
   #     active_side: 0,
   #     indexes: [10, 9],
-  #     pieces_in_hand_by_players: [
+  #     pieces_in_hand_grouped_by_sides: [
   #       [],
   #       []
   #     ],
@@ -551,11 +551,11 @@ module FEEN
   #   # => "車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥 0 /"
   #
   # @return [String] The FEEN string representing the position.
-  def self.dump(active_side:, indexes:, pieces_in_hand_by_players:, squares:)
+  def self.dump(active_side:, indexes:, pieces_in_hand_grouped_by_sides:, squares:)
     Dumper.call(
       active_side: active_side,
       indexes: indexes,
-      pieces_in_hand_by_players: pieces_in_hand_by_players,
+      pieces_in_hand_grouped_by_sides: pieces_in_hand_grouped_by_sides,
       squares: squares
     )
   end
@@ -569,7 +569,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [3, 8, 8],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        [],
   #   #        []
   #   #      ],
@@ -581,7 +581,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [14, 14],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        [],
   #   #        [],
   #   #        [],
@@ -610,7 +610,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [8, 8],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        [],
   #   #        []
   #   #      ],
@@ -631,7 +631,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [8, 8],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        [],
   #   #        []
   #   #      ],
@@ -652,7 +652,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [9, 9],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        [],
   #   #        []
   #   #      ],
@@ -674,7 +674,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [9, 9],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        %w[S],
   #   #        %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
   #   #      ],
@@ -696,7 +696,7 @@ module FEEN
   #   # => {
   #   #      active_side: 0,
   #   #      indexes: [10, 9],
-  #   #      pieces_in_hand_by_players: [
+  #   #      pieces_in_hand_grouped_by_sides: [
   #   #        [],
   #   #        []
   #   #      ],

@@ -34,7 +34,7 @@ require "feen"
 FEEN.dump(
   active_side: 0,
   indexes: [9, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -57,7 +57,7 @@ FEEN.parse("l,n,s,g,k,g,s,n,l/1,r,5,b,1/p,p,p,p,p,p,p,p,p/9/9/9/P,P,P,P,P,P,P,P,
 # => {
 #      active_side: 0,
 #      indexes: [9, 9],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        [],
 #        []
 #      ],
@@ -82,7 +82,7 @@ FEEN.parse("l,n,s,g,k,g,s,n,l/1,r,5,b,1/p,p,p,p,p,p,p,p,p/9/9/9/P,P,P,P,P,P,P,P,
 FEEN.dump(
   active_side: 0,
   indexes: [3, 8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -94,7 +94,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 0,
   indexes: [14, 14],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     [],
     [],
@@ -123,7 +123,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -144,7 +144,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 1,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -165,7 +165,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -186,7 +186,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 0,
   indexes: [8, 8],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -207,7 +207,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 0,
   indexes: [9, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     %w[S],
     %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
   ],
@@ -229,7 +229,7 @@ FEEN.dump(
 FEEN.dump(
   active_side: 0,
   indexes: [10, 9],
-  pieces_in_hand_by_players: [
+  pieces_in_hand_grouped_by_sides: [
     [],
     []
   ],
@@ -253,7 +253,7 @@ FEEN.parse("8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8//8/8/8/8/8/8/8/8 0 /")
 # => {
 #      active_side: 0,
 #      indexes: [3, 8, 8],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        [],
 #        []
 #      ],
@@ -265,7 +265,7 @@ FEEN.parse("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,
 # => {
 #      active_side: 0,
 #      indexes: [14, 14],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        [],
 #        [],
 #        [],
@@ -294,7 +294,7 @@ FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/♟,♟,♟,♟,♟,♟,♟,♟/8/8/
 # => {
 #      active_side: 0,
 #      indexes: [8, 8],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        [],
 #        []
 #      ],
@@ -315,7 +315,7 @@ FEEN.parse("♜,♞,♝,♛,♚,♝,♞,♜/8/♟,♟,♟,♟,♟,♟,♟,♟/8/
 # => {
 #      active_side: 0,
 #      indexes: [8, 8],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        [],
 #        []
 #      ],
@@ -336,7 +336,7 @@ FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,
 # => {
 #      active_side: 0,
 #      indexes: [9, 9],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        %w[S],
 #        %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
 #      ],
@@ -358,7 +358,7 @@ FEEN.parse("車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,
 # => {
 #      active_side: 0,
 #      indexes: [10, 9],
-#      pieces_in_hand_by_players: [
+#      pieces_in_hand_grouped_by_sides: [
 #        [],
 #        []
 #      ],

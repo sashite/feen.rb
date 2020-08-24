@@ -21,7 +21,7 @@ module FEEN
 
       def indexes(string, separator)
         if separator.empty?
-          last_index = string.split(',').inject(0) do |counter, sub_string|
+          last_index = string.split(",").inject(0) do |counter, sub_string|
             number = sub_string.match?(/[0-9]+/) ? Integer(sub_string) : 1
             counter + number
           end

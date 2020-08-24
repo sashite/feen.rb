@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'dumper/board'
-require_relative 'dumper/pieces_in_hand'
-require_relative 'dumper/turn'
+require_relative "dumper/board"
+require_relative "dumper/pieces_in_hand"
+require_relative "dumper/turn"
 
 module FEEN
   # The dumper module.
@@ -10,47 +10,36 @@ module FEEN
     # Dump position params into a FEEN string.
     #
     # @param active_side_id [Integer] The identifier of the player who must play.
+    # @param board [Hash] The indexes of each piece on the board.
     # @param indexes [Array] The shape of the board.
     # @param pieces_in_hand_grouped_by_sides [Array] The list of pieces in hand
     #   grouped by players.
-    # @param squares [Array] The list of squares on the board.
     #
-    # @example Dump Four-player chess's starting position
+    # @example Dump a classic Tsume Shogi problem
     #   call(
-    #     active_side_id: 0,
-    #     indexes: [14, 14],
-    #     pieces_in_hand_grouped_by_sides: [
-    #       [],
-    #       [],
-    #       [],
-    #       []
-    #     ],
-    #     squares: [
-    #       nil , nil , nil , "yR", "yN", "yB", "yK", "yQ", "yB", "yN", "yR", nil , nil , nil ,
-    #       nil , nil , nil , "yP", "yP", "yP", "yP", "yP", "yP", "yP", "yP", nil , nil , nil ,
-    #       nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil ,
-    #       "bR", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gR",
-    #       "bN", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gN",
-    #       "bB", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gB",
-    #       "bK", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gQ",
-    #       "bQ", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gK",
-    #       "bB", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gB",
-    #       "bN", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gN",
-    #       "bR", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gR",
-    #       nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil ,
-    #       nil , nil , nil , "rP", "rP", "rP", "rP", "rP", "rP", "rP", "rP", nil , nil , nil ,
-    #       nil , nil , nil , "rR", "rN", "rB", "rQ", "rK", "rB", "rN", "rR", nil , nil , nil
+    #     "active_side_id": 0,
+    #     "board": {
+    #       "3": "s",
+    #       "4": "k" ,
+    #       "5": "s",
+    #       "22": "+P",
+    #       "43": "+B"
+    #     },
+    #     "indexes": [9, 9],
+    #     "pieces_in_hand_grouped_by_sides": [
+    #       %w[S],
+    #       %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
     #     ]
     #   )
-    #   # => "3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,gP,gR/bN,bP,10,gP,gN/bB,bP,10,gP,gB/bK,bP,10,gP,gQ/bQ,bP,10,gP,gK/bB,bP,10,gP,gB/bN,bP,10,gP,gN/bR,bP,10,gP,gR/14/3,rP,rP,rP,rP,rP,rP,rP,rP,3/3,rR,rN,rB,rQ,rK,rB,rN,rR,3 0 ///"
+    #   # => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s"
     #
     # @return [String] The FEEN string representing the position.
-    def self.call(active_side_id:, indexes:, pieces_in_hand_grouped_by_sides:, squares:)
+    def self.call(active_side_id:, board:, indexes:, pieces_in_hand_grouped_by_sides:)
       [
-        Board.new(*indexes).to_s(*squares),
+        Board.new(*indexes, **board).to_s,
         Turn.dump(active_side_id, pieces_in_hand_grouped_by_sides.length),
         PiecesInHand.dump(*pieces_in_hand_grouped_by_sides)
-      ].join(' ')
+      ].join(" ")
     end
   end
 end

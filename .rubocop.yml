@@ -6,7 +6,13 @@ require:
 
 AllCops:
   Exclude:
-    - test.rb
+    - test/**/*.rb
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/AsciiComments:
+  Enabled: false
 
 Style/HashEachMethods:
   Enabled: true

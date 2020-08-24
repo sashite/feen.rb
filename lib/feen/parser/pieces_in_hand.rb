@@ -19,8 +19,8 @@ module FEEN
       # @return [Array] The list of pieces in hand grouped by players.
       def self.parse(pieces_in_hand_grouped_by_sides_str)
         pieces_in_hand_grouped_by_sides_str
-          .split('/', -1)
-          .map { |pieces_in_hand_str| pieces_in_hand_str.split(',') }
+          .split("/", -1)
+          .map { |pieces_in_hand_str| pieces_in_hand_str.split(",") }
       end
     end
   end

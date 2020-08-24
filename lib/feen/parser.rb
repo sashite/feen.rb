@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'parser/board'
-require_relative 'parser/pieces_in_hand'
-require_relative 'parser/shape'
-require_relative 'parser/turn'
+require_relative "parser/board"
+require_relative "parser/pieces_in_hand"
+require_relative "parser/shape"
+require_relative "parser/turn"
 
 module FEEN
   # The parser module.
@@ -12,38 +12,27 @@ module FEEN
     #
     # @param feen [String] The FEEN string representing a position.
     #
-    # @example Parse Four-player chess's starting position
-    #   call("3,yR,yN,yB,yK,yQ,yB,yN,yR,3/3,yP,yP,yP,yP,yP,yP,yP,yP,3/14/bR,bP,10,gP,gR/bN,bP,10,gP,gN/bB,bP,10,gP,gB/bK,bP,10,gP,gQ/bQ,bP,10,gP,gK/bB,bP,10,gP,gB/bN,bP,10,gP,gN/bR,bP,10,gP,gR/14/3,rP,rP,rP,rP,rP,rP,rP,rP,3/3,rR,rN,rB,rQ,rK,rB,rN,rR,3 0 ///")
+    # @example Parse a classic Tsume Shogi problem
+    #   call("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
     #   # => {
-    #   #      active_side_id: 0,
-    #   #      indexes: [14, 14],
-    #   #      pieces_in_hand_grouped_by_sides: [
-    #   #        [],
-    #   #        [],
-    #   #        [],
-    #   #        []
-    #   #      ],
-    #   #      squares: [
-    #   #        nil , nil , nil , "yR", "yN", "yB", "yK", "yQ", "yB", "yN", "yR", nil , nil , nil ,
-    #   #        nil , nil , nil , "yP", "yP", "yP", "yP", "yP", "yP", "yP", "yP", nil , nil , nil ,
-    #   #        nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil ,
-    #   #        "bR", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gR",
-    #   #        "bN", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gN",
-    #   #        "bB", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gB",
-    #   #        "bK", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gQ",
-    #   #        "bQ", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gK",
-    #   #        "bB", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gB",
-    #   #        "bN", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gN",
-    #   #        "bR", "bP", nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , "gP", "gR",
-    #   #        nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil , nil ,
-    #   #        nil , nil , nil , "rP", "rP", "rP", "rP", "rP", "rP", "rP", "rP", nil , nil , nil ,
-    #   #        nil , nil , nil , "rR", "rN", "rB", "rQ", "rK", "rB", "rN", "rR", nil , nil , nil
+    #   #      "active_side_id": 0,
+    #   #      "board": {
+    #   #        "3": "s",
+    #   #        "4": "k" ,
+    #   #        "5": "s",
+    #   #        "22": "+P",
+    #   #        "43": "+B"
+    #   #      },
+    #   #      "indexes": [9, 9],
+    #   #      "pieces_in_hand_grouped_by_sides": [
+    #   #        %w[S],
+    #   #        %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
     #   #      ]
     #   #    }
     #
     # @return [Hash] The position params representing the position.
     def self.call(feen)
-      params(*feen.split(' '))
+      params(*feen.split(" "))
     end
 
     # Parse the FEEN string's three fields and return the position params.
@@ -56,9 +45,9 @@ module FEEN
     private_class_method def self.params(board, active_side_id, in_hand)
       {
         active_side_id: Turn.parse(active_side_id),
+        board: Board.new(board).to_h,
         indexes: Shape.new(board).to_a,
-        pieces_in_hand_grouped_by_sides: PiecesInHand.parse(in_hand),
-        squares: Board.new(board).to_a
+        pieces_in_hand_grouped_by_sides: PiecesInHand.parse(in_hand)
       }
     end
   end

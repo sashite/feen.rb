@@ -8,7 +8,9 @@ require "simplecov"
 begin
   require_relative "../../lib/feen"
 rescue LoadError
+  # :nocov:
   require "./../../lib/feen"
+  # :nocov:
 end
 
 # ------------------------------------------------------------------------------

@@ -5,6 +5,8 @@ require:
   - rubocop-thread_safety
 
 AllCops:
+  NewCops: enable
+
   Exclude:
     - test/**/*.rb
 

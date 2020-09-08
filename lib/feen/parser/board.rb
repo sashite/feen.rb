@@ -21,11 +21,11 @@ module FEEN
     # @example Parse a Shogi problem board and return a hash
     #   Board.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_h
     #   # => {
-    #   #      "3": "s",
-    #   #      "4": "k" ,
-    #   #      "5": "s",
-    #   #      "22": "+P",
-    #   #      "43": "+B"
+    #   #       3 => "s",
+    #   #       4 => "k" ,
+    #   #       5 => "s",
+    #   #      22 => "+P",
+    #   #      43 => "+B"
     #   #    }
     class Board
       # @param board [String] The flatten board.
@@ -47,7 +47,7 @@ module FEEN
           .inject({}) do |h, (v, i)|
             next h if v.nil?
 
-            h.merge(i.to_s.to_sym => v)
+            h.merge(i => v)
           end
       end
 

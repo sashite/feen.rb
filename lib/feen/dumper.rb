@@ -36,9 +36,9 @@ module FEEN
     # @return [String] The FEEN string representing the position.
     def self.call(active_side_id:, board:, indexes:, pieces_in_hand_grouped_by_sides:)
       [
-        Board.new(*indexes, **board).to_s,
+        Board.new(indexes, board).to_s,
         Turn.dump(active_side_id, pieces_in_hand_grouped_by_sides.length),
-        PiecesInHand.dump(*pieces_in_hand_grouped_by_sides)
+        PiecesInHand.dump(pieces_in_hand_grouped_by_sides)
       ].join(" ")
     end
   end

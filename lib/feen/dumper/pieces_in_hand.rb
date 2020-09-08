@@ -18,12 +18,12 @@ module FEEN
       #
       # @return [String] A string representing the pieces in hand of both
       #   players.
-      def self.dump(*pieces_in_hand_grouped_by_sides)
-        pieces_in_hand_grouped_by_sides.map { |pieces| new(*pieces).to_s }.join("/")
+      def self.dump(pieces_in_hand_grouped_by_sides)
+        pieces_in_hand_grouped_by_sides.map { |pieces| new(pieces).to_s }.join("/")
       end
 
       # @param pieces [Array] A list of pieces in hand.
-      def initialize(*pieces)
+      def initialize(pieces)
         @pieces = pieces.sort
       end
 

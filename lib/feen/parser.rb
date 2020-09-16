@@ -32,17 +32,8 @@ module FEEN
     #
     # @return [Hash] The position params representing the position.
     def self.call(feen)
-      params(*feen.split(" "))
-    end
+      board, active_side_id, in_hand = feen.split(" ")
 
-    # Parse the FEEN string's three fields and return the position params.
-    #
-    # @param board [String] The flatten board.
-    # @param active_side_id [String] The active side identifier.
-    # @param in_hand [String] The captured actors.
-    #
-    # @return [Hash] The position params representing the position.
-    private_class_method def self.params(board, active_side_id, in_hand)
       {
         active_side_id: Turn.parse(active_side_id),
         board: Board.new(board).to_h,

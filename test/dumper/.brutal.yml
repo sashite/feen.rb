@@ -17,14 +17,14 @@ header: |
 
 subject: |
   FEEN.dump(
-    active_side_id: %{active_side_id},
+    side_id: %{side_id},
     board: %{board},
     indexes: %{indexes},
-    pieces_in_hand_grouped_by_sides: %{pieces_in_hand_grouped_by_sides}
+    hands: %{hands}
   )
 
 contexts:
-  active_side_id:
+  side_id:
     - 0
     - 1
     - 2
@@ -211,7 +211,7 @@ contexts:
       87: "相"
       88: "傌"
       89: "俥"
-  pieces_in_hand_grouped_by_sides:
+  hands:
     -
       - []
       - []

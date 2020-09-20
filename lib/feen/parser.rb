@@ -15,7 +15,6 @@ module FEEN
     # @example Parse a classic Tsume Shogi problem
     #   call("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
     #   # => {
-    #   #      "active_side_id": 0,
     #   #      "board": {
     #   #         3 => "s",
     #   #         4 => "k",
@@ -23,22 +22,23 @@ module FEEN
     #   #        22 => "+P",
     #   #        43 => "+B"
     #   #      },
-    #   #      "indexes": [9, 9],
-    #   #      "pieces_in_hand_grouped_by_sides": [
+    #   #      "hands": [
     #   #        %w[S],
     #   #        %w[b g g g g n n n n p p p p p p p p p p p p p p p p p r r s]
-    #   #      ]
+    #   #      ],
+    #   #      "indexes": [9, 9],
+    #   #      "side_id": 0
     #   #    }
     #
     # @return [Hash] The position params representing the position.
     def self.call(feen)
-      board, active_side_id, in_hand = feen.split(" ")
+      board, side_id, in_hand = feen.split(" ")
 
       {
-        active_side_id: Turn.parse(active_side_id),
         board: Board.new(board).to_h,
         indexes: Shape.new(board).to_a,
-        pieces_in_hand_grouped_by_sides: PiecesInHand.parse(in_hand)
+        hands: PiecesInHand.parse(in_hand),
+        side_id: Turn.parse(side_id)
       }
     end
   end

@@ -13,13 +13,13 @@ module FEEN
     class PiecesInHand
       # Serialize pieces in hand lists into a string.
       #
-      # @param pieces_in_hand_grouped_by_sides [Array] The list of pieces in hand
+      # @param hands [Array] The list of pieces in hand
       #   grouped by players.
       #
       # @return [String] A string representing the pieces in hand of both
       #   players.
-      def self.dump(pieces_in_hand_grouped_by_sides)
-        pieces_in_hand_grouped_by_sides.map { |pieces| new(pieces).to_s }.join("/")
+      def self.dump(hands)
+        hands.map { |pieces| new(pieces).to_s }.join("/")
       end
 
       # @param pieces [Array] A list of pieces in hand.

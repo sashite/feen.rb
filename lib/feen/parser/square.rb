@@ -2,7 +2,7 @@
 
 module FEEN
   module Parser
-    # The board class.
+    # The square class.
     #
     # @example Parse a Shogi problem board and return an array
     #   Board.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a
@@ -27,7 +27,7 @@ module FEEN
     #   #      22 => "+P",
     #   #      43 => "+B"
     #   #    }
-    class Board
+    class Square
       # @param board [String] The flatten board.
       def initialize(board)
         @board = board
@@ -40,7 +40,7 @@ module FEEN
           .flat_map { |str| row(str) }
       end
 
-      # @return [Hash] The indexes of each piece on the board.
+      # @return [Hash] The index of each piece on the board.
       def to_h
         to_a
           .each_with_index

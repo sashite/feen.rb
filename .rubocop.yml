@@ -5,15 +5,18 @@ require:
   - rubocop-thread_safety
 
 AllCops:
-  NewCops: enable
-
   Exclude:
     - test/**/*.rb
 
+  NewCops: enable
+
   TargetRubyVersion: 2.7
 
-Style/StringLiterals:
-  EnforcedStyle: double_quotes
+Layout/LineLength:
+  Enabled: false
 
 Style/AsciiComments:
   Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes

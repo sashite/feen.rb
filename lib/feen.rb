@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "feen/dumper"
-require_relative "feen/parser"
+require_relative File.join("feen", "dumper")
+require_relative File.join("feen", "parser")
 
 # This module provides a Ruby interface for data serialization and
 # deserialization in FEEN format.

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "dumper/in_hand"
-require_relative "dumper/square"
-require_relative "dumper/turn"
+require_relative File.join("dumper", "in_hand")
+require_relative File.join("dumper", "square")
+require_relative File.join("dumper", "turn")
 
 module FEEN
   # The dumper module.

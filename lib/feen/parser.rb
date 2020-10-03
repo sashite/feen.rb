@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "parser/in_hand"
-require_relative "parser/shape"
-require_relative "parser/square"
-require_relative "parser/turn"
+require_relative File.join("parser", "in_hand")
+require_relative File.join("parser", "shape")
+require_relative File.join("parser", "square")
+require_relative File.join("parser", "turn")
 
 module FEEN
   # The parser module.

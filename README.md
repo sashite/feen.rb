@@ -1,7 +1,9 @@
 # FEEN.rb
 
 [![Build Status](https://travis-ci.org/sashite/feen.rb.svg?branch=master)](https://travis-ci.org/sashite/feen.rb)
-[![Documentation](https://img.shields.io/:yard-docs-38c800.svg)](https://rubydoc.info/gems/feen/frames)
+[![Gem Version](https://badge.fury.io/rb/feen.svg)][gem]
+[![Inline docs](https://inch-ci.org/github/sashite/feen.rb.svg?branch=master)][inchpages]
+[![Documentation](https://img.shields.io/:yard-docs-38c800.svg)][rubydoc]
 
 > __FEEN__ (Forsyth–Edwards Expanded Notation) support for the Ruby language.
 
@@ -65,3 +67,7 @@ The code is available as open source under the terms of the [MIT License](https:
 This [gem](https://rubygems.org/gems/feen) is maintained by [Sashite](https://sashite.com/).
 
 With some [lines of code](https://github.com/sashite/), let's share the beauty of Chinese, Japanese and Western cultures through the game of chess!
+
+[gem]: https://rubygems.org/gems/feen
+[inchpages]: https://inch-ci.org/github/sashite/feen.rb
+[rubydoc]: https://rubydoc.info/gems/feen/frames

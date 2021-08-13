@@ -3,23 +3,17 @@
 require "bundler/gem_tasks"
 require "rake/testtask"
 require "rubocop/rake_task"
-
-RuboCop::RakeTask.new
+require "yard"
 
 Rake::TestTask.new do |t|
-  t.pattern = "test/**/*.rb"
+  t.pattern = "test/*/test.rb"
   t.verbose = true
   t.warning = true
 end
 
-namespace :test do
-  task :coverage do
-    ENV["COVERAGE"] = "true"
-    Rake::Task["test"].invoke
-  end
-end
+RuboCop::RakeTask.new
+YARD::Rake::YardocTask.new
 
-task(:doc_stats) { ruby "-S yard stats" }
-task default: %i[test doc_stats]
+Dir["tasks/**/*.rake"].each { |t| load t }
 
-Dir.glob(File.join("tasks", "**", "*.rake")).each { |r| import(r) }
+task default: %i[scaffold! yard rubocop:auto_correct test]

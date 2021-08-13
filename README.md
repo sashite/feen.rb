@@ -1,7 +1,10 @@
 # FEEN.rb
 
-[![Build Status](https://travis-ci.org/sashite/feen.rb.svg?branch=master)](https://travis-ci.org/sashite/feen.rb)
-[![Documentation](https://img.shields.io/:yard-docs-38c800.svg)](https://rubydoc.info/gems/feen/frames)
+[![Version](https://img.shields.io/github/v/tag/sashite/feen.rb?label=Version&logo=github)](https://github.com/sashite/feen.rb/releases)
+[![Yard documentation](https://img.shields.io/badge/Yard-documentation-blue.svg?logo=github)](https://rubydoc.info/github/sashite/feen.rb/main)
+[![CI](https://github.com/sashite/feen.rb/workflows/CI/badge.svg?branch=main)](https://github.com/sashite/feen.rb/actions?query=workflow%3Aci+branch%3Amain)
+[![RuboCop](https://github.com/sashite/feen.rb/workflows/RuboCop/badge.svg?branch=main)](https://github.com/sashite/feen.rb/actions?query=workflow%3Arubocop+branch%3Amain)
+[![License](https://img.shields.io/github/license/sashite/feen.rb?label=License&logo=github)](https://github.com/sashite/feen.rb/raw/main/LICENSE.md)
 
 > __FEEN__ (Forsyth–Edwards Expanded Notation) support for the Ruby language.
 
@@ -20,16 +23,20 @@ More exotic variants are also supported, like: [Dai dai shogi](https://en.wikipe
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'feen'
+gem "feen"
 ```
 
 And then execute:
 
-    $ bundle
+```sh
+bundle
+```
 
 Or install it yourself as:
 
-    $ gem install feen
+```sh
+gem install feen
+```
 
 ## Usage
 
@@ -38,25 +45,22 @@ require "feen"
 
 # Dump a classic Tsume Shogi problem
 FEEN.dump(
-  "side_id": 0,
-  "board": {
-     3 => "s",
-     4 => "k",
-     5 => "s",
+  in_hand: %w[S r r b g g g g s n n n n p p p p p p p p p p p p p p p p p],
+  shape: [9, 9],
+  side_id: 0,
+  square: {
+    3 => "s",
+    4 => "k",
+    5 => "s",
     22 => "+P",
     43 => "+B"
-  },
-  "indexes": [9, 9],
-  "hands": [
-    %w[S],
-    %w[r r b g g g g s n n n n p p p p p p p p p p p p p p p p p]
-  ]
+  }
 )
-# => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s"
+# => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S,b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s"
 
 # Parse a classic Tsume Shogi problem
-FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S/b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
-# => {:board=>{3=>"s", 4=>"k", 5=>"s", 22=>"+P", 43=>"+B"}, :indexes=>[9, 9], :hands=>[["S"], ["b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"]], :side_id=>0}
+FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S,b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
+# => {:square=>{3=>"s", 4=>"k", 5=>"s", 22=>"+P", 43=>"+B"}, :shape=>[9, 9], :in_hand=>["S", "b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"], :side_id=>0}
 ```
 
 ## License

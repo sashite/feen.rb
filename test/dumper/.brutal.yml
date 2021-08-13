@@ -17,21 +17,33 @@ header: |
 
 subject: |
   FEEN.dump(
+    in_hand: %{in_hand},
+    shape: %{shape},
     side_id: %{side_id},
-    board: %{board},
-    indexes: %{indexes},
-    hands: %{hands}
+    square: %{square}
   )
 
 contexts:
+  in_hand:
+    - []
+    - [S, r, r, b, g, g, s, n, n, p]
+  shape:
+    -
+      - 8
+      - 8
+      - 8
+    -
+      - 10
+      - 9
+    -
+      - 14
+      - 14
   side_id:
     - 0
     - 1
     - 2
     - 3
-    - 4
-    - 42
-  board:
+  square:
     - {}
     -
       3: "yR"
@@ -211,39 +223,6 @@ contexts:
       87: "相"
       88: "傌"
       89: "俥"
-  hands:
-    -
-      - []
-      - []
-    -
-      - []
-      - []
-      - []
-      - []
-    -
-      -
-        - S
-      -
-        - r
-        - r
-        - b
-        - g
-        - g
-        - s
-        - n
-        - n
-        - p
-  indexes:
-    -
-      - 8
-      - 8
-      - 8
-    -
-      - 10
-      - 9
-    -
-      - 14
-      - 14
 
 actuals:
   - "%{subject}.itself"

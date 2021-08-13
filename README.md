@@ -16,7 +16,7 @@ The main chess variants are supported, including [Chess](https://en.wikipedia.or
 
 More exotic variants are also supported, like: [Dai dai shogi](https://en.wikipedia.org/wiki/Dai_dai_shogi), [Four-player chess](https://en.wikipedia.org/wiki/Four-player_chess), or [Three-dimensional chess](https://en.wikipedia.org/wiki/Three-dimensional_chess) 🖖
 
-![3D chess on Star Trek (from the episode "Court Martial")](https://github.com/sashite/feen.rb/raw/master/star-trek-chess.jpg)
+![3D chess on Star Trek (from the episode "Court Martial")](https://github.com/sashite/feen.rb/raw/main/star-trek-chess.jpg)
 
 ## Installation
 

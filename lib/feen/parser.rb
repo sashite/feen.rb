@@ -32,9 +32,9 @@ module FEEN
 
       {
         in_hand: InHand.parse(in_hand_str),
-        shape: Shape.new(square_str).to_a,
+        shape:   Shape.new(square_str).to_a,
         side_id: Turn.parse(side_id_str),
-        square: Square.new(square_str).to_h
+        square:  Square.new(square_str).to_h
       }
     end
   end

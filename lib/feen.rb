@@ -6,7 +6,7 @@ require_relative File.join("feen", "parser")
 # This module provides a Ruby interface for data serialization and
 # deserialization in FEEN format.
 #
-# @see https://developer.sashite.com/specs/forsyth-edwards-expanded-notation
+# @see https://developer.sashite.com/specs/fen-easy-extensible-notation
 module FEEN
   # Dumps position params into a FEEN string.
   #
@@ -33,10 +33,10 @@ module FEEN
   # @return [String] The FEEN string representing the position.
   def self.dump(in_hand:, shape:, side_id:, square:)
     Dumper.call(
-      in_hand: in_hand,
-      shape: shape,
-      side_id: side_id,
-      square: square
+      in_hand:,
+      shape:,
+      side_id:,
+      square:
     )
   end
 

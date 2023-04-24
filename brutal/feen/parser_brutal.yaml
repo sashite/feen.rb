@@ -9,9 +9,9 @@ header: |
 
   begin
     require_relative "../../lib/feen"
-  rescue LoadError
+  rescue ::LoadError
     # :nocov:
-    require "./../../lib/feen"
+    require "../../lib/feen"
     # :nocov:
   end
 

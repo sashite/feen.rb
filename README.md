@@ -1,4 +1,4 @@
-# FEEN.rb
+# Feen.rb
 
 [![Version](https://img.shields.io/github/v/tag/sashite/feen.rb?label=Version&logo=github)](https://github.com/sashite/feen.rb/releases)
 [![Yard documentation](https://img.shields.io/badge/Yard-documentation-blue.svg?logo=github)](https://rubydoc.info/github/sashite/feen.rb/main)
@@ -10,7 +10,13 @@
 
 ## Overview
 
-This is an implementation of [FEEN](https://developer.sashite.com/specs/fen-easy-extensible-notation), a generic format that can be used for serializing and deserializing chess positions.
+This is an implementation of [FEEN](https://developer.sashite.com/specs/fen-easy-extensible-notation), a generic format that can be used for serializing and deserializing positions.
+
+A __FEEN__ string consists of a single line of ASCII text containing three data fields, separated by a space. These are:
+
+1. Piece placement
+2. Side to move
+3. Pieces in hand
 
 The main chess variants may be supported, including [Chess](https://en.wikipedia.org/wiki/Chess), [Janggi](https://en.wikipedia.org/wiki/Janggi), [Makruk](https://en.wikipedia.org/wiki/Makruk), [Shogi](https://en.wikipedia.org/wiki/Shogi), [Xiangqi](https://en.wikipedia.org/wiki/Xiangqi).
 
@@ -23,7 +29,7 @@ More exotic variants may be also supported, like: [Dai dai shogi](https://en.wik
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "feen"
+gem "feen", ">= 5.0.0.beta0"
 ```
 
 And then execute:
@@ -35,20 +41,32 @@ bundle install
 Or install it yourself as:
 
 ```sh
-gem install feen
+gem install feen --pre
 ```
 
 ## Usage
 
+### Serialization
+
+A position can be serialized by filling in these fields:
+
+- **Piece placement**: Describes the placement of pieces on the board with a hash that references each piece on the board. The keys could be numbers, or strings of characters representing coordinates.
+- **Side to move**: A char that indicates who moves next. In chess, "`w`" would mean that White must move, and "`b`" that Black must move. In Shogi, "`s`" could mean that Sente must move, and "`g`" that Gote must move. In Xiangqi, "`r`" could mean that Red must move, and "`b`" that Black must move.
+- **Pieces in hand**: An array of all captured pieces that remain _in hand_, like in Shogi.
+- **Board shape**: An array of integers. For instance, it would be `[10, 9]` in Xiangqi. And it would be `[8, 8]` in Chess.
+
+#### Examples
+
+##### A classic Tsume Shogi problem
+
 ```ruby
 require "feen"
 
-# Dump a classic Tsume Shogi problem
-FEEN.dump(
-  in_hand: %w[S r r b g g g g s n n n n p p p p p p p p p p p p p p p p p],
-  shape:   [9, 9],
-  side_id: 0,
-  square:  {
+Feen.dump(
+  side_to_move:    "s",
+  pieces_in_hand:  %w[S r r b g g g g s n n n n p p p p p p p p p p p p p p p p p],
+  board_shape:     [9, 9],
+  piece_placement: {
     3  => "s",
     4  => "k",
     5  => "s",
@@ -56,11 +74,25 @@ FEEN.dump(
     43 => "+B"
   }
 )
-# => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S,b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s"
+# => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 s S,b,g*4,n*4,p*17,r*2,s"
+```
 
-# Parse a classic Tsume Shogi problem
-FEEN.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S,b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
-# => {:square=>{3=>"s", 4=>"k", 5=>"s", 22=>"+P", 43=>"+B"}, :shape=>[9, 9], :in_hand=>["S", "b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"], :side_id=>0}
+### Deserialization
+
+Serialized positions can be converted back to fields.
+
+#### Examples
+
+##### A classic Tsume Shogi problem
+
+```ruby
+require "feen"
+
+Feen.parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 s S,b,g*4,n*4,p*17,r*2,s")
+# {:board_shape=>[9, 9],
+#  :pieces_in_hand=>["S", "b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"],
+#  :piece_placement=>{3=>"s", 4=>"k", 5=>"s", 22=>"+P", 43=>"+B"},
+#  :side_to_move=>"s"}
 ```
 
 ## License

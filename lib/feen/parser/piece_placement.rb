@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-module FEEN
+module Feen
   module Parser
-    # The square class.
+    # The PiecePlacement class.
     #
     # @example Parse a Shogi problem board and return an array
-    #   Board.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a
+    #   PiecePlacement.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a
     #   # => [
     #   #      nil, nil, nil, "s", "k", "s", nil, nil, nil,
     #   #      nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -19,7 +19,7 @@ module FEEN
     #   #    ]
     #
     # @example Parse a Shogi problem board and return a hash
-    #   Board.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_h
+    #   PiecePlacement.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_h
     #   # => {
     #   #       3 => "s",
     #   #       4 => "k",
@@ -27,15 +27,15 @@ module FEEN
     #   #      22 => "+P",
     #   #      43 => "+B"
     #   #    }
-    class Square
-      # @param board [String] The flatten board.
-      def initialize(board)
-        @board = board
+    class PiecePlacement
+      # @param piece_placement_str [String] The placement of pieces on the board.
+      def initialize(piece_placement_str)
+        @piece_placement_str = piece_placement_str
       end
 
-      # @return [Array] The list of squares on the board.
+      # @return [Array] The list of pieces on the board.
       def to_a
-        @board
+        @piece_placement_str
           .split(%r{[/,]+})
           .flat_map { |str| row(str) }
       end

@@ -16,18 +16,18 @@ header: |
   end
 
 subject: |
-  FEEN.dump(
-    in_hand: %{in_hand},
-    shape: %{shape},
-    side_id: %{side_id},
-    square: %{square}
+  Feen.dump(
+    side_to_move: %{side_to_move},
+    pieces_in_hand: %{pieces_in_hand},
+    board_shape: %{board_shape},
+    piece_placement: %{piece_placement}
   )
 
 contexts:
-  in_hand:
+  pieces_in_hand:
     - []
     - [S, r, r, b, g, g, s, n, n, p]
-  shape:
+  board_shape:
     -
       - 8
       - 8
@@ -38,12 +38,12 @@ contexts:
     -
       - 14
       - 14
-  side_id:
+  side_to_move:
     - 0
     - 1
     - 2
     - 3
-  square:
+  piece_placement:
     - {}
     -
       3: "yR"

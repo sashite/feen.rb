@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-module FEEN
+module Feen
   module Dumper
-    # The square class.
+    # The PiecePlacement class.
     #
     # @example Dump an empty board of Xiangqi
-    #   Board.new([10, 9]).to_s # => "9/9/9/9/9/9/9/9/9/9"
+    #   PiecePlacement.new([10, 9]).to_s # => "9/9/9/9/9/9/9/9/9/9"
     #
     # @example Dump the Xiangqi starting position board
-    #   Board.new(
+    #   PiecePlacement.new(
     #     [10, 9],
     #     {
     #        0 => "車",
@@ -45,12 +45,12 @@ module FEEN
     #       89 => "俥"
     #     }
     #   ).to_s # => "車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥"
-    class Square
+    class PiecePlacement
       # @param indexes [Array] The shape of the board.
-      # @param board [Hash] The index of each piece on the board.
-      def initialize(indexes, board)
+      # @param piece_placement [Hash] The index of each piece on the board.
+      def initialize(indexes, piece_placement = {})
         @indexes = indexes
-        @squares = Array.new(length) { |i| board.fetch(i, nil) }
+        @squares = ::Array.new(length) { |i| piece_placement.fetch(i, nil) }
       end
 
       # @return [String] The string representing the board.

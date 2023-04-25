@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-module FEEN
+module Feen
   module Parser
-    # The shape class.
+    # The BoardShape class.
     #
     # @example Parse the shape of a shogiban
-    #   Shape.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a # => [9, 9]
-    class Shape
-      # @param board [String] The flatten board.
-      def initialize(board)
-        @board = board
+    #   BoardShape.new("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9").to_a # => [9, 9]
+    class BoardShape
+      # @param board_str [String] The flatten board.
+      def initialize(board_str)
+        @board_str = board_str
       end
 
       # @return [Array] The size of each dimension of the board.
       def to_a
-        indexes(@board, @board.scan(%r{/+}).sort.fetch(-1))
+        indexes(@board_str, @board_str.scan(%r{/+}).sort.fetch(-1))
       end
 
       private

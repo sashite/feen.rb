@@ -7,20 +7,20 @@ require_relative File.join("feen", "parser")
 # deserialization in FEEN format.
 #
 # @see https://developer.sashite.com/specs/fen-easy-extensible-notation
-module FEEN
+module Feen
   # Dumps position params into a FEEN string.
   #
-  # @param in_hand [Array] The list of pieces in hand.
-  # @param shape [Array] The shape of the board.
-  # @param side_id [Integer] The identifier of the player who must play.
-  # @param square [Hash] The index of each piece on the board.
+  # @param pieces_in_hand [Array, nil] The list of pieces in hand.
+  # @param board_shape [Array] The shape of the board.
+  # @param side_to_move [String] The identifier of the player who must play.
+  # @param piece_placement [Hash] The index of each piece on the board.
   #
   # @example Dump a classic Tsume Shogi problem
   #   dump(
-  #     "in_hand": %w[S r r b g g g g s n n n n p p p p p p p p p p p p p p p p p],
-  #     "shape": [9, 9],
-  #     "side_id": 0,
-  #     "square": {
+  #     "side_to_move": "s",
+  #     "pieces_in_hand": %w[S r r b g g g g s n n n n p p p p p p p p p p p p p p p p p],
+  #     "board_shape": [9, 9],
+  #     "piece_placement": {
   #        3 => "s",
   #        4 => "k",
   #        5 => "s",
@@ -28,15 +28,15 @@ module FEEN
   #       43 => "+B"
   #     }
   #   )
-  #   # => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S,b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s"
+  #   # => "3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 s S,b,g*4,n*4,p*17,r*2,s"
   #
   # @return [String] The FEEN string representing the position.
-  def self.dump(in_hand:, shape:, side_id:, square:)
+  def self.dump(board_shape:, side_to_move:, piece_placement:, pieces_in_hand: nil)
     Dumper.call(
-      in_hand:,
-      shape:,
-      side_id:,
-      square:
+      pieces_in_hand:,
+      board_shape:,
+      side_to_move:,
+      piece_placement:
     )
   end
 
@@ -45,12 +45,12 @@ module FEEN
   # @param feen [String] The FEEN string representing a position.
   #
   # @example Parse a classic Tsume Shogi problem
-  #   parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 0 S,b,g,g,g,g,n,n,n,n,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,r,r,s")
+  #   parse("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 s S,b,g*4,n*4,p*17,r*2,s")
   #   # => {
-  #   #      "in_hand": ["S", "b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"],
-  #   #      "shape": [9, 9],
-  #   #      "side_id": 0,
-  #   #      "square": {
+  #   #      "pieces_in_hand": ["S", "b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"],
+  #   #      "board_shape": [9, 9],
+  #   #      "side_to_move": "s",
+  #   #      "piece_placement": {
   #   #         3 => "s",
   #   #         4 => "k",
   #   #         5 => "s",

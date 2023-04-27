@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    feen (5.0.0.beta0)
+    feen (5.0.0.beta1)
 
 GEM
   remote: https://rubygems.org/

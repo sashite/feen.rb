@@ -44,7 +44,7 @@ module Feen
     #       88 => "傌",
     #       89 => "俥"
     #     }
-    #   ).to_s # => "車,馬,象,士,將,士,象,馬,車/9/1,砲,5,砲,1/卒,1,卒,1,卒,1,卒,1,卒/9/9/兵,1,兵,1,兵,1,兵,1,兵/1,炮,5,炮,1/9/俥,傌,相,仕,帥,仕,相,傌,俥"
+    #   ).to_s # => "車馬象士將士象馬車/9/1砲5砲1/卒1卒1卒1卒1卒/9/9/兵1兵1兵1兵1兵/1炮5炮1/9/俥傌相仕帥仕相傌俥"
     class PiecePlacement
       # @param indexes [Array] The shape of the board.
       # @param piece_placement [Hash] The index of each piece on the board.
@@ -79,6 +79,7 @@ module Feen
           .map { |square| square.nil? ? 1 : square }
           .join(",")
           .gsub(/1,[1,]*1/) { |str| str.split(",").length }
+          .delete(",")
       end
     end
   end

@@ -18,15 +18,11 @@ header: |
 subject: |
   Feen.dump(
     side_to_move: %{side_to_move},
-    pieces_in_hand: %{pieces_in_hand},
     board_shape: %{board_shape},
     piece_placement: %{piece_placement}
   )
 
 contexts:
-  pieces_in_hand:
-    - []
-    - [S, r, r, b, g, g, s, n, n, p]
   board_shape:
     -
       - 8

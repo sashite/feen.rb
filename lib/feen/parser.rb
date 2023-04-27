@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative File.join("parser", "board_shape")
-require_relative File.join("parser", "pieces_in_hand")
-require_relative File.join("parser", "piece_placement")
 
 module Feen
   # The parser module.
@@ -12,11 +10,10 @@ module Feen
     # @param feen [String] The FEEN string representing a position.
     #
     # @example Parse a classic Tsume Shogi problem
-    #   call("3,s,k,s,3/9/4,+P,4/9/7,+B,1/9/9/9/9 s S,b,g*4,n*4,p*17,r*2,s")
+    #   call("3sks3/9/4+P4/9/7+B1/9/9/9/9 s")
     #   # => {
-    #   #      "side_to_move": "s",
-    #   #      "pieces_in_hand": ["S", "b", "g", "g", "g", "g", "n", "n", "n", "n", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "r", "r", "s"],
     #   #      "board_shape": [9, 9],
+    #   #      "side_to_move": "s",
     #   #      "piece_placement": {
     #   #         3 => "s",
     #   #         4 => "k",
@@ -26,15 +23,29 @@ module Feen
     #   #      }
     #
     # @return [Hash] The position params representing the position.
-    def self.call(feen)
-      piece_placement, side_to_move, pieces_in_hand = feen.split
+    def self.call(feen, regex: /\+?[a-z]/i)
+      piece_placement_str, side_to_move_str = feen.split
 
       {
-        board_shape:     BoardShape.new(piece_placement).to_a,
-        pieces_in_hand:  PiecesInHand.parse(pieces_in_hand),
-        piece_placement: PiecePlacement.new(piece_placement).to_h,
-        side_to_move:
+        board_shape:     BoardShape.new(piece_placement_str, regex:).to_a,
+        piece_placement: piece_placement(piece_placement_str, regex:),
+        side_to_move:    side_to_move_str
       }
     end
+
+    def self.piece_placement(string, regex:)
+      hash = {}
+      index = 0
+      string.scan(/(\d+|#{regex})/) do |match|
+        if /\d+/.match?(match[0])
+          index += match[0].to_i
+        else
+          hash[index] = match[0]
+          index += 1
+        end
+      end
+      hash
+    end
+    private_class_method :piece_placement
   end
 end

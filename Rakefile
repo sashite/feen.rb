@@ -6,7 +6,7 @@ require "rubocop/rake_task"
 require "yard"
 
 Rake::TestTask.new do |t|
-  t.pattern = "brutal/feen/test_*.rb"
+  t.pattern = "spec/**/*_spec.rb"
   t.verbose = true
   t.warning = true
 end
@@ -27,7 +27,5 @@ task default: %i[
   generate_rubocop_yaml
   yard
   test
-  brutal_test_generation
-  brutal_test_execution
   rubocop:autocorrect
 ]

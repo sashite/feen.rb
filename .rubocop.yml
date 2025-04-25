@@ -2,6 +2,8 @@ AllCops:
   # @see https://docs.rubocop.org/rubocop/configuration.html#pre-processing
   Exclude:
   
+    - .DS_Store
+  
     - .rubocop-https---raw-githubusercontent-com-sashite-sashite-rubocop-rb-v1-0-3-config-rubocop-performance-yml
   
     - .rubocop-https---raw-githubusercontent-com-sashite-sashite-rubocop-rb-v1-0-3-config-rubocop-rake-yml
@@ -12,19 +14,23 @@ AllCops:
   
     - .yardoc/
   
-    - brutal/feen/coverage/
-  
     - coverage/
   
     - doc/
   
-    - pkg/
+    - lib/.DS_Store
+  
+    - lib/feen/.DS_Store
+  
+    - spec/.DS_Store
+  
+    - spec/feen/.DS_Store
   
     - test.rb
     - config/**/*
 
   NewCops: enable
-  TargetRubyVersion: 3.2
+  TargetRubyVersion: 3.4
 
 require:
   - rubocop-gitlab-security

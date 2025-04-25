@@ -1,51 +1,52 @@
 # frozen_string_literal: true
 
-require_relative File.join("parser", "board_shape")
+require_relative File.join("parser", "games_turn")
+require_relative File.join("parser", "piece_placement")
+require_relative File.join("parser", "pieces_in_hand")
 
 module Feen
-  # The parser module.
+  # Module responsible for parsing FEEN notation strings into internal data structures
   module Parser
-    # Parse a FEEN string into position params.
+    # Parses a complete FEEN string into a structured representation
     #
-    # @param feen [String] The FEEN string representing a position.
-    #
-    # @example Parse a classic Tsume Shogi problem
-    #   call("3sks3/9/4+P4/9/7+B1/9/9/9/9 s")
-    #   # => {
-    #   #      "board_shape": [9, 9],
-    #   #      "side_to_move": "s",
-    #   #      "piece_placement": {
-    #   #         3 => "s",
-    #   #         4 => "k",
-    #   #         5 => "s",
-    #   #        22 => "+P",
-    #   #        43 => "+B"
-    #   #      }
-    #
-    # @return [Hash] The position params representing the position.
-    def self.call(feen, regex: /\+?[a-z]/i)
-      piece_placement_str, side_to_move_str = feen.split
+    # @param feen_string [String] Complete FEEN notation string
+    # @return [Hash] Hash containing the parsed position data
+    # @raise [ArgumentError] If the FEEN string is invalid
+    def self.parse(feen_string)
+      validate_feen_string(feen_string)
 
+      # Split the FEEN string into its three fields
+      fields = feen_string.strip.split(/\s+/)
+
+      raise ArgumentError, "Invalid FEEN format: expected 3 fields, got #{fields.size}" unless fields.size == 3
+
+      # Parse each field using the appropriate submodule
+      piece_placement = PiecePlacement.parse(fields[0])
+      games_turn = GamesTurn.parse(fields[1])
+      pieces_in_hand = PiecesInHand.parse(fields[2])
+
+      # Return a structured representation of the position
       {
-        board_shape:     BoardShape.new(piece_placement_str, regex:).to_a,
-        piece_placement: piece_placement(piece_placement_str, regex:),
-        side_to_move:    side_to_move_str
+        piece_placement: piece_placement,
+        games_turn:      games_turn,
+        pieces_in_hand:  pieces_in_hand
       }
     end
 
-    def self.piece_placement(string, regex:)
-      hash = {}
-      index = 0
-      string.scan(/(\d+|#{regex})/) do |match|
-        if /\d+/.match?(match[0])
-          index += match[0].to_i
-        else
-          hash[index] = match[0]
-          index += 1
-        end
-      end
-      hash
+    # Validates the FEEN string for basic format
+    #
+    # @param feen_string [String] FEEN string to validate
+    # @raise [ArgumentError] If the FEEN string is fundamentally invalid
+    # @return [void]
+    def self.validate_feen_string(feen_string)
+      raise ArgumentError, "FEEN must be a string, got #{feen_string.class}" unless feen_string.is_a?(String)
+
+      raise ArgumentError, "FEEN string cannot be empty" if feen_string.empty?
+
+      # Check for at least two spaces (three fields)
+      return unless feen_string.count(" ") < 2
+
+      raise ArgumentError, "Invalid FEEN format: must contain at least two spaces separating three fields"
     end
-    private_class_method :piece_placement
   end
 end

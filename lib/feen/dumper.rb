@@ -1,36 +1,55 @@
 # frozen_string_literal: true
 
+require_relative File.join("dumper", "games_turn")
 require_relative File.join("dumper", "piece_placement")
+require_relative File.join("dumper", "pieces_in_hand")
 
 module Feen
-  # The dumper module.
+  # Module responsible for converting internal data structures to FEEN notation strings
   module Dumper
-    # Dump position params into a FEEN string.
+    # Converts a complete position data structure to a FEEN string
     #
-    # @param board_shape [Array] The shape of the board.
-    # @param side_to_move [String] Identify the active side.
-    # @param piece_placement [Hash] The index of each piece on the board.
-    #
-    # @example Dump a classic Tsume Shogi problem
-    #   call(
-    #     "board_shape": [9, 9],
-    #     "side_to_move": "s",
-    #     "piece_placement": {
-    #        3 => "s",
-    #        4 => "k",
-    #        5 => "s",
-    #       22 => "+P",
-    #       43 => "+B"
-    #     }
-    #   )
-    #   # => "3sks3/9/4+P4/9/7+B1/9/9/9/9 s"
-    #
-    # @return [String] The FEEN string representing the position.
-    def self.call(board_shape:, side_to_move:, piece_placement:)
+    # @param position [Hash] Hash containing the complete position data
+    # @option position [Array] :piece_placement Board position data
+    # @option position [Hash] :games_turn Games and turn data
+    # @option position [Array<Hash>] :pieces_in_hand Pieces in hand data
+    # @return [String] Complete FEEN string representation
+    def self.dump(position)
+      validate_position(position)
+
       [
-        PiecePlacement.new(board_shape, piece_placement).to_s,
-        side_to_move
+        PiecePlacement.dump(position[:piece_placement]),
+        GamesTurn.dump(position[:games_turn]),
+        PiecesInHand.dump(position[:pieces_in_hand])
       ].join(" ")
+    end
+
+    # Validates the position data structure
+    #
+    # @param position [Hash] Position data to validate
+    # @raise [ArgumentError] If the position data is invalid
+    # @return [void]
+    def self.validate_position(position)
+      raise ArgumentError, "Position must be a Hash, got #{position.class}" unless position.is_a?(Hash)
+
+      # Check for required keys
+      required_keys = %i[piece_placement games_turn pieces_in_hand]
+      missing_keys = required_keys - position.keys
+
+      raise ArgumentError, "Missing required keys in position: #{missing_keys.join(', ')}" unless missing_keys.empty?
+
+      # Validate types of values
+      unless position[:piece_placement].is_a?(Array)
+        raise ArgumentError, "piece_placement must be an Array, got #{position[:piece_placement].class}"
+      end
+
+      unless position[:games_turn].is_a?(Hash)
+        raise ArgumentError, "games_turn must be a Hash, got #{position[:games_turn].class}"
+      end
+
+      return if position[:pieces_in_hand].is_a?(Array)
+
+      raise ArgumentError, "pieces_in_hand must be an Array, got #{position[:pieces_in_hand].class}"
     end
   end
 end

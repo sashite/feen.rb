@@ -19,7 +19,8 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - 3.2
+          - 3.4
+          - head
     steps:
       - name: Checkout
         uses: actions/checkout@v2

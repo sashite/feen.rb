@@ -9,38 +9,44 @@ require_relative File.join("feen", "parser")
 #
 # @see https://sashite.dev/documents/feen/1.0.0/
 module Feen
-  # Dumps position params into a FEEN string.
+  # Dumps position components into a FEEN string.
   #
-  # @param position [Hash] Hash containing the position data
-  # @option position [Array] :piece_placement Board position data
-  # @option position [Hash] :games_turn Games and turn data
-  # @option position [Array<Hash>] :pieces_in_hand Pieces in hand data
+  # @param piece_placement [Array] Board position data structure representing the spatial
+  #                                distribution of pieces across the board
+  # @param active_variant [String] Identifier for the player to move and their game variant
+  # @param inactive_variant [String] Identifier for the opponent and their game variant
+  # @param pieces_in_hand [Array<Hash>] Pieces available for dropping onto the board,
+  #                                    each represented as a Hash with at least an :id key
   # @return [String] FEEN notation string
-  # @raise [ArgumentError] If the position data is invalid
+  # @raise [ArgumentError] If any parameter is invalid
   # @example
-  #   position = {
-  #     piece_placement: [[{id: 'r'}, {id: 'n'}, {id: 'b'}, {id: 'q'}, {id: 'k'}, {id: 'b'}, {id: 'n'}, {id: 'r'}],
-  #                       [{id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}],
-  #                       [nil, nil, nil, nil, nil, nil, nil, nil],
-  #                       [nil, nil, nil, nil, nil, nil, nil, nil],
-  #                       [nil, nil, nil, nil, nil, nil, nil, nil],
-  #                       [nil, nil, nil, nil, nil, nil, nil, nil],
-  #                       [{id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}],
-  #                       [{id: 'R'}, {id: 'N'}, {id: 'B'}, {id: 'Q'}, {id: 'K'}, {id: 'B'}, {id: 'N'}, {id: 'R'}]],
-  #     games_turn: {
-  #       active_player: 'CHESS',
-  #       inactive_player: 'chess',
-  #       uppercase_game: 'CHESS',
-  #       lowercase_game: 'chess'
-  #     },
+  #   piece_placement = [
+  #     [{id: 'r'}, {id: 'n'}, {id: 'b'}, {id: 'q'}, {id: 'k', suffix: '='}, {id: 'b'}, {id: 'n'}, {id: 'r'}],
+  #     [{id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}],
+  #     [nil, nil, nil, nil, nil, nil, nil, nil],
+  #     [nil, nil, nil, nil, nil, nil, nil, nil],
+  #     [nil, nil, nil, nil, nil, nil, nil, nil],
+  #     [nil, nil, nil, nil, nil, nil, nil, nil],
+  #     [{id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}],
+  #     [{id: 'R'}, {id: 'N'}, {id: 'B'}, {id: 'Q'}, {id: 'K', suffix: '='}, {id: 'B'}, {id: 'N'}, {id: 'R'}]
+  #   ]
+  #   Feen.dump(
+  #     piece_placement: piece_placement,
+  #     active_variant: 'CHESS',
+  #     inactive_variant: 'chess',
   #     pieces_in_hand: []
-  #   }
-  #   Feen.dump(position) # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
-  def self.dump(position)
-    Dumper.dump(position)
+  #   )
+  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+  def self.dump(piece_placement:, active_variant:, inactive_variant:, pieces_in_hand:)
+    Dumper.dump(
+      piece_placement: piece_placement,
+      active_variant: active_variant,
+      inactive_variant: inactive_variant,
+      pieces_in_hand: pieces_in_hand
+    )
   end
 
-  # Parses a FEEN string into position params.
+  # Parses a FEEN string into position components.
   #
   # @param feen_string [String] FEEN notation string
   # @return [Hash] Hash containing the parsed position data

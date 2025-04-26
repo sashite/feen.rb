@@ -2,90 +2,65 @@
 
 module Feen
   module Dumper
-    # Handles conversion of games turn data structure to FEEN notation string
+    # Handles conversion of games turn data to FEEN notation string
     module GamesTurn
       ERRORS = {
-        missing_key:        "Missing required key in games_turn: %s",
-        invalid_type:       "Invalid type for games_turn[%s]: expected String, got %s",
-        empty_string:       "Empty string for games_turn[%s]",
-        casing_requirement: "One game must be uppercase and the other lowercase",
-        invalid_chars:      "Game identifiers must contain only alphabetic characters (a-z, A-Z)"
+        type:   "%s must be a String, got %s",
+        empty:  "%s cannot be empty",
+        mixed:  "%s has mixed case: %s",
+        casing: "One variant must be uppercase and the other lowercase",
+        chars:  "Variant identifiers must contain only alphabetic characters (a-z, A-Z)"
       }.freeze
 
-      REQUIRED_KEYS = %i[active_player inactive_player].freeze
-
-      # Converts the internal games turn representation to a FEEN string
+      # Converts the active and inactive variant identifiers to a FEEN-formatted games turn string
       #
-      # @param games_turn [Hash] Hash containing game turn information
+      # @param active_variant [String] Identifier for the player to move and their game variant
+      # @param inactive_variant [String] Identifier for the opponent and their game variant
       # @return [String] FEEN-formatted games turn string
-      def self.dump(games_turn)
-        validate_games_turn(games_turn)
-
-        # Format is <active_player>/<inactive_player>
-        "#{games_turn[:active_player]}/#{games_turn[:inactive_player]}"
+      def self.dump(active_variant, inactive_variant)
+        validate_variants(active_variant, inactive_variant)
+        "#{active_variant}/#{inactive_variant}"
       end
 
-      # Validates the games turn data structure
+      # Validates the game variant identifiers
       #
-      # @param games_turn [Hash] The games turn data to validate
-      # @raise [ArgumentError] If the games turn data is invalid
-      # @return [Boolean] true if the validation passes
-      def self.validate_games_turn(games_turn)
-        validate_structure(games_turn)
-        validate_casing(games_turn)
-        validate_character_set(games_turn)
+      # @param active [String] The active player's variant identifier
+      # @param inactive [String] The inactive player's variant identifier
+      # @raise [ArgumentError] If the variant identifiers are invalid
+      # @return [void]
+      private_class_method def self.validate_variants(active, inactive)
+        # Validate basic type and presence
+        [["Active variant", active], ["Inactive variant", inactive]].each do |name, variant|
+          raise ArgumentError, format(ERRORS[:type], name, variant.class) unless variant.is_a?(String)
+          raise ArgumentError, format(ERRORS[:empty], name) if variant.empty?
+          raise ArgumentError, ERRORS[:chars] unless variant.match?(/\A[a-zA-Z]+\z/)
+        end
+
+        # Validate casing (one must be uppercase, one must be lowercase)
+        active_uppercase = active == active.upcase && active != active.downcase
+        inactive_uppercase = inactive == inactive.upcase && inactive != inactive.downcase
+
+        # If both have the same casing (both uppercase or both lowercase), raise error
+        raise ArgumentError, ERRORS[:casing] if active_uppercase == inactive_uppercase
+
+        # Check for mixed case (must be all uppercase or all lowercase)
+        if active_uppercase && active != active.upcase
+          raise ArgumentError, format(ERRORS[:mixed], "Active variant", active)
+        end
+
+        if inactive_uppercase && inactive != inactive.upcase
+          raise ArgumentError, format(ERRORS[:mixed], "Inactive variant", inactive)
+        end
+
+        if !active_uppercase && active != active.downcase
+          raise ArgumentError, format(ERRORS[:mixed], "Active variant", active)
+        end
+
+        if !inactive_uppercase && inactive != inactive.downcase
+          raise ArgumentError, format(ERRORS[:mixed], "Inactive variant", inactive)
+        end
 
         true
-      end
-
-      # Validates the basic structure of games_turn
-      #
-      # @param games_turn [Hash] The games turn data to validate
-      # @raise [ArgumentError] If the structure is invalid
-      # @return [void]
-      private_class_method def self.validate_structure(games_turn)
-        REQUIRED_KEYS.each do |key|
-          raise ArgumentError, format(ERRORS[:missing_key], key) unless games_turn.key?(key)
-
-          unless games_turn[key].is_a?(String)
-            raise ArgumentError, format(ERRORS[:invalid_type], key, games_turn[key].class)
-          end
-
-          raise ArgumentError, format(ERRORS[:empty_string], key) if games_turn[key].empty?
-        end
-      end
-
-      # Validates the casing requirement (one uppercase, one lowercase)
-      #
-      # @param games_turn [Hash] The games turn data to validate
-      # @raise [ArgumentError] If the casing requirement is not met
-      # @return [void]
-      private_class_method def self.validate_casing(games_turn)
-        active_has_uppercase = games_turn[:active_player].match?(/[A-Z]/)
-        inactive_has_uppercase = games_turn[:inactive_player].match?(/[A-Z]/)
-
-        # Ensure exactly one has uppercase
-        raise ArgumentError, ERRORS[:casing_requirement] if active_has_uppercase == inactive_has_uppercase
-
-        # Check that uppercase game is all caps and lowercase game has no caps
-        if active_has_uppercase && games_turn[:active_player].match?(/[a-z]/)
-          raise ArgumentError, "Active game has mixed case: #{games_turn[:active_player]}"
-        end
-
-        return unless inactive_has_uppercase && games_turn[:inactive_player].match?(/[a-z]/)
-
-        raise ArgumentError, "Inactive game has mixed case: #{games_turn[:inactive_player]}"
-      end
-
-      # Validates that identifiers only contain allowed characters
-      #
-      # @param games_turn [Hash] The games turn data to validate
-      # @raise [ArgumentError] If invalid characters are present
-      # @return [void]
-      private_class_method def self.validate_character_set(games_turn)
-        REQUIRED_KEYS.each do |key|
-          raise ArgumentError, ERRORS[:invalid_chars] unless games_turn[key].match?(/\A[a-zA-Z]+\z/)
-        end
       end
     end
   end

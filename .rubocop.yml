@@ -22,6 +22,8 @@ AllCops:
   
     - lib/feen/.DS_Store
   
+    - pkg/
+  
     - spec/.DS_Store
   
     - spec/feen/.DS_Store
@@ -66,6 +68,9 @@ Lint/RequireRelativeSelfPath:
   Enabled: false
 
 Style/RedundantConstantBase:
+  Enabled: false
+
+Metrics/BlockLength:
   Enabled: false
 
 Metrics/MethodLength:

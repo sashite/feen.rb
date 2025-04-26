@@ -5,51 +5,37 @@ require_relative File.join("dumper", "piece_placement")
 require_relative File.join("dumper", "pieces_in_hand")
 
 module Feen
-  # Module responsible for converting internal data structures to FEEN notation strings
+  # Module responsible for converting internal data structures to FEEN notation strings.
+  # This implements the serialization part of the FEEN (Forsyth-Edwards Essential Notation) format.
   module Dumper
-    # Converts a complete position data structure to a FEEN string
-    #
-    # @param position [Hash] Hash containing the complete position data
-    # @option position [Array] :piece_placement Board position data
-    # @option position [Hash] :games_turn Games and turn data
-    # @option position [Array<Hash>] :pieces_in_hand Pieces in hand data
-    # @return [String] Complete FEEN string representation
-    def self.dump(position)
-      validate_position(position)
+    # Field separator used between the three main components of FEEN notation
+    FIELD_SEPARATOR = " "
 
+    # Converts position components to a complete FEEN string.
+    #
+    # @example Creating a FEEN string for chess initial position
+    #   Feen::Dumper.dump(
+    #     piece_placement: chess_board_array,
+    #     active_variant: "CHESS",
+    #     inactive_variant: "chess",
+    #     pieces_in_hand: []
+    #   )
+    #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+    #
+    # @param piece_placement [Array] Board position data structure representing the spatial
+    #                                distribution of pieces across the board
+    # @param active_variant [String] Identifier for the player to move and their game variant
+    # @param inactive_variant [String] Identifier for the opponent and their game variant
+    # @param pieces_in_hand [Array<Hash>] Pieces available for dropping onto the board,
+    #                                    each represented as a Hash with at least an :id key
+    # @return [String] Complete FEEN string representation compliant with the specification
+    # @see https://sashite.dev/documents/feen/1.0.0/ FEEN Specification v1.0.0
+    def self.dump(piece_placement:, active_variant:, inactive_variant:, pieces_in_hand:)
       [
-        PiecePlacement.dump(position[:piece_placement]),
-        GamesTurn.dump(position[:games_turn]),
-        PiecesInHand.dump(position[:pieces_in_hand])
-      ].join(" ")
-    end
-
-    # Validates the position data structure
-    #
-    # @param position [Hash] Position data to validate
-    # @raise [ArgumentError] If the position data is invalid
-    # @return [void]
-    def self.validate_position(position)
-      raise ArgumentError, "Position must be a Hash, got #{position.class}" unless position.is_a?(Hash)
-
-      # Check for required keys
-      required_keys = %i[piece_placement games_turn pieces_in_hand]
-      missing_keys = required_keys - position.keys
-
-      raise ArgumentError, "Missing required keys in position: #{missing_keys.join(', ')}" unless missing_keys.empty?
-
-      # Validate types of values
-      unless position[:piece_placement].is_a?(Array)
-        raise ArgumentError, "piece_placement must be an Array, got #{position[:piece_placement].class}"
-      end
-
-      unless position[:games_turn].is_a?(Hash)
-        raise ArgumentError, "games_turn must be a Hash, got #{position[:games_turn].class}"
-      end
-
-      return if position[:pieces_in_hand].is_a?(Array)
-
-      raise ArgumentError, "pieces_in_hand must be an Array, got #{position[:pieces_in_hand].class}"
+        PiecePlacement.dump(piece_placement),
+        GamesTurn.dump(active_variant, inactive_variant),
+        PiecesInHand.dump(pieces_in_hand)
+      ].join(FIELD_SEPARATOR)
     end
   end
 end

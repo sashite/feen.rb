@@ -218,7 +218,7 @@ RSpec.describe Feen::Parser::PiecePlacement do
 
         it "parses a very large 1D board (stress test)" do
           # Create a string with a very large number of empty squares
-          large_board = "r" + "1000" + "R"
+          large_board = "r1000R"
           result = described_class.parse(large_board)
 
           expect(result.length).to eq(1002) # 1 + 1000 + 1

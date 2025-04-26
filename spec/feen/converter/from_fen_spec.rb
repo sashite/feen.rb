@@ -146,7 +146,7 @@ RSpec.describe Feen::Converter::FromFen do
       feen = described_class.call(fen)
 
       # Verify basic structure of FEEN
-      parts = feen.split(" ")
+      parts = feen.split
       expect(parts.length).to eq(3)
       expect(parts[1]).to eq("CHESS/chess")
       expect(parts[2]).to eq("-")

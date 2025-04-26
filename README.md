@@ -59,30 +59,28 @@ position = Feen.parse(feen_string)
 
 ### Creating FEEN Strings
 
-Convert a position structure to a FEEN string:
+Convert position components to a FEEN string using named arguments:
 
 ```ruby
 require "feen"
 
-position = {
-  piece_placement: [
-    [{ id: "r" }, { id: "n" }, { id: "b" }, { id: "q" }, { id: "k", suffix: "=" }, { id: "b" }, { id: "n" }, { id: "r" }],
-    [{ id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }],
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [{ id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }],
-    [{ id: "R" }, { id: "N" }, { id: "B" }, { id: "Q" }, { id: "K", suffix: "=" }, { id: "B" }, { id: "N" }, { id: "R" }]
-  ],
-  games_turn:      {
-    active_player:   "CHESS",
-    inactive_player: "chess"
-  },
-  pieces_in_hand:  []
-}
+piece_placement = [
+  [{ id: "r" }, { id: "n" }, { id: "b" }, { id: "q" }, { id: "k", suffix: "=" }, { id: "b" }, { id: "n" }, { id: "r" }],
+  [{ id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [{ id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }],
+  [{ id: "R" }, { id: "N" }, { id: "B" }, { id: "Q" }, { id: "K", suffix: "=" }, { id: "B" }, { id: "N" }, { id: "R" }]
+]
 
-Feen.dump(position)
+result = Feen.dump(
+  piece_placement: piece_placement,
+  active_variant: "CHESS",
+  inactive_variant: "chess",
+  pieces_in_hand: []
+)
 # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
 ```
 
@@ -134,36 +132,46 @@ FEEN supports arbitrary-dimensional board configurations:
 require "feen"
 
 # 3D board
-position = {
-  piece_placement: [
-    [
-      [{ id: "r" }, { id: "n" }, { id: "b" }],
-      [{ id: "q" }, { id: "k" }, { id: "p" }]
-    ],
-    [
-      [{ id: "P" }, { id: "R" }, nil],
-      [nil, { id: "K" }, { id: "Q" }]
-    ]
+piece_placement = [
+  [
+    [{ id: "r" }, { id: "n" }, { id: "b" }],
+    [{ id: "q" }, { id: "k" }, { id: "p" }]
   ],
-  games_turn:      {
-    active_player:   "CHESS",
-    inactive_player: "chess"
-  },
-  pieces_in_hand:  []
-}
+  [
+    [{ id: "P" }, { id: "R" }, nil],
+    [nil, { id: "K" }, { id: "Q" }]
+  ]
+]
 
-Feen.dump(position)
+result = Feen.dump(
+  piece_placement: piece_placement,
+  active_variant: "CHESS",
+  inactive_variant: "chess",
+  pieces_in_hand: []
+)
 # => "rnb/qkp//PR1/1KQ CHESS/chess -"
 ```
 
 ### Piece Modifiers
 
-FEEN supports prefixes and suffixes for pieces:
+FEEN supports prefixes and suffixes for pieces to convey special states or capabilities:
 
-- Prefix `+`: Often used for promotion (e.g., `+P` for promoted pawn in Shogi)
-- Suffix `=`: Dual-option status (e.g., `K=` for king eligible for both castling sides)
-- Suffix `<`: Left-side constraint (e.g., `K<` for queenside castling only)
-- Suffix `>`: Right-side constraint (e.g., `K>` for kingside castling only)
+- **Prefix `+`**: Indicates promotion or special state
+  - Example: `+P` represents a promoted pawn in Shogi (e.g., a Dragon Horse)
+
+- **Suffix `=`**: Indicates dual-option status or special capability
+  - Example: `K=` represents a king eligible for both kingside and queenside castling
+  - Example: `P=` represents a pawn that may be captured en passant from both left and right
+
+- **Suffix `<`**: Indicates left-side constraint or condition
+  - Example: `K<` represents a king eligible for queenside castling only
+  - Example: `P<` represents a pawn that may be captured en passant from the left
+
+- **Suffix `>`**: Indicates right-side constraint or condition
+  - Example: `K>` represents a king eligible for kingside castling only
+  - Example: `P>` represents a pawn that may be captured en passant from the right
+
+These modifiers allow FEEN to encode rule-specific information like castling rights and en passant possibilities while maintaining its rule-agnostic design. When a piece is captured and becomes a "piece in hand" (available for dropping), its modifiers are typically removed.
 
 ### Sanitizing FEN Strings
 

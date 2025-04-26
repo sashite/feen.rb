@@ -56,6 +56,9 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
+    rubocop-rspec (3.6.0)
+      lint_roller (~> 1.1)
+      rubocop (~> 1.72, >= 1.72.1)
     rubocop-thread_safety (0.7.2)
       lint_roller (~> 1.1)
       rubocop (~> 1.72, >= 1.72.1)
@@ -88,6 +91,7 @@ DEPENDENCIES
   rubocop-md
   rubocop-performance
   rubocop-rake
+  rubocop-rspec
   rubocop-thread_safety
   simplecov
   yard

@@ -16,6 +16,7 @@ RuboCop::RakeTask.new do |task|
   task.requires << "rubocop-md"
   task.requires << "rubocop-performance"
   task.requires << "rubocop-rake"
+  task.requires << "rubocop-rspec"
   task.requires << "rubocop-thread_safety"
 end
 

@@ -1,9 +1,8 @@
 # Feen.rb
 
-[![Version](https://img.shields.io/github/v/tag/sashite/feen.rb?label=Version&logo=github)](https://github.com/sashite/feen.rb/releases)
+[![Version](https://img.shields.io/github/v/tag/sashite/feen.rb?label=Version&logo=github)](https://github.com/sashite/feen.rb/tags)
 [![Yard documentation](https://img.shields.io/badge/Yard-documentation-blue.svg?logo=github)](https://rubydoc.info/github/sashite/feen.rb/main)
-[![CI](https://github.com/sashite/feen.rb/workflows/CI/badge.svg?branch=main)](https://github.com/sashite/feen.rb/actions?query=workflow%3Aci+branch%3Amain)
-[![RuboCop](https://github.com/sashite/feen.rb/workflows/RuboCop/badge.svg?branch=main)](https://github.com/sashite/feen.rb/actions?query=workflow%3Arubocop+branch%3Amain)
+![Ruby](https://github.com/sashite/feen.rb/actions/workflows/main.yml/badge.svg?branch=main)
 [![License](https://img.shields.io/github/license/sashite/feen.rb?label=License&logo=github)](https://github.com/sashite/feen.rb/raw/main/LICENSE.md)
 
 > **FEEN** (Forsyth–Edwards Essential Notation) support for the Ruby language.
@@ -76,10 +75,10 @@ piece_placement = [
 ]
 
 result = Feen.dump(
-  piece_placement: piece_placement,
-  active_variant: "CHESS",
+  piece_placement:  piece_placement,
+  active_variant:   "CHESS",
   inactive_variant: "chess",
-  pieces_in_hand: []
+  pieces_in_hand:   []
 )
 # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
 ```
@@ -144,10 +143,10 @@ piece_placement = [
 ]
 
 result = Feen.dump(
-  piece_placement: piece_placement,
-  active_variant: "CHESS",
+  piece_placement:  piece_placement,
+  active_variant:   "CHESS",
   inactive_variant: "chess",
-  pieces_in_hand: []
+  pieces_in_hand:   []
 )
 # => "rnb/qkp//PR1/1KQ CHESS/chess -"
 ```

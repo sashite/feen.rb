@@ -39,10 +39,10 @@ module Feen
   #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
   def self.dump(piece_placement:, active_variant:, inactive_variant:, pieces_in_hand:)
     Dumper.dump(
-      piece_placement: piece_placement,
-      active_variant: active_variant,
+      piece_placement:  piece_placement,
+      active_variant:   active_variant,
       inactive_variant: inactive_variant,
-      pieces_in_hand: pieces_in_hand
+      pieces_in_hand:   pieces_in_hand
     )
   end
 

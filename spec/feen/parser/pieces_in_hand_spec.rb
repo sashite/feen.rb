@@ -12,26 +12,17 @@ RSpec.describe Feen::Parser::PiecesInHand do
 
       it "parses a single piece correctly" do
         result = described_class.parse("P")
-        expect(result).to eq([{ id: "P" }])
+        expect(result).to eq(["P"])
       end
 
       it "parses multiple pieces correctly" do
         result = described_class.parse("NPR")
-        expect(result).to eq([
-                               { id: "N" },
-                               { id: "P" },
-                               { id: "R" }
-                             ])
+        expect(result).to eq(%w[N P R])
       end
 
       it "handles mixed case piece identifiers" do
         result = described_class.parse("PRpr")
-        expect(result).to eq([
-                               { id: "P" },
-                               { id: "R" },
-                               { id: "p" },
-                               { id: "r" }
-                             ])
+        expect(result).to eq(%w[P R p r])
       end
 
       it "parses a large number of pieces" do
@@ -39,7 +30,7 @@ RSpec.describe Feen::Parser::PiecesInHand do
         pieces_str = ("A".."Z").to_a.join + ("a".."z").to_a.join
         result = described_class.parse(pieces_str)
 
-        expected = ("A".."Z").to_a.concat(("a".."z").to_a).map { |c| { id: c } }
+        expected = ("A".."Z").to_a.concat(("a".."z").to_a)
         expect(result).to eq(expected)
       end
     end
@@ -130,60 +121,28 @@ RSpec.describe Feen::Parser::PiecesInHand do
     end
   end
 
-  describe ".validate_pieces_in_hand_string" do
-    it "does not raise an error for valid input" do
-      expect do
-        described_class.validate_pieces_in_hand_string("PR")
-      end.not_to raise_exception(StandardError)
-    end
-
-    it "does not raise an error for hyphen" do
-      expect do
-        described_class.validate_pieces_in_hand_string("-")
-      end.not_to raise_exception(StandardError)
-    end
-  end
-
   describe ".pieces_sorted?" do
     it "returns true for sorted pieces" do
-      pieces = [
-        { id: "N" },
-        { id: "P" },
-        { id: "R" }
-      ]
+      pieces = %w[N P R]
       expect(described_class.pieces_sorted?(pieces)).to be true
     end
 
     it "returns false for unsorted pieces" do
-      pieces = [
-        { id: "P" },
-        { id: "N" },
-        { id: "R" }
-      ]
+      pieces = %w[P N R]
       expect(described_class.pieces_sorted?(pieces)).to be false
     end
 
     it "handles case sensitivity in sorting" do
       # ASCII: uppercase comes before lowercase
-      pieces = [
-        { id: "P" },
-        { id: "R" },
-        { id: "p" },
-        { id: "r" }
-      ]
+      pieces = %w[P R p r]
       expect(described_class.pieces_sorted?(pieces)).to be true
 
-      pieces = [
-        { id: "P" },
-        { id: "p" },
-        { id: "R" },
-        { id: "r" }
-      ]
+      pieces = %w[P p R r]
       expect(described_class.pieces_sorted?(pieces)).to be false
     end
 
     it "returns true for a single piece" do
-      pieces = [{ id: "P" }]
+      pieces = ["P"]
       expect(described_class.pieces_sorted?(pieces)).to be true
     end
 

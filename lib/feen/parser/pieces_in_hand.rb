@@ -15,7 +15,7 @@ module Feen
       # Parses the pieces in hand section of a FEEN string
       #
       # @param pieces_in_hand_str [String] FEEN pieces in hand string
-      # @return [Array<Hash>] Array of pieces in hand
+      # @return [Array<String>] Array of piece identifiers
       # @raise [ArgumentError] If the input string is invalid
       def self.parse(pieces_in_hand_str)
         validate_pieces_in_hand_string(pieces_in_hand_str)
@@ -30,9 +30,8 @@ module Feen
           # Vérifier que le caractère est une lettre
           raise ArgumentError, format(ERRORS[:invalid_identifier], i) unless pieces_in_hand_str[i].match?(/[a-zA-Z]/)
 
-          pieces << { id: pieces_in_hand_str[i] }
+          pieces << pieces_in_hand_str[i]
           i += 1
-
         end
 
         # Vérifier que les pièces sont triées par ordre lexicographique
@@ -64,11 +63,10 @@ module Feen
 
       # Checks if pieces are sorted in ASCII lexicographic order
       #
-      # @param pieces [Array<Hash>] Array of piece hashes
+      # @param pieces [Array<String>] Array of piece identifiers
       # @return [Boolean] True if pieces are sorted
       def self.pieces_sorted?(pieces)
-        piece_ids = pieces.map { |piece| piece[:id] }
-        piece_ids == piece_ids.sort
+        pieces == pieces.sort
       end
     end
   end

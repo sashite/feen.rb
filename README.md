@@ -121,6 +121,28 @@ fen_string = Feen.to_fen(feen_string)
 
 > ⚠️ `Feen.to_fen` only supports FEEN positions where `games_turn` is `CHESS/chess` or `chess/CHESS`.
 
+## Game Examples
+
+### Shogi Example
+
+FEEN can represent positions from shogi (Japanese chess) with full support for promoted pieces and pieces in hand:
+
+```
+lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL SHOGI/shogi N5P2g2snl
+```
+
+In this position:
+- `SHOGI/shogi` indicates it's Sente's (Black's) turn to move
+- `N5P2g2snl` shows the pieces in hand: Sente (Black) has a Knight and 5 Pawns, while Gote (White) has 2 Golds, 2 Silvers, a Knight, and a Lance
+
+#### Notes on Shogi Notation in FEEN
+
+- By convention, Sente's (Black's) pieces are represented in uppercase, while Gote's (White's) pieces are in lowercase
+- Unlike in chess, in shogi, Black (Sente) is positioned at the bottom (south) of the board, and in the initial position, Black plays first (similar to White in chess)
+- In the `SHOGI/shogi` games-turn field, uppercase `SHOGI` refers to the player using uppercase pieces (Sente/Black)
+
+This demonstrates how FEEN adapts naturally to different game conventions while maintaining consistent notation principles.
+
 ## Advanced Features
 
 ### Multi-dimensional Boards

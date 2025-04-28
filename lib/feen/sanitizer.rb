@@ -3,7 +3,7 @@
 module Feen
   # Provides methods for sanitizing and validating chess-related notation strings
   module Sanitizer
-    # Cleans a FEN (Forsyth-Edwards Notation) string by removing invalid castling rights
+    # Cleans a FEN (Format for Encounter & Entertainment Notation) string by removing invalid castling rights
     # and en passant targets based on the current position.
     #
     # The method performs the following validations:

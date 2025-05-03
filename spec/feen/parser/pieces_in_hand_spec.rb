@@ -120,34 +120,4 @@ RSpec.describe Feen::Parser::PiecesInHand do
       end
     end
   end
-
-  describe ".pieces_sorted?" do
-    it "returns true for sorted pieces" do
-      pieces = %w[N P R]
-      expect(described_class.pieces_sorted?(pieces)).to be true
-    end
-
-    it "returns false for unsorted pieces" do
-      pieces = %w[P N R]
-      expect(described_class.pieces_sorted?(pieces)).to be false
-    end
-
-    it "handles case sensitivity in sorting" do
-      # ASCII: uppercase comes before lowercase
-      pieces = %w[P R p r]
-      expect(described_class.pieces_sorted?(pieces)).to be true
-
-      pieces = %w[P p R r]
-      expect(described_class.pieces_sorted?(pieces)).to be false
-    end
-
-    it "returns true for a single piece" do
-      pieces = ["P"]
-      expect(described_class.pieces_sorted?(pieces)).to be true
-    end
-
-    it "returns true for empty array" do
-      expect(described_class.pieces_sorted?([])).to be true
-    end
-  end
 end

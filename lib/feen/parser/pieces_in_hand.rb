@@ -2,71 +2,80 @@
 
 module Feen
   module Parser
-    # Handles parsing of the pieces in hand section of a FEEN string
+    # Handles parsing of the pieces in hand section of a FEEN string.
+    # Pieces in hand represent pieces available for dropping onto the board.
     module PiecesInHand
+      # Character used to represent no pieces in hand
       NO_PIECES = "-"
+
+      # Error messages for validation
       ERRORS = {
-        invalid_type:       "Pieces in hand must be a string, got %s",
-        empty_string:       "Pieces in hand string cannot be empty",
-        invalid_chars:      "Invalid characters in pieces in hand: %s",
-        invalid_identifier: "Invalid piece identifier at position %d"
+        invalid_type:   "Pieces in hand must be a string, got %s",
+        empty_string:   "Pieces in hand string cannot be empty",
+        invalid_format: "Invalid pieces in hand format: %s",
+        sorting_error:  "Pieces in hand must be in ASCII lexicographic order"
       }.freeze
 
-      # Parses the pieces in hand section of a FEEN string
+      # Valid pattern for pieces in hand based on BNF:
+      # <pieces-in-hand> ::= "-" | <piece> <pieces-in-hand>
+      # <piece> ::= [a-zA-Z]
+      VALID_FORMAT_PATTERN = /\A(?:-|[a-zA-Z]+)\z/
+
+      # Parses the pieces in hand section of a FEEN string.
       #
       # @param pieces_in_hand_str [String] FEEN pieces in hand string
       # @return [Array<String>] Array of piece identifiers
       # @raise [ArgumentError] If the input string is invalid
+      #
+      # @example Parse no pieces in hand
+      #   PiecesInHand.parse("-")
+      #   # => []
+      #
+      # @example Parse multiple pieces in hand
+      #   PiecesInHand.parse("BNPPb")
+      #   # => ["B", "N", "P", "P", "b"]
       def self.parse(pieces_in_hand_str)
-        validate_pieces_in_hand_string(pieces_in_hand_str)
+        validate_input_type(pieces_in_hand_str)
+        validate_format(pieces_in_hand_str)
 
-        # Handle the special case of no pieces in hand
         return [] if pieces_in_hand_str == NO_PIECES
 
-        pieces = []
-        i = 0
-
-        while i < pieces_in_hand_str.length
-          # Vérifier que le caractère est une lettre
-          raise ArgumentError, format(ERRORS[:invalid_identifier], i) unless pieces_in_hand_str[i].match?(/[a-zA-Z]/)
-
-          pieces << pieces_in_hand_str[i]
-          i += 1
-        end
-
-        # Vérifier que les pièces sont triées par ordre lexicographique
-        raise ArgumentError, "Pieces in hand must be in ASCII lexicographic order" unless pieces_sorted?(pieces)
+        pieces = pieces_in_hand_str.chars
+        validate_pieces_order(pieces)
 
         pieces
       end
 
-      # Validates the pieces in hand string for syntax
+      # Validates that the input is a non-empty string.
       #
-      # @param str [String] FEEN pieces in hand string
-      # @raise [ArgumentError] If the string is invalid
+      # @param str [String] Input string to validate
+      # @raise [ArgumentError] If input is not a string or is empty
       # @return [void]
-      def self.validate_pieces_in_hand_string(str)
-        raise ArgumentError, format(ERRORS[:invalid_type], str.class) unless str.is_a?(String)
-
-        raise ArgumentError, ERRORS[:empty_string] if str.empty?
-
-        # Check for the special case of no pieces in hand
-        return if str == NO_PIECES
-
-        # Check for valid characters (only letters)
-        valid_chars = /\A[a-zA-Z]+\z/
-        return if str.match?(valid_chars)
-
-        invalid_chars = str.scan(/[^a-zA-Z]/).uniq.join(", ")
-        raise ArgumentError, format(ERRORS[:invalid_chars], invalid_chars)
+      private_class_method def self.validate_input_type(str)
+        raise ::ArgumentError, format(ERRORS[:invalid_type], str.class) unless str.is_a?(::String)
+        raise ::ArgumentError, ERRORS[:empty_string] if str.empty?
       end
 
-      # Checks if pieces are sorted in ASCII lexicographic order
+      # Validates that the input string matches the expected format.
+      #
+      # @param str [String] Input string to validate
+      # @raise [ArgumentError] If format is invalid
+      # @return [void]
+      private_class_method def self.validate_format(str)
+        return if str.match?(VALID_FORMAT_PATTERN)
+
+        raise ::ArgumentError, format(ERRORS[:invalid_format], str)
+      end
+
+      # Validates that pieces are sorted in ASCII lexicographic order.
       #
       # @param pieces [Array<String>] Array of piece identifiers
-      # @return [Boolean] True if pieces are sorted
-      def self.pieces_sorted?(pieces)
-        pieces == pieces.sort
+      # @raise [ArgumentError] If pieces are not sorted
+      # @return [void]
+      private_class_method def self.validate_pieces_order(pieces)
+        return if pieces == pieces.sort
+
+        raise ::ArgumentError, ERRORS[:sorting_error]
       end
     end
   end

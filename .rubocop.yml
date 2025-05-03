@@ -28,6 +28,8 @@ AllCops:
   
     - spec/feen/.DS_Store
   
+    - tmp/
+  
     - test.rb
     - config/**/*
 

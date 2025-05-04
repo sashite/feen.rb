@@ -71,14 +71,36 @@ begin
   Feen::Parser::PiecesInHand.parse("ba")
   raise "Expected error for non-ASCII-sorted input"
 rescue ArgumentError => e
-  raise unless e.message.include?("ASCII lexicographic order")
+  raise unless e.message.include?("Invalid pieces in hand format")
 end
 
 begin
   Feen::Parser::PiecesInHand.parse("ZAB")
   raise "Expected error for non-ASCII-sorted input"
 rescue ArgumentError => e
-  raise unless e.message.include?("ASCII lexicographic order")
+  raise unless e.message.include?("Invalid pieces in hand format")
 end
+
+# Test mixed case in wrong order
+begin
+  Feen::Parser::PiecesInHand.parse("aB")
+  raise "Expected error for lowercase before uppercase"
+rescue ArgumentError => e
+  raise unless e.message.include?("Invalid pieces in hand format")
+end
+
+# Test repeated pieces not grouped together
+begin
+  Feen::Parser::PiecesInHand.parse("PQPR")
+  raise "Expected error for non-grouped repeated pieces"
+rescue ArgumentError => e
+  raise unless e.message.include?("Invalid pieces in hand format")
+end
+
+# Test valid grouped repeated pieces
+raise unless Feen::Parser::PiecesInHand.parse("PPPR") == %w[P P P R]
+
+# Test valid complex case with multiple repeated pieces
+raise unless Feen::Parser::PiecesInHand.parse("BBNNNPPPRRbbnnnppprr") == %w[B B N N N P P P R R b b n n n p p p r r]
 
 puts "✅ All PiecesInHand parse tests passed."

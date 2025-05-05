@@ -1,27 +1,71 @@
 # frozen_string_literal: true
 
+require_relative File.join("pieces_in_hand", "no_pieces")
+require_relative File.join("pieces_in_hand", "errors")
+
 module Feen
   module Dumper
-    # Handles conversion of pieces in hand data structure to FEEN notation string
+    # Handles conversion of pieces in hand data to FEEN notation string
     module PiecesInHand
-      EMPTY_RESULT = "-"
-      ERROR_MESSAGE = "Invalid piece at index %d: must be a single alphabetic character"
-
-      # Converts the internal pieces in hand representation to a FEEN string
+      # Converts an array of piece identifiers to a FEEN-formatted pieces in hand string
       #
-      # @param pieces_in_hand [Array<String>] Array of piece identifiers
+      # @param piece_chars [Array<String>] Array of single-character piece identifiers
       # @return [String] FEEN-formatted pieces in hand string
-      def self.dump(*pieces_in_hand)
-        # If no pieces in hand, return a single hyphen
-        return EMPTY_RESULT if pieces_in_hand.empty?
+      # @raise [ArgumentError] If any piece identifier is invalid
+      # @example
+      #   PiecesInHand.dump("P", "p", "B")
+      #   # => "BPp"
+      #
+      #   PiecesInHand.dump
+      #   # => "-"
+      def self.dump(*piece_chars)
+        # If no pieces in hand, return the standardized empty indicator
+        return NoPieces if piece_chars.empty?
 
-        # Validate all pieces have the required structure
-        pieces_in_hand.each_with_index do |piece, index|
-          raise ArgumentError, format(ERROR_MESSAGE, index) unless piece.is_a?(String) && piece.match?(/\A[a-zA-Z]\z/)
-        end
+        # Validate each piece character according to the FEEN specification
+        validated_chars = validate_piece_chars(piece_chars)
 
         # Sort pieces in ASCII lexicographic order and join them
-        pieces_in_hand.sort.join
+        validated_chars.sort.join
+      end
+
+      # Validates all piece characters according to FEEN specification
+      #
+      # @param piece_chars [Array<Object>] Array of piece character candidates
+      # @return [Array<String>] Array of validated piece characters
+      # @raise [ArgumentError] If any piece character is invalid
+      private_class_method def self.validate_piece_chars(piece_chars)
+        piece_chars.each_with_index.map do |char, index|
+          validate_piece_char(char, index)
+        end
+      end
+
+      # Validates a single piece character according to FEEN specification
+      #
+      # @param char [Object] Piece character candidate
+      # @param index [Integer] Index of the character in the original array
+      # @return [String] Validated piece character
+      # @raise [ArgumentError] If the piece character is invalid
+      private_class_method def self.validate_piece_char(char, index)
+        # Validate type
+        unless char.is_a?(::String)
+          raise ::ArgumentError, format(
+            Errors[:invalid_type],
+            index: index,
+            type:  char.class
+          )
+        end
+
+        # Validate format (single alphabetic character)
+        unless char.match?(/\A[a-zA-Z]\z/)
+          raise ::ArgumentError, format(
+            Errors[:invalid_format],
+            index: index,
+            value: char
+          )
+        end
+
+        char
       end
     end
   end

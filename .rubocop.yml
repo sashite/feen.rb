@@ -22,6 +22,8 @@ AllCops:
   
     - lib/feen/.DS_Store
   
+    - lib/feen/dumper/.DS_Store
+  
     - lib/feen/parser/.DS_Store
   
     - pkg/

@@ -5,12 +5,12 @@ require_relative File.join("converter", "to_fen")
 
 module Feen
   module Converter
-    def self.from_fen(fen_string)
-      FromFen.call(fen_string)
+    def self.from_fen(...)
+      FromFen.call(...)
     end
 
-    def self.to_fen(feen_string)
-      ToFen.call(feen_string)
+    def self.to_fen(...)
+      ToFen.call(...)
     end
   end
 end

@@ -50,11 +50,21 @@ require "feen"
 feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
 position = Feen.parse(feen_string)
 
-# Result is a hash with structured position data
-# position[:piece_placement] # 2D array of board pieces
-# position[:active_variant]  # Active player's variant
-# position[:inactive_variant] # Inactive player's variant
-# position[:pieces_in_hand]  # Array of pieces held for dropping
+# Result is a hash:
+# {
+#   "piece_placement" => [
+#     ["r", "n", "b", "q", "k=", "b", "n", "r"],
+#     ["p", "p", "p", "p", "p", "p", "p", "p"],
+#     ["", "", "", "", "", "", "", ""],
+#     ["", "", "", "", "", "", "", ""],
+#     ["", "", "", "", "", "", "", ""],
+#     ["", "", "", "", "", "", "", ""],
+#     ["P", "P", "P", "P", "P", "P", "P", "P"],
+#     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+#   ],
+#   "games_turn" => ["CHESS", "chess"],
+#   "pieces_in_hand" => []
+# }
 ```
 
 ### Creating FEEN Strings
@@ -66,21 +76,20 @@ require "feen"
 
 # Representation of a chess board in initial position
 piece_placement = [
-  [{ id: "r" }, { id: "n" }, { id: "b" }, { id: "q" }, { id: "k", suffix: "=" }, { id: "b" }, { id: "n" }, { id: "r" }],
-  [{ id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [{ id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }],
-  [{ id: "R" }, { id: "N" }, { id: "B" }, { id: "Q" }, { id: "K", suffix: "=" }, { id: "B" }, { id: "N" }, { id: "R" }]
+  ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  ["p", "p", "p", "p", "p", "p", "p", "p"],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["P", "P", "P", "P", "P", "P", "P", "P"],
+  ["R", "N", "B", "Q", "K=", "B", "N", "R"]
 ]
 
 result = Feen.dump(
-  piece_placement:  piece_placement,
-  active_variant:   "CHESS",
-  inactive_variant: "chess",
-  pieces_in_hand:   []
+  piece_placement: piece_placement,
+  games_turn: ["CHESS", "chess"],
+  pieces_in_hand: []
 )
 # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
 ```
@@ -181,20 +190,19 @@ require "feen"
 # 3D board
 piece_placement = [
   [
-    [{ id: "r" }, { id: "n" }, { id: "b" }],
-    [{ id: "q" }, { id: "k" }, { id: "p" }]
+    ["r", "n", "b"],
+    ["q", "k", "p"]
   ],
   [
-    [{ id: "P" }, { id: "R" }, nil],
-    [nil, { id: "K" }, { id: "Q" }]
+    ["P", "R", ""],
+    ["", "K", "Q"]
   ]
 ]
 
 result = Feen.dump(
-  piece_placement:  piece_placement,
-  active_variant:   "FOO",
-  inactive_variant: "bar",
-  pieces_in_hand:   []
+  piece_placement: piece_placement,
+  games_turn: ["FOO", "bar"],
+  pieces_in_hand: []
 )
 # => "rnb/qkp//PR1/1KQ FOO/bar -"
 ```

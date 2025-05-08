@@ -11,80 +11,65 @@ require_relative File.join("feen", "parser")
 module Feen
   # Dumps position components into a FEEN string.
   #
-  # @param piece_placement [Array] Board position data structure representing the spatial
-  #                                distribution of pieces across the board
-  # @param active_variant [String] Identifier for the player to move and their game variant
-  # @param inactive_variant [String] Identifier for the opponent and their game variant
-  # @param pieces_in_hand [Array<Hash>] Pieces available for dropping onto the board,
-  #                                    each represented as a Hash with at least an :id key
+  # @see Feen::Dumper.dump for the detailed parameters documentation
   # @return [String] FEEN notation string
   # @raise [ArgumentError] If any parameter is invalid
   # @example
   #   piece_placement = [
-  #     [{id: 'r'}, {id: 'n'}, {id: 'b'}, {id: 'q'}, {id: 'k', suffix: '='}, {id: 'b'}, {id: 'n'}, {id: 'r'}],
-  #     [{id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}],
-  #     [nil, nil, nil, nil, nil, nil, nil, nil],
-  #     [nil, nil, nil, nil, nil, nil, nil, nil],
-  #     [nil, nil, nil, nil, nil, nil, nil, nil],
-  #     [nil, nil, nil, nil, nil, nil, nil, nil],
-  #     [{id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}],
-  #     [{id: 'R'}, {id: 'N'}, {id: 'B'}, {id: 'Q'}, {id: 'K', suffix: '='}, {id: 'B'}, {id: 'N'}, {id: 'R'}]
+  #     ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  #     ["p", "p", "p", "p", "p", "p", "p", "p"],
+  #     ["", "", "", "", "", "", "", ""],
+  #     ["", "", "", "", "", "", "", ""],
+  #     ["", "", "", "", "", "", "", ""],
+  #     ["", "", "", "", "", "", "", ""],
+  #     ["P", "P", "P", "P", "P", "P", "P", "P"],
+  #     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
   #   ]
   #   Feen.dump(
   #     piece_placement: piece_placement,
-  #     active_variant: 'CHESS',
-  #     inactive_variant: 'chess',
+  #     games_turn: ["CHESS", "chess"],
   #     pieces_in_hand: []
   #   )
   #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
-  def self.dump(piece_placement:, active_variant:, inactive_variant:, pieces_in_hand:)
-    Dumper.dump(
-      piece_placement:  piece_placement,
-      active_variant:   active_variant,
-      inactive_variant: inactive_variant,
-      pieces_in_hand:   pieces_in_hand
-    )
+  def self.dump(...)
+    Dumper.dump(...)
   end
 
   # Parses a FEEN string into position components.
   #
-  # @param feen_string [String] FEEN notation string
+  # @see Feen::Parser.parse for the detailed parameters and return value documentation
   # @return [Hash] Hash containing the parsed position data
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
   #   feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
   #   Feen.parse(feen_string)
   #   # => {
-  #   #      piece_placement: [[{id: 'r'}, {id: 'n'}, {id: 'b'}, {id: 'q'}, {id: 'k', suffix: '='}, {id: 'b'}, {id: 'n'}, {id: 'r'}],
-  #   #                        [{id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}, {id: 'p'}],
-  #   #                        [nil, nil, nil, nil, nil, nil, nil, nil],
-  #   #                        [nil, nil, nil, nil, nil, nil, nil, nil],
-  #   #                        [nil, nil, nil, nil, nil, nil, nil, nil],
-  #   #                        [nil, nil, nil, nil, nil, nil, nil, nil],
-  #   #                        [{id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}, {id: 'P'}],
-  #   #                        [{id: 'R'}, {id: 'N'}, {id: 'B'}, {id: 'Q'}, {id: 'K', suffix: '='}, {id: 'B'}, {id: 'N'}, {id: 'R'}]],
-  #   #      games_turn: {
-  #   #        active_player: 'CHESS',
-  #   #        inactive_player: 'chess',
-  #   #        uppercase_game: 'CHESS',
-  #   #        lowercase_game: 'chess',
-  #   #        active_player_casing: :uppercase
-  #   #      },
+  #   #      piece_placement: [
+  #   #        ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  #   #        ["p", "p", "p", "p", "p", "p", "p", "p"],
+  #   #        ["", "", "", "", "", "", "", ""],
+  #   #        ["", "", "", "", "", "", "", ""],
+  #   #        ["", "", "", "", "", "", "", ""],
+  #   #        ["", "", "", "", "", "", "", ""],
+  #   #        ["P", "P", "P", "P", "P", "P", "P", "P"],
+  #   #        ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+  #   #      ],
+  #   #      games_turn: ["CHESS", "chess"],
   #   #      pieces_in_hand: []
   #   #    }
-  def self.parse(feen_string)
-    Parser.parse(feen_string)
+  def self.parse(...)
+    Parser.parse(...)
   end
 
   # Validates if the given string is a valid FEEN string
   #
-  # @param feen_string [String] FEEN string to validate
+  # @see Feen.parse for parameter details
   # @return [Boolean] True if the string is a valid FEEN string, false otherwise
   # @example
   #   Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -") # => true
   #   Feen.valid?("invalid feen string") # => false
-  def self.valid?(feen_string)
-    parse(feen_string)
+  def self.valid?(...)
+    parse(...)
     true
   rescue ::ArgumentError
     false
@@ -92,25 +77,25 @@ module Feen
 
   # Converts a FEN string to a FEEN string for chess positions
   #
-  # @param fen_string [String] Standard FEN notation string for chess
+  # @see Feen::Converter::FromFen.call for parameter details
   # @return [String] Equivalent FEEN notation string
   # @raise [ArgumentError] If the FEN string is invalid
   # @example
   #   Feen.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
   #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
-  def self.from_fen(fen_string)
-    Converter.from_fen(fen_string)
+  def self.from_fen(...)
+    Converter.from_fen(...)
   end
 
   # Converts a FEEN string to a FEN string for chess positions
   #
-  # @param feen_string [String] FEEN notation string
+  # @see Feen::Converter::ToFen.call for parameter details
   # @return [String] Equivalent FEN notation string
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
   #   Feen.to_fen("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -")
   #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-  def self.to_fen(feen_string)
-    Converter.to_fen(feen_string)
+  def self.to_fen(...)
+    Converter.to_fen(...)
   end
 end

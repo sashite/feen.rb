@@ -20,29 +20,25 @@ end
 
 # Test simple rank with pieces
 result = Feen::Parser::PiecePlacement.parse("rnbqkbnr")
-expected = [
-  { id: "r" }, { id: "n" }, { id: "b" }, { id: "q" }, { id: "k" }, { id: "b" }, { id: "n" }, { id: "r" }
-]
+expected = ["r", "n", "b", "q", "k", "b", "n", "r"]
 assert_equal(expected, result)
 
 # Test rank with empty squares
 result = Feen::Parser::PiecePlacement.parse("r2qk2r")
-expected = [
-  { id: "r" }, nil, nil, { id: "q" }, { id: "k" }, nil, nil, { id: "r" }
-]
+expected = ["r", "", "", "q", "k", "", "", "r"]
 assert_equal(expected, result)
 
 # Test multiple ranks (standard chess starting position) - uniform 8x8
 result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
 expected = [
-  [{ id: "r" }, { id: "n" }, { id: "b" }, { id: "q" }, { id: "k" }, { id: "b" }, { id: "n" }, { id: "r" }],
-  [{ id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }, { id: "p" }],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [{ id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }, { id: "P" }],
-  [{ id: "R" }, { id: "N" }, { id: "B" }, { id: "Q" }, { id: "K" }, { id: "B" }, { id: "N" }, { id: "R" }]
+  ["r", "n", "b", "q", "k", "b", "n", "r"],
+  ["p", "p", "p", "p", "p", "p", "p", "p"],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["P", "P", "P", "P", "P", "P", "P", "P"],
+  ["R", "N", "B", "Q", "K", "B", "N", "R"]
 ]
 assert_equal(expected, result)
 
@@ -58,51 +54,45 @@ end
 
 # Test pieces with prefixes
 result = Feen::Parser::PiecePlacement.parse("+P-b")
-expected = [
-  { id: "P", prefix: "+" }, { id: "b", prefix: "-" }
-]
+expected = ["+P", "-b"]
 assert_equal(expected, result)
 
 # Test pieces with suffixes
 result = Feen::Parser::PiecePlacement.parse("K=P>p<")
-expected = [
-  { id: "K", suffix: "=" }, { id: "P", suffix: ">" }, { id: "p", suffix: "<" }
-]
+expected = ["K=", "P>", "p<"]
 assert_equal(expected, result)
 
 # Test pieces with both prefix and suffix
 result = Feen::Parser::PiecePlacement.parse("+B=-P>")
-expected = [
-  { id: "B", prefix: "+", suffix: "=" }, { id: "P", prefix: "-", suffix: ">" }
-]
+expected = ["+B=", "-P>"]
 assert_equal(expected, result)
 
 # Test multi-dimensional board (3D example) - uniform shape
 result = Feen::Parser::PiecePlacement.parse("r2/k2//P2/K2")
 expected = [
-  [[{ id: "r" }, nil, nil], [{ id: "k" }, nil, nil]],
-  [[{ id: "P" }, nil, nil], [{ id: "K" }, nil, nil]]
+  [["r", "", ""], ["k", "", ""]],
+  [["P", "", ""], ["K", "", ""]]
 ]
 assert_equal(expected, result)
 
 # Test invalid multi-dimensional structure - inconsistent sizes
-assert_raises(ArgumentError, /Inconsistent rank size: expected 2 cells, got 12 cells in rank '12'/) do
+assert_raises(ArgumentError, /Inconsistent rank size/) do
   Feen::Parser::PiecePlacement.parse("ab/cd///12/34") # "ab","cd" have 2 cells but "12" has 3
 end
 
 # Test edge case: single piece
 result = Feen::Parser::PiecePlacement.parse("K")
-expected = [{ id: "K" }]
+expected = ["K"]
 assert_equal(expected, result)
 
 # Test edge case: single empty square
 result = Feen::Parser::PiecePlacement.parse("1")
-expected = [nil]
+expected = [""]
 assert_equal(expected, result)
 
 # Test edge case: large number of empty squares
 result = Feen::Parser::PiecePlacement.parse("15")
-expected = [nil] * 15
+expected = [""] * 15
 assert_equal(expected, result)
 
 # Test invalid input: not a string
@@ -160,8 +150,8 @@ end
 # Test complex valid cases with all features
 result = Feen::Parser::PiecePlacement.parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR")
 assert_equal(8, result.length)
-assert_equal({ id: "k", suffix: "=" }, result[0][4])
-assert_equal({ id: "K", suffix: "=" }, result[7][4])
+assert_equal("k=", result[0][4])
+assert_equal("K=", result[7][4])
 
 # Test consistent board shapes
 result = Feen::Parser::PiecePlacement.parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R")
@@ -184,14 +174,14 @@ result.each do |rank|
   assert_equal(9, rank.length, "Each rank should have 9 cells")
 end
 # Verify specific pieces in the Xiangqi starting position
-assert_equal({ id: "r" }, result[0][0])
-assert_equal({ id: "r" }, result[0][8])
-assert_equal({ id: "a" }, result[0][3])
-assert_equal({ id: "a" }, result[0][5])
-assert_equal({ id: "c" }, result[2][1])
-assert_equal({ id: "c" }, result[2][7])
-assert_equal({ id: "s" }, result[3][0])
-assert_equal({ id: "s" }, result[3][8])
+assert_equal("r", result[0][0])
+assert_equal("r", result[0][8])
+assert_equal("a", result[0][3])
+assert_equal("a", result[0][5])
+assert_equal("c", result[2][1])
+assert_equal("c", result[2][7])
+assert_equal("s", result[3][0])
+assert_equal("s", result[3][8])
 
 # Additional shape validation tests
 # Test 4x4 board

@@ -3,30 +3,18 @@
 require_relative "../../../lib/feen/parser/games_turn"
 
 # Test basic parsing with uppercase first
-raise unless Feen::Parser::GamesTurn.parse("CHESS/shogi") == {
-  active_player:            "CHESS",
-  inactive_player:          "shogi",
-  active_player_uppercase?: true
-}
-
-raise unless Feen::Parser::GamesTurn.parse("SHOGI/chess") == {
-  active_player:            "SHOGI",
-  inactive_player:          "chess",
-  active_player_uppercase?: true
-}
+raise unless Feen::Parser::GamesTurn.parse("CHESS/shogi") == ["CHESS", "shogi"]
+raise unless Feen::Parser::GamesTurn.parse("SHOGI/chess") == ["SHOGI", "chess"]
 
 # Test parsing with lowercase first
-raise unless Feen::Parser::GamesTurn.parse("ogi/CHESS") == {
-  active_player:            "ogi",
-  inactive_player:          "CHESS",
-  active_player_uppercase?: false
-}
+raise unless Feen::Parser::GamesTurn.parse("ogi/CHESS") == ["ogi", "CHESS"]
+raise unless Feen::Parser::GamesTurn.parse("makruk/GO") == ["makruk", "GO"]
 
-raise unless Feen::Parser::GamesTurn.parse("makruk/GO") == {
-  active_player:            "makruk",
-  inactive_player:          "GO",
-  active_player_uppercase?: false
-}
+# Test with standard games
+raise unless Feen::Parser::GamesTurn.parse("CHESS/chess") == ["CHESS", "chess"]
+raise unless Feen::Parser::GamesTurn.parse("chess/CHESS") == ["chess", "CHESS"]
+raise unless Feen::Parser::GamesTurn.parse("SHOGI/shogi") == ["SHOGI", "shogi"]
+raise unless Feen::Parser::GamesTurn.parse("shogi/SHOGI") == ["shogi", "SHOGI"]
 
 # Test invalid formats
 begin
@@ -86,5 +74,9 @@ begin
 rescue ArgumentError => e
   raise unless e.message.include?("Invalid games turn format")
 end
+
+# Test edge cases
+raise unless Feen::Parser::GamesTurn.parse("A/a") == ["A", "a"]
+raise unless Feen::Parser::GamesTurn.parse("z/Z") == ["z", "Z"]
 
 puts "✅ All GamesTurn parse tests passed."

@@ -66,19 +66,19 @@ rescue ArgumentError => e
   raise unless e.message.include?("Invalid pieces in hand format")
 end
 
-# Test invalid order
+# Test invalid order - these check for sorting errors
 begin
   Feen::Parser::PiecesInHand.parse("ba")
   raise "Expected error for non-ASCII-sorted input"
 rescue ArgumentError => e
-  raise unless e.message.include?("Invalid pieces in hand format")
+  raise unless e.message.include?("must be in ASCII lexicographic order")
 end
 
 begin
   Feen::Parser::PiecesInHand.parse("ZAB")
   raise "Expected error for non-ASCII-sorted input"
 rescue ArgumentError => e
-  raise unless e.message.include?("Invalid pieces in hand format")
+  raise unless e.message.include?("must be in ASCII lexicographic order")
 end
 
 # Test mixed case in wrong order
@@ -86,7 +86,7 @@ begin
   Feen::Parser::PiecesInHand.parse("aB")
   raise "Expected error for lowercase before uppercase"
 rescue ArgumentError => e
-  raise unless e.message.include?("Invalid pieces in hand format")
+  raise unless e.message.include?("must be in ASCII lexicographic order")
 end
 
 # Test repeated pieces not grouped together
@@ -94,7 +94,7 @@ begin
   Feen::Parser::PiecesInHand.parse("PQPR")
   raise "Expected error for non-grouped repeated pieces"
 rescue ArgumentError => e
-  raise unless e.message.include?("Invalid pieces in hand format")
+  raise unless e.message.include?("must be in ASCII lexicographic order")
 end
 
 # Test valid grouped repeated pieces

@@ -33,6 +33,8 @@ module Feen
     # @example Keep valid en passant target when capturing is possible
     #   fen = "rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2"
     #   Feen::Sanitizer.clean_fen(fen) # => "rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2"
+    #
+    # @todo Use this method in a future class initializer to clean up the FEN string before conversion to FEEN.
     def self.clean_fen(fen_string)
       parts = fen_string.strip.split
       return fen_string unless parts.size >= 4

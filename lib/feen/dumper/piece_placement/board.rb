@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative File.join("..", "..", "piece")
-
 module Feen
   module Dumper
     module PiecePlacement
@@ -11,7 +9,7 @@ module Feen
         ERRORS = {
           invalid_shape:        "Board shape must be an array of positive integers, got %s",
           invalid_contents:     "Contents size (%d) does not match board size (%d)",
-          invalid_content_type: "Content item must be nil or a Piece instance, got %s"
+          invalid_content_type: "Content item must be nil or a String instance, got %s"
         }.freeze
 
         # Readonly accessor for board shape
@@ -29,7 +27,7 @@ module Feen
 
         # Convert a flat array of contents to a FEEN piece placement string
         #
-        # @param contents [Array<nil, Piece>] Flattened array of board contents
+        # @param contents [Array<nil, String>] Flattened array of board contents
         # @return [String] FEEN piece placement string
         # @raise [ArgumentError] If contents size doesn't match board size or contains invalid items
         def flatten_squares(*contents)
@@ -75,7 +73,7 @@ module Feen
           end
 
           contents.each do |item|
-            next if item.nil? || item.is_a?(Feen::Piece)
+            next if item.nil? || item.is_a?(String)
 
             raise ArgumentError, format(ERRORS[:invalid_content_type], item.class)
           end
@@ -170,7 +168,7 @@ module Feen
 
         # Formats a sequence of cells into FEEN notation
         #
-        # @param rank [Array<nil, Piece>] Sequence of cells
+        # @param rank [Array<nil, String>] Sequence of cells
         # @return [String] FEEN rank notation
         def format_rank(rank)
           # Group consecutive empty/non-empty cells

@@ -21,12 +21,12 @@ module Feen
     # @param feen_string [String] Complete FEEN notation string
     # @return [Hash] Hash containing the parsed position data with the following keys:
     #   - :piece_placement [Array] - Hierarchical array structure representing the board
-    #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
     #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board
+    #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
     # @raise [ArgumentError] If the FEEN string is invalid or any component cannot be parsed
     #
     # @example Parsing a standard chess initial position
-    #   feen = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+    #   feen = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
     #   result = Feen::Parser.parse(feen)
     #   # => {
     #   #      piece_placement: [
@@ -39,12 +39,12 @@ module Feen
     #   #        ["P", "P", "P", "P", "P", "P", "P", "P"],
     #   #        ["R", "N", "B", "Q", "K=", "B", "N", "R"]
     #   #      ],
-    #   #      games_turn: ["CHESS", "chess"],
-    #   #      pieces_in_hand: []
+    #   #      pieces_in_hand: [],
+    #   #      games_turn: ["CHESS", "chess"]
     #   #    }
     #
     # @example Parsing a shogi position (from a Tempo Loss Bishop Exchange opening) with pieces in hand
-    #   feen = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL SHOGI/shogi Bb"
+    #   feen = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL Bb SHOGI/shogi"
     #   result = Feen::Parser.parse(feen)
     #   # => {
     #   #      piece_placement: [
@@ -58,8 +58,8 @@ module Feen
     #   #        ["", "S", "G", "", "", "", "", "R", ""],
     #   #        ["L", "N", "", "", "K", "G", "S", "N", "L"]
     #   #      ],
-    #   #      games_turn: ["SHOGI", "shogi"],
-    #   #      pieces_in_hand: ["B", "b"]
+    #   #      pieces_in_hand: ["B", "b"],
+    #   #      games_turn: ["SHOGI", "shogi"]
     #   #    }
     def self.parse(feen_string)
       feen_string = String(feen_string)
@@ -71,18 +71,18 @@ module Feen
       raise ::ArgumentError, INVALID_FORMAT_ERROR unless match
 
       # Capture the three distinct parts
-      piece_placement_string, games_turn_string, pieces_in_hand_string = match.captures
+      piece_placement_string, pieces_in_hand_string, games_turn_string = match.captures
 
       # Parse each field using the appropriate submodule
       piece_placement = PiecePlacement.parse(piece_placement_string)
-      games_turn = GamesTurn.parse(games_turn_string)
       pieces_in_hand = PiecesInHand.parse(pieces_in_hand_string)
+      games_turn = GamesTurn.parse(games_turn_string)
 
       # Create a structured representation of the position
       {
         piece_placement:,
-        games_turn:,
-        pieces_in_hand:
+        pieces_in_hand:,
+        games_turn:
       }
     end
   end

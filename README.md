@@ -35,7 +35,7 @@ gem install feen --pre
 A FEEN record consists of three space-separated fields:
 
 ```
-<PIECE-PLACEMENT> <GAMES-TURN> <PIECES-IN-HAND>
+<PIECE-PLACEMENT> <PIECES-IN-HAND> <GAMES-TURN>
 ```
 
 ## Basic Usage
@@ -47,7 +47,7 @@ Convert a FEEN string into a structured Ruby object:
 ```ruby
 require "feen"
 
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 position = Feen.parse(feen_string)
 
 # Result is a hash:
@@ -91,7 +91,7 @@ result = Feen.dump(
   games_turn: ["CHESS", "chess"],
   pieces_in_hand: []
 )
-# => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+# => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 ```
 
 ### Validation
@@ -101,7 +101,7 @@ Check if a string is valid FEEN notation:
 ```ruby
 require "feen"
 
-Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -")
+Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
 # => true
 
 Feen.valid?("invalid feen string")
@@ -119,7 +119,7 @@ require "feen"
 
 fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 feen_string = Feen.from_fen(fen_string)
-# => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+# => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 ```
 
 ### Converting FEEN to FEN
@@ -127,7 +127,7 @@ feen_string = Feen.from_fen(fen_string)
 ```ruby
 require "feen"
 
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 fen_string = Feen.to_fen(feen_string)
 # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 ```
@@ -141,29 +141,29 @@ As FEEN is rule-agnostic, it can represent positions from various board games. H
 ### International Chess
 
 ```ruby
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 ```
 
 In this initial chess position:
 - The `=` suffixes on kings indicate castling rights on both sides (though FEEN doesn't define this semantics)
-- The first field `CHESS/chess` indicates it's the player with uppercase pieces' turn to move
+- The third field `CHESS/chess` indicates it's the player with uppercase pieces' turn to move
 
 ### Shogi (Japanese Chess)
 
 ```ruby
-feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL SHOGI/shogi N5P2g2snl"
+feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2g2snl SHOGI/shogi"
 ```
 
 In this shogi position:
 - The format supports promotions with the `+` prefix (e.g., `+P` for a promoted pawn)
-- The notation allows for pieces in hand, indicated in the third field
+- The notation allows for pieces in hand, indicated in the second field
 - `SHOGI/shogi` indicates it's Sente's (Black's, uppercase) turn to move
 - `N5P2g2snl` shows the pieces in hand: Sente has a Knight (N) and 5 Pawns (P), while Gote has 2 Golds (g), 2 Silvers (s), a Knight (n), and a Lance (l)
 
 ### Makruk (Thai Chess)
 
 ```ruby
-feen_string = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBQKBNR MAKRUK/makruk -"
+feen_string = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBQKBNR - MAKRUK/makruk"
 ```
 
 This initial Makruk position is easily represented in FEEN without needing to know the specific rules of the game.
@@ -171,7 +171,7 @@ This initial Makruk position is easily represented in FEEN without needing to kn
 ### Xiangqi (Chinese Chess)
 
 ```ruby
-feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR XIANGQI/xiangqi -"
+feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR - XIANGQI/xiangqi"
 ```
 
 In this Xiangqi position:
@@ -204,7 +204,7 @@ result = Feen.dump(
   games_turn: ["FOO", "bar"],
   pieces_in_hand: []
 )
-# => "rnb/qkp//PR1/1KQ FOO/bar -"
+# => "rnb/qkp//PR1/1KQ - FOO/bar"
 ```
 
 ### Piece Modifiers

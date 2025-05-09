@@ -8,23 +8,23 @@ require_relative "../lib/feen"
 
 # --- Test 1: Round-trip parsing and dumping ---
 # This tests that a FEEN string can be parsed and then dumped back to the same string
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 parsed = Feen.parse(feen_string)
 dumped = Feen.dump(
   piece_placement: parsed[:piece_placement],
-  games_turn: parsed[:games_turn],
-  pieces_in_hand: parsed[:pieces_in_hand]
+  pieces_in_hand: parsed[:pieces_in_hand],
+  games_turn: parsed[:games_turn]
 )
 raise "Test 1 failed: Round-trip parsing and dumping does not match" unless dumped == feen_string
 
 # --- Test 2: FEN to FEEN conversion ---
 fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 feen_string = Feen.from_fen(fen_string)
-expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 raise "Test 2 failed: FEN to FEEN conversion mismatch" unless feen_string == expected
 
 # --- Test 3: FEEN to FEN conversion ---
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 fen_string = Feen.to_fen(feen_string)
 expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 raise "Test 3 failed: FEEN to FEN conversion mismatch" unless fen_string == expected
@@ -36,7 +36,7 @@ fen_result = Feen.to_fen(feen_string)
 raise "Test 4 failed: FEN -> FEEN -> FEN roundtrip mismatch" unless fen_result == fen_string
 
 # --- Test 5: Validation of valid FEEN string ---
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 raise "Test 5 failed: Valid FEEN string not recognized" unless Feen.valid?(feen_string)
 
 # --- Test 6: Validation of invalid FEEN string ---
@@ -44,23 +44,23 @@ invalid_feen = "invalid feen string"
 raise "Test 6 failed: Invalid FEEN string incorrectly recognized as valid" if Feen.valid?(invalid_feen)
 
 # --- Test 7: Parsing Shogi position with pieces in hand ---
-feen_string = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL SHOGI/shogi Bb"
+feen_string = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL Bb SHOGI/shogi"
 result = Feen.parse(feen_string)
 expected_pieces_in_hand = ["B", "b"]
 raise "Test 7 failed: Pieces in hand not parsed correctly" unless result[:pieces_in_hand] == expected_pieces_in_hand
 
 # --- Test 8: Parsing and dumping 3D position ---
-feen_string = "rnb/qkp//PR1/1KQ FOO/bar -"
+feen_string = "rnb/qkp//PR1/1KQ - FOO/bar"
 parsed = Feen.parse(feen_string)
 dumped = Feen.dump(
   piece_placement: parsed[:piece_placement],
-  games_turn: parsed[:games_turn],
-  pieces_in_hand: parsed[:pieces_in_hand]
+  pieces_in_hand: parsed[:pieces_in_hand],
+  games_turn: parsed[:games_turn]
 )
 raise "Test 8 failed: 3D position parsing and dumping does not match" unless dumped == feen_string
 
 # --- Test 9: Different game types ---
-feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR XIANGQI/xiangqi -"
+feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR - XIANGQI/xiangqi"
 parsed = Feen.parse(feen_string)
 expected_games_turn = ["XIANGQI", "xiangqi"]
 raise "Test 9 failed: Games turn not parsed correctly" unless parsed[:games_turn] == expected_games_turn
@@ -93,12 +93,12 @@ raise "Test 11b failed: Pawn does not have en passant marker" unless pawn_row[pa
 
 # --- Test 12: Edge cases ---
 # Empty board
-feen_string = "8/8/8/8/8/8/8/8 CHESS/chess -"
+feen_string = "8/8/8/8/8/8/8/8 - CHESS/chess"
 parsed = Feen.parse(feen_string)
 dumped = Feen.dump(
   piece_placement: parsed[:piece_placement],
-  games_turn: parsed[:games_turn],
-  pieces_in_hand: parsed[:pieces_in_hand]
+  pieces_in_hand: parsed[:pieces_in_hand],
+  games_turn: parsed[:games_turn]
 )
 raise "Test 12 failed: Empty board parsing and dumping does not match" unless dumped == feen_string
 
@@ -120,7 +120,7 @@ rescue ArgumentError
 end
 
 # --- Test 14: FEEN with non-chess games (not convertible to FEN) ---
-feen_string = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL SHOGI/shogi -"
+feen_string = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL - SHOGI/shogi"
 begin
   Feen.to_fen(feen_string)
   raise "Test 14 failed: Should have raised ArgumentError for FEEN with non-chess format"
@@ -129,7 +129,7 @@ rescue ArgumentError
 end
 
 # --- Test 15: Modified pieces with prefixes/suffixes ---
-feen_string = "rnbqk<bnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQK>BNR CHESS/chess -"
+feen_string = "rnbqk<bnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQK>BNR - CHESS/chess"
 parsed = Feen.parse(feen_string)
 modified_pawn = parsed[:piece_placement][3][4] # 5th rank, 5th file
 white_king = parsed[:piece_placement][7][4] # 1st rank, 5th file

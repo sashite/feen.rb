@@ -32,30 +32,30 @@ module Feen
     #       ["P", "P", "P", "P", "P", "P", "P", "P"],
     #       ["R", "N", "B", "Q", "K=", "B", "N", "R"]
     #     ],
-    #     games_turn: ["CHESS", "chess"],
-    #     pieces_in_hand: []
+    #     pieces_in_hand: [],
+    #     games_turn: ["CHESS", "chess"]
     #   )
-    #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+    #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
     #
     # @param piece_placement [Array] Board position data structure representing the spatial
     #                                distribution of pieces across the board, where each cell
     #                                is represented by a String (or empty string for empty cells)
-    # @param games_turn [Array<String>] A two-element array where the first element is the
-    #                                  active player's variant and the second is the inactive player's variant
     # @param pieces_in_hand [Array<String>] Pieces available for dropping onto the board,
     #                                    each represented as a single character string
+    # @param games_turn [Array<String>] A two-element array where the first element is the
+    #                                  active player's variant and the second is the inactive player's variant
     # @return [String] Complete FEEN string representation compliant with the specification
     # @raise [ArgumentError] If any input parameter is invalid
     # @see https://sashite.dev/documents/feen/1.0.0/ FEEN Specification v1.0.0
-    def self.dump(piece_placement:, games_turn:, pieces_in_hand:)
+    def self.dump(piece_placement:, pieces_in_hand:, games_turn:)
       # Validate input types
       validate_inputs(piece_placement, games_turn, pieces_in_hand)
 
       # Process each component with appropriate submodule and combine into final FEEN string
       [
         PiecePlacement.dump(piece_placement),
-        GamesTurn.dump(*games_turn),
-        PiecesInHand.dump(*pieces_in_hand)
+        PiecesInHand.dump(*pieces_in_hand),
+        GamesTurn.dump(*games_turn)
       ].join(FIELD_SEPARATOR)
     end
 

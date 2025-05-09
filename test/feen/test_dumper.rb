@@ -25,7 +25,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 raise "Test 1 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 2: Shogi position with pieces in hand
@@ -48,7 +48,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL SHOGI/shogi Bb"
+expected = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL Bb SHOGI/shogi"
 raise "Test 2 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 3: Chess position with black to move
@@ -70,7 +70,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR chess/CHESS -"
+expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - chess/CHESS"
 raise "Test 3 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 4: Xiangqi position
@@ -94,7 +94,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR XIANGQI/xiangqi -"
+expected = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR - XIANGQI/xiangqi"
 raise "Test 4 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 5: Chess position with modified pieces (prefix/suffix)
@@ -116,7 +116,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "rnbqk<bnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQK>BNR CHESS/chess -"
+expected = "rnbqk<bnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQK>BNR - CHESS/chess"
 raise "Test 5 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 6: 3D structure
@@ -138,7 +138,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "rnb/qkp//PR1/1KQ FOO/bar -"
+expected = "rnb/qkp//PR1/1KQ - FOO/bar"
 raise "Test 6 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 7: Position with many pieces in hand
@@ -165,7 +165,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "8/8/8/8/8/8/8/8 CHESS/chess ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+expected = "8/8/8/8/8/8/8/8 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz CHESS/chess"
 raise "Test 7 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 8: Empty board with no pieces in hand
@@ -187,7 +187,7 @@ result = Feen::Dumper.dump(
   games_turn: games_turn,
   pieces_in_hand: pieces_in_hand
 )
-expected = "8/8/8/8/8/8/8/8 CHESS/chess -"
+expected = "8/8/8/8/8/8/8/8 - CHESS/chess"
 raise "Test 8 failed: expected #{expected}, got #{result}" unless result == expected
 
 # --- Tests for error cases ---
@@ -290,7 +290,7 @@ result = Feen::Dumper.dump(
   games_turn: ["CHESS", "chess"],
   pieces_in_hand: []
 )
-expected = " CHESS/chess -"
+expected = " - CHESS/chess"
 raise "Test 14 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 15: Game identifiers with different case requirements

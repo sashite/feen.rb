@@ -27,10 +27,10 @@ module Feen
   #   ]
   #   Feen.dump(
   #     piece_placement: piece_placement,
-  #     games_turn: ["CHESS", "chess"],
-  #     pieces_in_hand: []
+  #     pieces_in_hand: [],
+  #     games_turn: ["CHESS", "chess"]
   #   )
-  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
   def self.dump(...)
     Dumper.dump(...)
   end
@@ -41,7 +41,7 @@ module Feen
   # @return [Hash] Hash containing the parsed position data
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
-  #   feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+  #   feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
   #   Feen.parse(feen_string)
   #   # => {
   #   #      piece_placement: [
@@ -54,8 +54,8 @@ module Feen
   #   #        ["P", "P", "P", "P", "P", "P", "P", "P"],
   #   #        ["R", "N", "B", "Q", "K=", "B", "N", "R"]
   #   #      ],
-  #   #      games_turn: ["CHESS", "chess"],
-  #   #      pieces_in_hand: []
+  #   #      pieces_in_hand: [],
+  #   #      games_turn: ["CHESS", "chess"]
   #   #    }
   def self.parse(...)
     Parser.parse(...)
@@ -66,7 +66,7 @@ module Feen
   # @see Feen.parse for parameter details
   # @return [Boolean] True if the string is a valid FEEN string, false otherwise
   # @example
-  #   Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -") # => true
+  #   Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess") # => true
   #   Feen.valid?("invalid feen string") # => false
   def self.valid?(...)
     parse(...)
@@ -82,7 +82,7 @@ module Feen
   # @raise [ArgumentError] If the FEN string is invalid
   # @example
   #   Feen.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -"
+  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
   def self.from_fen(...)
     Converter.from_fen(...)
   end
@@ -93,7 +93,7 @@ module Feen
   # @return [String] Equivalent FEN notation string
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
-  #   Feen.to_fen("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR CHESS/chess -")
+  #   Feen.to_fen("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
   #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   def self.to_fen(...)
     Converter.to_fen(...)

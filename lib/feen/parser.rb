@@ -9,8 +9,12 @@ module Feen
   # FEEN (Format for Encounter & Entertainment Notation) is a compact, canonical, and rule-agnostic
   # textual format for representing static board positions in two-player piece-placement games.
   module Parser
-    # Field separator used between the three main components of FEEN notation
-    FIELD_SEPARATOR = " "
+    # Regular expression pattern for matching a valid FEEN string structure
+    # Captures exactly three non-space components separated by single spaces
+    FEEN_PATTERN = /\A([^\s]+)\s([^\s]+)\s([^\s]+)\z/.freeze
+
+    # Error message for invalid FEEN format
+    INVALID_FORMAT_ERROR = "Invalid FEEN format: expected exactly 3 fields separated by single spaces"
 
     # Parses a complete FEEN string into a structured representation
     #
@@ -58,14 +62,23 @@ module Feen
     #   #      pieces_in_hand: ["B", "b"]
     #   #    }
     def self.parse(feen_string)
-      piece_placement_string, games_turn_string, pieces_in_hand_string = String(feen_string).split(FIELD_SEPARATOR)
+      feen_string = String(feen_string)
+
+      # Match the FEEN string against the expected pattern
+      match = FEEN_PATTERN.match(feen_string)
+
+      # Raise an error if the format doesn't match the expected pattern
+      raise ::ArgumentError, INVALID_FORMAT_ERROR unless match
+
+      # Capture the three distinct parts
+      piece_placement_string, games_turn_string, pieces_in_hand_string = match.captures
 
       # Parse each field using the appropriate submodule
       piece_placement = PiecePlacement.parse(piece_placement_string)
       games_turn = GamesTurn.parse(games_turn_string)
       pieces_in_hand = PiecesInHand.parse(pieces_in_hand_string)
 
-      # Create a simplified data structure with games_turn as an array
+      # Create a structured representation of the position
       {
         piece_placement:,
         games_turn:,

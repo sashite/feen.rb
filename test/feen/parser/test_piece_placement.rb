@@ -18,6 +18,10 @@ rescue exception_class => e
   e
 end
 
+# ==========================================================================
+# Basic parsing tests
+# ==========================================================================
+
 # Test simple rank with pieces
 result = Feen::Parser::PiecePlacement.parse("rnbqkbnr")
 expected = ["r", "n", "b", "q", "k", "b", "n", "r"]
@@ -42,15 +46,23 @@ expected = [
 ]
 assert_equal(expected, result)
 
+# ==========================================================================
+# Shape validation tests
+# ==========================================================================
+
 # Test shape validation - inconsistent rank sizes
 assert_raises(ArgumentError, /Inconsistent rank size/) do
   Feen::Parser::PiecePlacement.parse("rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR") # 7 pawns vs 8
 end
 
 # Test shape validation - inconsistent dimension sizes
-assert_raises(ArgumentError, /Inconsistent rank size: expected 2 cells, got 3 cells in rank 'P2'/) do
-  Feen::Parser::PiecePlacement.parse("r2/k2//P2") # 2x3 vs 1x3
+assert_raises(ArgumentError, /Mixed separator depths/) do
+  Feen::Parser::PiecePlacement.parse("kp/qr//KP") # Mixed separator depths (/ and //)
 end
+
+# ==========================================================================
+# Piece format tests
+# ==========================================================================
 
 # Test pieces with prefixes
 result = Feen::Parser::PiecePlacement.parse("+P-b")
@@ -67,6 +79,10 @@ result = Feen::Parser::PiecePlacement.parse("+B=-P>")
 expected = ["+B=", "-P>"]
 assert_equal(expected, result)
 
+# ==========================================================================
+# Multi-dimensional board tests
+# ==========================================================================
+
 # Test multi-dimensional board (3D example) - uniform shape
 result = Feen::Parser::PiecePlacement.parse("r2/k2//P2/K2")
 expected = [
@@ -77,8 +93,12 @@ assert_equal(expected, result)
 
 # Test invalid multi-dimensional structure - inconsistent sizes
 assert_raises(ArgumentError, /Inconsistent rank size/) do
-  Feen::Parser::PiecePlacement.parse("ab/cd///12/34") # "ab","cd" have 2 cells but "12" has 3
+  Feen::Parser::PiecePlacement.parse("ab/cd///12/345") # "ab","cd" have 2 cells but "345" has 3
 end
+
+# ==========================================================================
+# Edge case tests
+# ==========================================================================
 
 # Test edge case: single piece
 result = Feen::Parser::PiecePlacement.parse("K")
@@ -94,6 +114,10 @@ assert_equal(expected, result)
 result = Feen::Parser::PiecePlacement.parse("15")
 expected = [""] * 15
 assert_equal(expected, result)
+
+# ==========================================================================
+# Input validation tests
+# ==========================================================================
 
 # Test invalid input: not a string
 assert_raises(ArgumentError, /must be a string/) do
@@ -147,6 +171,10 @@ assert_raises(ArgumentError, /Invalid piece placement format/) do
   Feen::Parser::PiecePlacement.parse("K01Q")
 end
 
+# ==========================================================================
+# Complex valid cases
+# ==========================================================================
+
 # Test complex valid cases with all features
 result = Feen::Parser::PiecePlacement.parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR")
 assert_equal(8, result.length)
@@ -183,7 +211,10 @@ assert_equal("c", result[2][7])
 assert_equal("s", result[3][0])
 assert_equal("s", result[3][8])
 
+# ==========================================================================
 # Additional shape validation tests
+# ==========================================================================
+
 # Test 4x4 board
 result = Feen::Parser::PiecePlacement.parse("4/4/4/4")
 assert_equal(4, result.length)
@@ -215,13 +246,75 @@ result.each do |plane|
   end
 end
 
-# Test shape validation failure cases
+# Test complex but valid nested structure with mixed separator depths
+result = Feen::Parser::PiecePlacement.parse("ab/cd//ef/gh///ij/kl//mn/op")
+expected = [
+  [
+    [["a", "b"], ["c", "d"]],
+    [["e", "f"], ["g", "h"]]
+  ],
+  [
+    [["i", "j"], ["k", "l"]],
+    [["m", "n"], ["o", "p"]]
+  ]
+]
+assert_equal(expected, result)
+
+# ==========================================================================
+# Shape validation failure cases
+# ==========================================================================
+
+# Test shape validation failure - inconsistent rank sizes
 assert_raises(ArgumentError, /Inconsistent rank size/) do
   Feen::Parser::PiecePlacement.parse("8/7/8/8") # Inconsistent 2D shape
 end
 
-assert_raises(ArgumentError, /Inconsistent dimension/) do
+# Test shape validation failure - inconsistent dimensions
+assert_raises(ArgumentError, /Inconsistent rank size/) do
   Feen::Parser::PiecePlacement.parse("3/3/3//3/3//3/3/3") # Inconsistent 3D shape (3-2-3)
 end
+
+# ==========================================================================
+# New separator inconsistency tests
+# ==========================================================================
+
+# Test mixed separator depths at the same level (generic case)
+assert_raises(ArgumentError, /Mixed separator depths/) do
+  Feen::Parser::PiecePlacement.parse("ab/cd//ef")
+end
+
+# Test mixed separator depths in a more complex structure
+assert_raises(ArgumentError, /Mixed separator depths/) do
+  Feen::Parser::PiecePlacement.parse("ab/cd///ef//gh")
+end
+
+# Test mixed separator depths in multiple segments
+assert_raises(ArgumentError, /Mixed separator depths/) do
+  Feen::Parser::PiecePlacement.parse("ab/cd//ef///gh/ij//kl")
+end
+
+# Our specific problematic case
+assert_raises(ArgumentError, /Mixed separator depths/) do
+  Feen::Parser::PiecePlacement.parse("kp/qr//KP")
+end
+
+# Test valid but complex multi-dimensional structure
+result = Feen::Parser::PiecePlacement.parse("ab/cd//ef/gh//ij/kl")
+expected = [
+  [["a", "b"], ["c", "d"]],
+  [["e", "f"], ["g", "h"]],
+  [["i", "j"], ["k", "l"]]
+]
+assert_equal(expected, result)
+
+# Test deeply nested structure
+result = Feen::Parser::PiecePlacement.parse("ab/cd///ef/gh///ij/kl///mn/op")
+expected = [
+  [["a", "b"], ["c", "d"]],
+  [["e", "f"], ["g", "h"]],
+  [["i", "j"], ["k", "l"]],
+  [["m", "n"], ["o", "p"]]
+]
+assert_equal(expected, result, "La structure 4D devrait être analysée correctement")
 
 puts "✅ All PiecePlacement parse tests passed."

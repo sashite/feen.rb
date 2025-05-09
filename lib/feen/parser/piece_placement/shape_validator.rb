@@ -77,12 +77,13 @@ module Feen
         end
 
         # Checks if a structure is a rank (array of cells)
+        # A rank is an array whose elements are either nil or String objects
         #
         # @param structure [Array] Structure to check
         # @return [Boolean] True if it's a rank
         def self.is_rank?(structure)
           structure.is_a?(::Array) &&
-            (structure.empty? || structure.fetch(0).nil? || structure.fetch(0).is_a?(::Hash))
+            (structure.empty? || structure.all? { |item| item.nil? || item.is_a?(::String) })
         end
 
         # Converts a rank back to string representation for error messages
@@ -105,7 +106,7 @@ module Feen
           current_cell = remaining_cells.fetch(0)
           rest_cells = remaining_cells.drop(1)
 
-          if current_cell.nil?
+          if current_cell.nil? || current_cell.empty?
             # Empty cell - increment counter
             rank_to_string_recursive(rest_cells, accumulated_result, empty_count + 1)
           else
@@ -124,15 +125,12 @@ module Feen
         end
 
         # Formats a piece for string representation
+        # In the current implementation, pieces are already formatted as strings
         #
-        # @param piece [Hash] Piece hash with optional prefix, id, and suffix
+        # @param piece [String] Piece string
         # @return [String] Formatted piece string
         def self.format_piece(piece)
-          result = ""
-          result += piece[:prefix] if piece.key?(:prefix)
-          result += piece.fetch(:id)
-          result += piece[:suffix] if piece.key?(:suffix)
-          result
+          piece.to_s
         end
       end
     end

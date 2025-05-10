@@ -28,9 +28,7 @@ AllCops:
   
     - pkg/
   
-    - spec/.DS_Store
-  
-    - spec/feen/.DS_Store
+    - test/.DS_Store
   
     - tmp/
   

@@ -6,16 +6,16 @@ module Feen
     module PiecePlacement
       # Error messages
       ERRORS = {
-        invalid_type:             "Piece placement must be a string, got %s",
-        empty_string:             "Piece placement string cannot be empty",
-        invalid_format:           "Invalid piece placement format",
-        invalid_prefix:           "Expected piece identifier after prefix",
-        invalid_piece:            "Invalid piece identifier at position %d: %s",
-        trailing_separator:       "Unexpected separator at the end of string or dimension group",
-        inconsistent_dimension:   "Inconsistent dimension structure: expected %s, got %s",
-        inconsistent_rank_size:   "Inconsistent rank size: expected %d cells, got %d cells in rank '%s'",
-        inconsistent_dimensions:  "Inconsistent number of dimensions within structure",
-        mixed_separators:         "Mixed separator depths within the same level are not allowed: %s"
+        invalid_type:            "Piece placement must be a string, got %s",
+        empty_string:            "Piece placement string cannot be empty",
+        invalid_format:          "Invalid piece placement format",
+        invalid_prefix:          "Expected piece identifier after prefix",
+        invalid_piece:           "Invalid piece identifier at position %d: %s",
+        trailing_separator:      "Unexpected separator at the end of string or dimension group",
+        inconsistent_dimension:  "Inconsistent dimension structure: expected %s, got %s",
+        inconsistent_rank_size:  "Inconsistent rank size: expected %d cells, got %d cells in rank '%s'",
+        inconsistent_dimensions: "Inconsistent number of dimensions within structure",
+        mixed_separators:        "Mixed separator depths within the same level are not allowed: %s"
       }.freeze
 
       # Empty string for initialization
@@ -122,17 +122,19 @@ module Feen
       def self.extract_hierarchical_segments(str)
         # Locate all separators in the string
         separator_positions = []
-        str.scan(/\/+/) do
+        str.scan(%r{/+}) do
           separator_positions << {
-            start: Regexp.last_match.begin(0),
-            end: Regexp.last_match.end(0) - 1,
-            depth: Regexp.last_match[0].length,
+            start:   Regexp.last_match.begin(0),
+            end:     Regexp.last_match.end(0) - 1,
+            depth:   Regexp.last_match[0].length,
             content: Regexp.last_match[0]
           }
         end
 
         # Return early if no separators
-        return { segments: [{ content: str, start: 0, end: str.length - 1 }], separators: [] } if separator_positions.empty?
+        if separator_positions.empty?
+          return { segments: [{ content: str, start: 0, end: str.length - 1 }], separators: [] }
+        end
 
         # Group separators by depth
         separators_by_depth = separator_positions.group_by { |s| s[:depth] }
@@ -143,14 +145,13 @@ module Feen
 
         # Extract top level segments
         top_segments = []
-        last_pos = -1
 
         # Add first segment if it exists
         if top_level_separators.first && top_level_separators.first[:start] > 0
           top_segments << {
             content: str[0...top_level_separators.first[:start]],
-            start: 0,
-            end: top_level_separators.first[:start] - 1
+            start:   0,
+            end:     top_level_separators.first[:start] - 1
           }
         end
 
@@ -164,8 +165,8 @@ module Feen
             if segment_end >= segment_start
               top_segments << {
                 content: str[segment_start..segment_end],
-                start: segment_start,
-                end: segment_end
+                start:   segment_start,
+                end:     segment_end
               }
             end
           else
@@ -174,8 +175,8 @@ module Feen
             if segment_start < str.length
               top_segments << {
                 content: str[segment_start..],
-                start: segment_start,
-                end: str.length - 1
+                start:   segment_start,
+                end:     str.length - 1
               }
             end
           end
@@ -205,9 +206,7 @@ module Feen
 
         # Check that all separators at this level have the same depth
         separator_depths = separators.map { |s| s[:depth] }.uniq
-        if separator_depths.size > 1
-          raise ArgumentError, format(ERRORS[:mixed_separators], separator_depths.inspect)
-        end
+        raise ArgumentError, format(ERRORS[:mixed_separators], separator_depths.inspect) if separator_depths.size > 1
 
         # Check that sibling segments have consistent separator structure
         if segments.size > 1
@@ -219,23 +218,23 @@ module Feen
           # All segments should have the same separator depth pattern
           reference_depths = segment_separator_depths.first
           segment_separator_depths.each do |depths|
-            if depths != reference_depths
-              raise ArgumentError, format(
-                ERRORS[:mixed_separators],
-                "Inconsistent separator depths between segments"
-              )
-            end
+            next unless depths != reference_depths
+
+            raise ArgumentError, format(
+              ERRORS[:mixed_separators],
+              "Inconsistent separator depths between segments"
+            )
           end
         end
 
         # Recursively validate each segment's subsegments
         segments.each do |segment|
-          if segment[:subsegments] && !segment[:subsegments].empty?
-            validate_separator_segments(
-              segments: segment[:subsegments],
-              separators: segment[:subseparators] || []
-            )
-          end
+          next unless segment[:subsegments] && !segment[:subsegments].empty?
+
+          validate_separator_segments(
+            segments:   segment[:subsegments],
+            separators: segment[:subseparators] || []
+          )
         end
       end
 
@@ -322,33 +321,33 @@ module Feen
             next if index == 0 # Skip first part (already checked)
 
             part_seps = find_separator_types(part)
-            if part_seps != first_part_seps
-              raise ArgumentError, format(
-                ERRORS[:inconsistent_dimension],
-                first_part_seps.inspect,
-                part_seps.inspect
-              )
-            end
+            next unless part_seps != first_part_seps
+
+            raise ArgumentError, format(
+              ERRORS[:inconsistent_dimension],
+              first_part_seps.inspect,
+              part_seps.inspect
+            )
           end
         end
 
         # For lowest level separators, verify rank sizes are consistent
-        if depth == 1
-          expected_size = calculate_rank_size(parts.first)
+        return unless depth == 1
 
-          parts.each_with_index do |part, index|
-            next if index == 0 # Skip first part (already checked)
+        expected_size = calculate_rank_size(parts.first)
 
-            size = calculate_rank_size(part)
-            if size != expected_size
-              raise ArgumentError, format(
-                ERRORS[:inconsistent_rank_size],
-                expected_size,
-                size,
-                part
-              )
-            end
-          end
+        parts.each_with_index do |part, index|
+          next if index == 0 # Skip first part (already checked)
+
+          size = calculate_rank_size(part)
+          next unless size != expected_size
+
+          raise ArgumentError, format(
+            ERRORS[:inconsistent_rank_size],
+            expected_size,
+            size,
+            part
+          )
         end
       end
 
@@ -377,9 +376,7 @@ module Feen
               # It's not our exact separator, count consecutive '/' characters
               start = i
               j = i
-              while j < str.length && str[j] == DIMENSION_SEPARATOR[0]
-                j += 1
-              end
+              j += 1 while j < str.length && str[j] == DIMENSION_SEPARATOR[0]
 
               # Add these '/' to the current part
               current_part += str[start...j]
@@ -447,7 +444,7 @@ module Feen
         end
 
         {
-          count: empty_count.to_i,
+          count:      empty_count.to_i,
           next_index: current_index
         }
       end
@@ -477,9 +474,7 @@ module Feen
         end
 
         # Get the piece identifier
-        unless char.match?(/[a-zA-Z]/)
-          raise ArgumentError, format(ERRORS[:invalid_piece], current_index, char)
-        end
+        raise ArgumentError, format(ERRORS[:invalid_piece], current_index, char) unless char.match?(/[a-zA-Z]/)
 
         piece_string += char
         current_index += 1
@@ -491,7 +486,7 @@ module Feen
         end
 
         {
-          piece: piece_string,
+          piece:      piece_string,
           next_index: current_index
         }
       end
@@ -539,17 +534,13 @@ module Feen
         current_index = index
 
         # Skip prefix if present
-        if current_index < str.length && VALID_PREFIXES.include?(str[current_index])
-          current_index += 1
-        end
+        current_index += 1 if current_index < str.length && VALID_PREFIXES.include?(str[current_index])
 
         # Skip piece identifier
         current_index += 1 if current_index < str.length
 
         # Skip suffix if present
-        if current_index < str.length && VALID_SUFFIXES.include?(str[current_index])
-          current_index += 1
-        end
+        current_index += 1 if current_index < str.length && VALID_SUFFIXES.include?(str[current_index])
 
         current_index
       end
@@ -579,9 +570,7 @@ module Feen
         return if structure.all? { |item| item.is_a?(String) }
 
         # If it's a multi-dimensional array, check that all elements are arrays
-        unless structure.all? { |item| item.is_a?(Array) }
-          raise ArgumentError, ERRORS[:inconsistent_dimensions]
-        end
+        raise ArgumentError, ERRORS[:inconsistent_dimensions] unless structure.all? { |item| item.is_a?(Array) }
 
         # Check that all elements have the same length
         first_length = structure.first.size

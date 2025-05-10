@@ -15,7 +15,7 @@ end
 def assert_raises(exception_class, message = nil)
   yield
   raise "Expected #{exception_class} to be raised, but no exception was raised"
-rescue => e
+rescue StandardError => e
   unless e.is_a?(exception_class)
     message ||= "Expected #{exception_class} to be raised, but got #{e.class}: #{e.message}"
     raise message
@@ -31,7 +31,7 @@ puts "Testing Feen::Parser::PiecePlacement..."
 
 # Test a single rank with pieces
 result = Feen::Parser::PiecePlacement.parse("rnbqkbnr")
-assert_equal(["r", "n", "b", "q", "k", "b", "n", "r"], result)
+assert_equal(%w[r n b q k b n r], result)
 
 # Test a single rank with empty spaces
 result = Feen::Parser::PiecePlacement.parse("r1b2k1r")
@@ -100,12 +100,12 @@ assert_equal(expected, result)
 result = Feen::Parser::PiecePlacement.parse("kp/qr//KP/QR")
 expected = [
   [
-    ["k", "p"],
-    ["q", "r"]
+    %w[k p],
+    %w[q r]
   ],
   [
-    ["K", "P"],
-    ["Q", "R"]
+    %w[K P],
+    %w[Q R]
   ]
 ]
 assert_equal(expected, result)
@@ -165,10 +165,10 @@ end
 # Test rectangular 2D board
 result = Feen::Parser::PiecePlacement.parse("kq/pp/NN/QK")
 expected = [
-  ["k", "q"],
-  ["p", "p"],
-  ["N", "N"],
-  ["Q", "K"]
+  %w[k q],
+  %w[p p],
+  %w[N N],
+  %w[Q K]
 ]
 assert_equal(expected, result)
 
@@ -176,16 +176,16 @@ assert_equal(expected, result)
 result = Feen::Parser::PiecePlacement.parse("kp/qr//KP/QR//xp/yr")
 expected = [
   [
-    ["k", "p"],
-    ["q", "r"]
+    %w[k p],
+    %w[q r]
   ],
   [
-    ["K", "P"],
-    ["Q", "R"]
+    %w[K P],
+    %w[Q R]
   ],
   [
-    ["x", "p"],
-    ["y", "r"]
+    %w[x p],
+    %w[y r]
   ]
 ]
 assert_equal(expected, result)

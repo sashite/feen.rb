@@ -14,8 +14,8 @@ module Feen
     # Error messages for validation
     ERRORS = {
       invalid_piece_placement_type: "Piece placement must be an Array, got %s",
-      invalid_games_turn_type: "Games turn must be an Array with exactly two elements, got %s",
-      invalid_pieces_in_hand_type: "Pieces in hand must be an Array, got %s"
+      invalid_games_turn_type:      "Games turn must be an Array with exactly two elements, got %s",
+      invalid_pieces_in_hand_type:  "Pieces in hand must be an Array, got %s"
     }.freeze
 
     # Converts position components to a complete FEEN string.
@@ -78,9 +78,9 @@ module Feen
       end
 
       # Validate pieces_in_hand is an Array
-      unless pieces_in_hand.is_a?(Array)
-        raise ArgumentError, format(ERRORS[:invalid_pieces_in_hand_type], pieces_in_hand.class)
-      end
+      return if pieces_in_hand.is_a?(Array)
+
+      raise ArgumentError, format(ERRORS[:invalid_pieces_in_hand_type], pieces_in_hand.class)
     end
   end
 end

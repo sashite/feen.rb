@@ -11,7 +11,7 @@ module Feen
   module Parser
     # Regular expression pattern for matching a valid FEEN string structure
     # Captures exactly three non-space components separated by single spaces
-    FEEN_PATTERN = /\A([^\s]+)\s([^\s]+)\s([^\s]+)\z/.freeze
+    FEEN_PATTERN = /\A([^\s]+)\s([^\s]+)\s([^\s]+)\z/
 
     # Error message for invalid FEEN format
     INVALID_FORMAT_ERROR = "Invalid FEEN format: expected exactly 3 fields separated by single spaces"

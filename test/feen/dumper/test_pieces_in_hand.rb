@@ -95,82 +95,58 @@ end
 
 # Tests for error handling - invalid input types
 run_test("Invalid input: number") do
-  begin
-    Feen::Dumper::PiecesInHand.dump(42)
-    raise "Expected exception for numeric input"
-  rescue ArgumentError => e
-    expected = "Piece at index: 0 must be a String, got type: Integer"
-    unless e.message == expected
-      raise "Unexpected error message: got '#{e.message}', expected '#{expected}'"
-    end
-  end
+  Feen::Dumper::PiecesInHand.dump(42)
+  raise "Expected exception for numeric input"
+rescue ArgumentError => e
+  expected = "Piece at index: 0 must be a String, got type: Integer"
+  raise "Unexpected error message: got '#{e.message}', expected '#{expected}'" unless e.message == expected
 end
 
 run_test("Invalid input: nil") do
-  begin
-    Feen::Dumper::PiecesInHand.dump("P", nil, "B")
-    raise "Expected exception for nil input"
-  rescue ArgumentError => e
-    unless e.message.include?("index: 1") && e.message.include?("type: NilClass")
-      raise "Unexpected error message: #{e.message}"
-    end
+  Feen::Dumper::PiecesInHand.dump("P", nil, "B")
+  raise "Expected exception for nil input"
+rescue ArgumentError => e
+  unless e.message.include?("index: 1") && e.message.include?("type: NilClass")
+    raise "Unexpected error message: #{e.message}"
   end
 end
 
 run_test("Invalid input: array") do
-  begin
-    Feen::Dumper::PiecesInHand.dump([])
-    raise "Expected exception for array input"
-  rescue ArgumentError => e
-    unless e.message.include?("index: 0") && e.message.include?("type: Array")
-      raise "Unexpected error message: #{e.message}"
-    end
+  Feen::Dumper::PiecesInHand.dump([])
+  raise "Expected exception for array input"
+rescue ArgumentError => e
+  unless e.message.include?("index: 0") && e.message.include?("type: Array")
+    raise "Unexpected error message: #{e.message}"
   end
 end
 
 # Tests for error handling - invalid piece characters
 run_test("Invalid character: multi-character string") do
-  begin
-    Feen::Dumper::PiecesInHand.dump("PP")
-    raise "Expected exception for multi-character string"
-  rescue ArgumentError => e
-    unless e.message.include?("index: 0") && e.message.include?("'PP'")
-      raise "Unexpected error message: #{e.message}"
-    end
-  end
+  Feen::Dumper::PiecesInHand.dump("PP")
+  raise "Expected exception for multi-character string"
+rescue ArgumentError => e
+  raise "Unexpected error message: #{e.message}" unless e.message.include?("index: 0") && e.message.include?("'PP'")
 end
 
 run_test("Invalid character: digit") do
-  begin
-    Feen::Dumper::PiecesInHand.dump("p", "1", "K")
-    raise "Expected exception for numeric character"
-  rescue ArgumentError => e
-    unless e.message.include?("index: 1") && e.message.include?("'1'")
-      raise "Unexpected error message: #{e.message}"
-    end
-  end
+  Feen::Dumper::PiecesInHand.dump("p", "1", "K")
+  raise "Expected exception for numeric character"
+rescue ArgumentError => e
+  raise "Unexpected error message: #{e.message}" unless e.message.include?("index: 1") && e.message.include?("'1'")
 end
 
 run_test("Invalid character: special character") do
-  begin
-    Feen::Dumper::PiecesInHand.dump("P", "+", "Q")
-    raise "Expected exception for special character"
-  rescue ArgumentError => e
-    unless e.message.include?("index: 1") && e.message.include?("'+'")
-      raise "Unexpected error message: #{e.message}"
-    end
-  end
+  Feen::Dumper::PiecesInHand.dump("P", "+", "Q")
+  raise "Expected exception for special character"
+rescue ArgumentError => e
+  raise "Unexpected error message: #{e.message}" unless e.message.include?("index: 1") && e.message.include?("'+'")
 end
 
 run_test("Invalid character: empty string") do
-  begin
-    Feen::Dumper::PiecesInHand.dump("")
-    raise "Expected exception for empty string"
-  rescue ArgumentError => e
-    unless e.message.include?("index: 0")
-      raise "Unexpected error message: #{e.message}"
-    end
-  end
+  Feen::Dumper::PiecesInHand.dump("")
+  raise "Expected exception for empty string"
+rescue ArgumentError => e
+  raise "Unexpected error message: #{e.message}" unless e.message.include?("index: 0")
 end
 
 # Tests for complex sorting scenarios
@@ -199,7 +175,7 @@ end
 run_test("Large number of pieces (performance)") do
   pieces = []
   100.times do
-    pieces << (rand > 0.5 ? ('A'..'Z').to_a.sample : ('a'..'z').to_a.sample)
+    pieces << (rand > 0.5 ? ("A".."Z").to_a.sample : ("a".."z").to_a.sample)
   end
 
   result = Feen::Dumper::PiecesInHand.dump(*pieces)

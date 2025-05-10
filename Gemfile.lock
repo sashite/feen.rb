@@ -8,24 +8,15 @@ GEM
   specs:
     ast (2.4.3)
     byebug (12.0.0)
-    defi (3.0.1)
     docile (1.4.1)
-    expresenter (1.5.1)
     json (2.11.3)
     language_server-protocol (3.17.0.4)
     lint_roller (1.1.0)
-    matchi (4.0.0)
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
       racc
     prism (1.4.0)
-    r_spec (1.0.7)
-      r_spec-clone
-    r_spec-clone (1.7.2)
-      expresenter (~> 1.5.0)
-      matchi (~> 4.0.0)
-      test_tube (~> 4.0.0)
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.2.1)
@@ -56,9 +47,6 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
-    rubocop-rspec (3.6.0)
-      lint_roller (~> 1.1)
-      rubocop (~> 1.72, >= 1.72.1)
     rubocop-thread_safety (0.7.2)
       lint_roller (~> 1.1)
       rubocop (~> 1.72, >= 1.72.1)
@@ -69,8 +57,6 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
-    test_tube (4.0.1)
-      defi (~> 3.0.1)
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
@@ -84,14 +70,12 @@ DEPENDENCIES
   bundler
   byebug
   feen!
-  r_spec
   rake
   rubocop
   rubocop-gitlab-security
   rubocop-md
   rubocop-performance
   rubocop-rake
-  rubocop-rspec
   rubocop-thread_safety
   simplecov
   yard

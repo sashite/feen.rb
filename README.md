@@ -88,8 +88,8 @@ piece_placement = [
 
 result = Feen.dump(
   piece_placement: piece_placement,
-  games_turn: ["CHESS", "chess"],
-  pieces_in_hand: []
+  games_turn:      %w[CHESS chess],
+  pieces_in_hand:  []
 )
 # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
 ```
@@ -107,32 +107,6 @@ Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
 Feen.valid?("invalid feen string")
 # => false
 ```
-
-## FEN Compatibility
-
-While FEEN is rule-agnostic, the gem provides utilities to convert from/to the FEN format used in chess:
-
-### Converting FEN to FEEN
-
-```ruby
-require "feen"
-
-fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-feen_string = Feen.from_fen(fen_string)
-# => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
-```
-
-### Converting FEEN to FEN
-
-```ruby
-require "feen"
-
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
-fen_string = Feen.to_fen(feen_string)
-# => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-```
-
-> ⚠️ `Feen.to_fen` only supports FEEN positions where `games_turn` is `CHESS/chess` or `chess/CHESS`.
 
 ## Game Examples
 
@@ -190,8 +164,8 @@ require "feen"
 # 3D board
 piece_placement = [
   [
-    ["r", "n", "b"],
-    ["q", "k", "p"]
+    %w[r n b],
+    %w[q k p]
   ],
   [
     ["P", "R", ""],
@@ -201,8 +175,8 @@ piece_placement = [
 
 result = Feen.dump(
   piece_placement: piece_placement,
-  games_turn: ["FOO", "bar"],
-  pieces_in_hand: []
+  games_turn:      %w[FOO bar],
+  pieces_in_hand:  []
 )
 # => "rnb/qkp//PR1/1KQ - FOO/bar"
 ```
@@ -226,19 +200,6 @@ FEEN supports prefixes and suffixes for pieces to denote various states or capab
   - Example in chess: `P>` may represent a pawn that may be captured en passant from the right
 
 These modifiers have no defined semantics in the FEEN specification itself but provide a flexible framework for representing piece-specific conditions while maintaining FEEN's rule-agnostic nature.
-
-### Sanitizing FEN Strings
-
-The gem includes utilities to clean FEN strings by validating and removing invalid castling rights and en passant targets:
-
-```ruby
-require "feen"
-
-# FEN with invalid castling rights
-fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ1BNR w KQkq - 0 1"
-cleaned_fen = Feen::Sanitizer.clean_fen(fen_string)
-# => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ1BNR w kq - 0 1"
-```
 
 ## Documentation
 

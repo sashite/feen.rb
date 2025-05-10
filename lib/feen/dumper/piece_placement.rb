@@ -13,13 +13,11 @@ module Feen
       # @raise [ArgumentError] If the piece placement structure is invalid
       def self.dump(piece_placement)
         # Détecter la forme du tableau directement à partir de la structure
-        shape = detect_shape(piece_placement)
+        detect_shape(piece_placement)
 
         # Formater directement la structure en chaîne FEEN
         format_placement(piece_placement)
       end
-
-      private
 
       # Detects the shape of the board based on the piece_placement structure
       #

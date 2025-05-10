@@ -24,7 +24,7 @@ end
 
 # Test simple rank with pieces
 result = Feen::Parser::PiecePlacement.parse("rnbqkbnr")
-expected = ["r", "n", "b", "q", "k", "b", "n", "r"]
+expected = %w[r n b q k b n r]
 assert_equal(expected, result)
 
 # Test rank with empty squares
@@ -250,12 +250,12 @@ end
 result = Feen::Parser::PiecePlacement.parse("ab/cd//ef/gh///ij/kl//mn/op")
 expected = [
   [
-    [["a", "b"], ["c", "d"]],
-    [["e", "f"], ["g", "h"]]
+    [%w[a b], %w[c d]],
+    [%w[e f], %w[g h]]
   ],
   [
-    [["i", "j"], ["k", "l"]],
-    [["m", "n"], ["o", "p"]]
+    [%w[i j], %w[k l]],
+    [%w[m n], %w[o p]]
   ]
 ]
 assert_equal(expected, result)
@@ -301,19 +301,19 @@ end
 # Test valid but complex multi-dimensional structure
 result = Feen::Parser::PiecePlacement.parse("ab/cd//ef/gh//ij/kl")
 expected = [
-  [["a", "b"], ["c", "d"]],
-  [["e", "f"], ["g", "h"]],
-  [["i", "j"], ["k", "l"]]
+  [%w[a b], %w[c d]],
+  [%w[e f], %w[g h]],
+  [%w[i j], %w[k l]]
 ]
 assert_equal(expected, result)
 
 # Test deeply nested structure
 result = Feen::Parser::PiecePlacement.parse("ab/cd///ef/gh///ij/kl///mn/op")
 expected = [
-  [["a", "b"], ["c", "d"]],
-  [["e", "f"], ["g", "h"]],
-  [["i", "j"], ["k", "l"]],
-  [["m", "n"], ["o", "p"]]
+  [%w[a b], %w[c d]],
+  [%w[e f], %w[g h]],
+  [%w[i j], %w[k l]],
+  [%w[m n], %w[o p]]
 ]
 assert_equal(expected, result, "La structure 4D devrait être analysée correctement")
 

@@ -19,8 +19,8 @@ expected = {
     ["P", "P", "P", "P", "P", "P", "P", "P"],
     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
   ],
-  games_turn: ["CHESS", "chess"],
-  pieces_in_hand: []
+  games_turn:      %w[CHESS chess],
+  pieces_in_hand:  []
 }
 raise "Test 1 failed" unless result == expected
 
@@ -38,8 +38,8 @@ expected = {
     ["", "S", "G", "", "", "", "", "R", ""],
     ["L", "N", "", "", "K", "G", "S", "N", "L"]
   ],
-  games_turn: ["SHOGI", "shogi"],
-  pieces_in_hand: ["B", "b"]
+  games_turn:      %w[SHOGI shogi],
+  pieces_in_hand:  %w[B b]
 }
 raise "Test 2 failed" unless result == expected
 
@@ -56,8 +56,8 @@ expected = {
     ["P", "P", "P", "P", "P", "P", "P", "P"],
     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
   ],
-  games_turn: ["chess", "CHESS"],
-  pieces_in_hand: []
+  games_turn:      %w[chess CHESS],
+  pieces_in_hand:  []
 }
 raise "Test 3 failed" unless result == expected
 
@@ -76,8 +76,8 @@ expected = {
     ["", "", "", "", "", "", "", "", ""],
     ["R", "H", "E", "A", "G", "A", "E", "H", "R"]
   ],
-  games_turn: ["XIANGQI", "xiangqi"],
-  pieces_in_hand: []
+  games_turn:      %w[XIANGQI xiangqi],
+  pieces_in_hand:  []
 }
 raise "Test 4 failed" unless result == expected
 
@@ -96,8 +96,8 @@ expected = {
     ["P", "P", "P", "P", "", "P", "P", "P"],
     ["R", "N", "B", "Q", "K>", "B", "N", "R"]
   ],
-  games_turn: ["CHESS", "chess"],
-  pieces_in_hand: []
+  games_turn:      %w[CHESS chess],
+  pieces_in_hand:  []
 }
 raise "Test 5 failed" unless result == expected
 
@@ -106,16 +106,16 @@ result = Feen::Parser.parse("rnb/qkp//PR1/1KQ - FOO/bar")
 expected = {
   piece_placement: [
     [
-      ["r", "n", "b"],
-      ["q", "k", "p"]
+      %w[r n b],
+      %w[q k p]
     ],
     [
       ["P", "R", ""],
       ["", "K", "Q"]
     ]
   ],
-  games_turn: ["FOO", "bar"],
-  pieces_in_hand: []
+  games_turn:      %w[FOO bar],
+  pieces_in_hand:  []
 }
 raise "Test 6 failed" unless result == expected
 
@@ -132,12 +132,12 @@ expected = {
     ["", "", "", "", "", "", "", ""],
     ["", "", "", "", "", "", "", ""]
   ],
-  games_turn: ["CHESS", "chess"],
-  pieces_in_hand: [
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+  games_turn:      %w[CHESS chess],
+  pieces_in_hand:  %w[
+    A B C D E F G H I J K L M
+    N O P Q R S T U V W X Y Z
+    a b c d e f g h i j k l m
+    n o p q r s t u v w x y z
   ]
 }
 raise "Test 7 failed" unless result == expected

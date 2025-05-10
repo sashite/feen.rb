@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative File.join("feen", "converter")
 require_relative File.join("feen", "dumper")
 require_relative File.join("feen", "parser")
 
@@ -73,29 +72,5 @@ module Feen
     true
   rescue ::ArgumentError
     false
-  end
-
-  # Converts a FEN string to a FEEN string for chess positions
-  #
-  # @see Feen::Converter::FromFen.call for parameter details
-  # @return [String] Equivalent FEEN notation string
-  # @raise [ArgumentError] If the FEN string is invalid
-  # @example
-  #   Feen.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
-  def self.from_fen(...)
-    Converter.from_fen(...)
-  end
-
-  # Converts a FEEN string to a FEN string for chess positions
-  #
-  # @see Feen::Converter::ToFen.call for parameter details
-  # @return [String] Equivalent FEN notation string
-  # @raise [ArgumentError] If the FEEN string is invalid
-  # @example
-  #   Feen.to_fen("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
-  #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-  def self.to_fen(...)
-    Converter.to_fen(...)
   end
 end

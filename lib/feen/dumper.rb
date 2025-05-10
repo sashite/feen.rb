@@ -6,7 +6,7 @@ require_relative File.join("dumper", "pieces_in_hand")
 
 module Feen
   # Module responsible for converting internal data structures to FEEN notation strings.
-  # This implements the serialization part of the FEEN (Format for Encounter & Entertainment Notation) format.
+  # This implements the serialization part of the FEEN (Forsyth–Edwards Enhanced Notation) format.
   module Dumper
     # Field separator used between the three main components of FEEN notation
     FIELD_SEPARATOR = " "

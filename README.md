@@ -5,11 +5,11 @@
 ![Ruby](https://github.com/sashite/feen.rb/actions/workflows/main.yml/badge.svg?branch=main)
 [![License](https://img.shields.io/github/license/sashite/feen.rb?label=License&logo=github)](https://github.com/sashite/feen.rb/raw/main/LICENSE.md)
 
-> **FEEN** (Format for Encounter & Entertainment Notation) support for the Ruby language.
+> **FEEN** (Forsyth–Edwards Enhanced Notation) support for the Ruby language.
 
 ## What is FEEN?
 
-FEEN (Format for Encounter & Entertainment Notation) is a compact, canonical, and rule-agnostic textual format for representing static board positions in two-player piece-placement games.
+FEEN (Forsyth–Edwards Enhanced Notation) is a compact, canonical, and rule-agnostic textual format for representing static board positions in two-player piece-placement games.
 
 This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/documents/feen/1.0.0/), providing a Ruby interface for:
 - Representing positions from various games without knowledge of specific rules
@@ -125,14 +125,14 @@ In this initial chess position:
 ### Shogi (Japanese Chess)
 
 ```ruby
-feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2g2snl SHOGI/shogi"
+feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2gln2s SHOGI/shogi"
 ```
 
 In this shogi position:
 - The format supports promotions with the `+` prefix (e.g., `+P` for a promoted pawn)
 - The notation allows for pieces in hand, indicated in the second field
 - `SHOGI/shogi` indicates it's Sente's (Black's, uppercase) turn to move
-- `N5P2g2snl` shows the pieces in hand: Sente has a Knight (N) and 5 Pawns (P), while Gote has 2 Golds (g), 2 Silvers (s), a Knight (n), and a Lance (l)
+- `N5P2gln2s` shows the pieces in hand: Sente has a Knight (N) and 5 Pawns (5P), while Gote has 2 Golds (2g), a Lance (l), a Knight (n), and 2 Silvers (2s), all properly sorted in ASCII lexicographic order
 
 ### Makruk (Thai Chess)
 

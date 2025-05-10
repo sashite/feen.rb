@@ -6,7 +6,7 @@ require_relative File.join("parser", "pieces_in_hand")
 
 module Feen
   # Module responsible for parsing FEEN notation strings into internal data structures.
-  # FEEN (Format for Encounter & Entertainment Notation) is a compact, canonical, and rule-agnostic
+  # FEEN (Forsyth–Edwards Enhanced Notation) is a compact, canonical, and rule-agnostic
   # textual format for representing static board positions in two-player piece-placement games.
   module Parser
     # Regular expression pattern for matching a valid FEEN string structure

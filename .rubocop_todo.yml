@@ -26,23 +26,13 @@ Metrics/CyclomaticComplexity:
 Metrics/PerceivedComplexity:
   Max: 16
 
-# Offense count: 7
-Naming/ConstantName:
-  Exclude:
-    - 'lib/feen/dumper/pieces_in_hand/errors.rb'
-    - 'lib/feen/dumper/pieces_in_hand/no_pieces.rb'
-    - 'lib/feen/parser/games_turn/errors.rb'
-    - 'lib/feen/parser/games_turn/valid_games_turn_pattern.rb'
-    - 'lib/feen/parser/pieces_in_hand/errors.rb'
-    - 'lib/feen/parser/pieces_in_hand/no_pieces.rb'
-    - 'lib/feen/parser/pieces_in_hand/valid_format_pattern.rb'
-
-# Offense count: 3
+# Offense count: 4
 # This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: AllowRegexpMatch.
 Performance/RedundantEqualityComparisonBlock:
   Exclude:
     - 'lib/feen/parser/piece_placement.rb'
+    - 'test/test_feen.rb'
 
 # Offense count: 1
 # This cop supports unsafe autocorrection (--autocorrect-all).

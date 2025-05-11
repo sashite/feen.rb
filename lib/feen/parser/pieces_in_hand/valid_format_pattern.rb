@@ -3,17 +3,18 @@
 module Feen
   module Parser
     module PiecesInHand
-      # Valid pattern for pieces in hand based on BNF:
-      # <pieces-in-hand> ::= "-" | <pieces-sequence>
+      # Valid pattern for pieces in hand based on BNF specification.
       #
-      # Rules for numeric prefixes:
+      # The FEEN format specifies these rules for numeric prefixes:
       # - Cannot start with "0"
       # - Cannot be exactly "1" (use the letter without prefix instead)
       # - Can be 2-9 or any number with 2+ digits (10, 11, etc.)
       #
-      # The pattern (?:[2-9]|\d{2,}) matches:
+      # The pattern matches either:
       # - A single digit from 2-9
-      # - OR any number with 2 or more digits (10, 11, 27, 103, etc.)
+      # - OR any number with two or more digits (10, 11, 27, 103, etc.)
+      #
+      # @return [Regexp] Regular expression for validating pieces in hand format
       ValidFormatPattern = /\A
         (?:
           -|                                              # No pieces in hand

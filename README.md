@@ -16,12 +16,13 @@ This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/document
 - Supporting boards of arbitrary dimensions
 - Encoding pieces in hand (as used in Shogi)
 - Facilitating serialization and deserialization of positions
+- Ensuring canonical representation for consistent data handling
 
 ## Installation
 
 ```ruby
 # In your Gemfile
-gem "feen", ">= 5.0.0.beta3"
+gem "feen", ">= 5.0.0.beta4"
 ```
 
 Or install manually:
@@ -52,7 +53,7 @@ position = Feen.parse(feen_string)
 
 # Result is a hash:
 # {
-#   "piece_placement" => [
+#   piece_placement: [
 #     ["r", "n", "b", "q", "k=", "b", "n", "r"],
 #     ["p", "p", "p", "p", "p", "p", "p", "p"],
 #     ["", "", "", "", "", "", "", ""],
@@ -62,9 +63,25 @@ position = Feen.parse(feen_string)
 #     ["P", "P", "P", "P", "P", "P", "P", "P"],
 #     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
 #   ],
-#   "games_turn" => ["CHESS", "chess"],
-#   "pieces_in_hand" => []
+#   pieces_in_hand: [],
+#   games_turn: ["CHESS", "chess"]
 # }
+```
+
+### Safe Parsing
+
+Parse a FEEN string without raising exceptions:
+
+```ruby
+require "feen"
+
+# Valid FEEN string
+result = Feen.safe_parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+# => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
+
+# Invalid FEEN string
+result = Feen.safe_parse("invalid feen string")
+# => nil
 ```
 
 ### Creating FEEN Strings
@@ -96,17 +113,27 @@ result = Feen.dump(
 
 ### Validation
 
-Check if a string is valid FEEN notation:
+Check if a string is valid FEEN notation and in canonical form:
 
 ```ruby
 require "feen"
 
-Feen.valid?("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+# Canonical form
+Feen.valid?("lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2gln2s SHOGI/shogi")
 # => true
 
+# Invalid syntax
 Feen.valid?("invalid feen string")
 # => false
+
+# Valid syntax but non-canonical form (pieces in hand not in lexicographic order)
+Feen.valid?("lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2gn2sl SHOGI/shogi")
+# => false
 ```
+
+The `valid?` method performs two levels of validation:
+1. **Syntax check**: Verifies the string can be parsed as FEEN
+2. **Canonicity check**: Ensures the string is in its canonical form through round-trip conversion
 
 ## Game Examples
 

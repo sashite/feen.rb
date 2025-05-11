@@ -23,7 +23,7 @@ module Feen
     #   - :piece_placement [Array] - Hierarchical array structure representing the board
     #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board
     #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
-    # @raise [ArgumentError] If the FEEN string is invalid or any component cannot be parsed
+    # @raise [ArgumentError] If the FEEN string is invalid
     #
     # @example Parsing a standard chess initial position
     #   feen = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
@@ -41,25 +41,6 @@ module Feen
     #   #      ],
     #   #      pieces_in_hand: [],
     #   #      games_turn: ["CHESS", "chess"]
-    #   #    }
-    #
-    # @example Parsing a shogi position (from a Tempo Loss Bishop Exchange opening) with pieces in hand
-    #   feen = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL Bb SHOGI/shogi"
-    #   result = Feen::Parser.parse(feen)
-    #   # => {
-    #   #      piece_placement: [
-    #   #        ["l", "n", "s", "g", "k", "", "", "n", "l"],
-    #   #        ["", "r", "", "", "", "", "g", "s", ""],
-    #   #        ["p", "", "p", "p", "p", "p", "", "p", "p"],
-    #   #        ["", "p", "", "", "", "", "p", "", ""],
-    #   #        ["", "", "", "", "", "", "", "P", ""],
-    #   #        ["", "", "P", "", "", "", "", "", ""],
-    #   #        ["P", "P", "", "P", "P", "P", "P", "", "P"],
-    #   #        ["", "S", "G", "", "", "", "", "R", ""],
-    #   #        ["L", "N", "", "", "K", "G", "S", "N", "L"]
-    #   #      ],
-    #   #      pieces_in_hand: ["B", "b"],
-    #   #      games_turn: ["SHOGI", "shogi"]
     #   #    }
     def self.parse(feen_string)
       feen_string = String(feen_string)
@@ -84,6 +65,29 @@ module Feen
         pieces_in_hand:,
         games_turn:
       }
+    end
+
+    # Safely parses a complete FEEN string into a structured representation without raising exceptions
+    #
+    # This method works like `parse` but returns nil instead of raising an exception
+    # if the FEEN string is invalid.
+    #
+    # @param feen_string [String] Complete FEEN notation string
+    # @return [Hash, nil] Hash containing the parsed position data or nil if parsing fails
+    #
+    # @example Parsing a valid FEEN string
+    #   feen = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+    #   result = Feen::Parser.safe_parse(feen)
+    #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
+    #
+    # @example Parsing an invalid FEEN string
+    #   feen = "invalid feen string"
+    #   result = Feen::Parser.safe_parse(feen)
+    #   # => nil
+    def self.safe_parse(feen_string)
+      parse(feen_string)
+    rescue ::ArgumentError
+      nil
     end
   end
 end

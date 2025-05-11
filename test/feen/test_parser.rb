@@ -82,8 +82,6 @@ expected = {
 raise "Test 4 failed" unless result == expected
 
 # Test 5: Chess position with modified pieces (prefix/suffix)
-# Note: Le test 5 semble avoir une incohérence - la chaîne FEEN ne correspond pas au résultat attendu.
-# Je vais le corriger pour qu'il soit cohérent.
 result = Feen::Parser.parse("rnbqk<bnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQK>BNR - CHESS/chess")
 expected = {
   piece_placement: [
@@ -244,5 +242,21 @@ begin
 rescue ArgumentError
   # Expected behavior
 end
+
+# Test 18: Testing safe_parse with invalid input (should return nil)
+result = Feen::Parser.safe_parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR ba CHESS/chess")
+expected = nil
+raise "Test 18 failed: safe_parse should return nil for invalid input" unless result == expected
+
+# Test 19: Testing safe_parse with valid input (should return same as parse)
+result_safe = Feen::Parser.safe_parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+result_normal = Feen::Parser.parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+unless result_safe == result_normal
+  raise "Test 19 failed: safe_parse should return the same result as parse for valid inputs"
+end
+
+# Test 20: Testing safe_parse with type conversion (Symbol to String)
+result = Feen::Parser.safe_parse(:"rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+raise "Test 20 failed: safe_parse should handle Symbol conversion" unless result == result_normal
 
 puts "All tests passed successfully!"

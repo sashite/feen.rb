@@ -12,6 +12,7 @@
 FEEN (Forsyth–Edwards Enhanced Notation) is a compact, canonical, and rule-agnostic textual format for representing static board positions in two-player piece-placement games.
 
 This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/documents/feen/1.0.0/), providing a Ruby interface for:
+
 - Representing positions from various games without knowledge of specific rules
 - Supporting boards of arbitrary dimensions
 - Encoding pieces in hand (as used in Shogi)
@@ -22,7 +23,7 @@ This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/document
 
 ```ruby
 # In your Gemfile
-gem "feen", ">= 5.0.0.beta4"
+gem "feen", ">= 5.0.0.beta5"
 ```
 
 Or install manually:
@@ -48,20 +49,20 @@ Convert a FEEN string into a structured Ruby object:
 ```ruby
 require "feen"
 
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+feen_string = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
 position = Feen.parse(feen_string)
 
 # Result is a hash:
 # {
 #   piece_placement: [
-#     ["r", "n", "b", "q", "k=", "b", "n", "r"],
+#     ["r'", "n", "b", "q", "k", "b", "n", "r'"],
 #     ["p", "p", "p", "p", "p", "p", "p", "p"],
 #     ["", "", "", "", "", "", "", ""],
 #     ["", "", "", "", "", "", "", ""],
 #     ["", "", "", "", "", "", "", ""],
 #     ["", "", "", "", "", "", "", ""],
 #     ["P", "P", "P", "P", "P", "P", "P", "P"],
-#     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+#     ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
 #   ],
 #   pieces_in_hand: [],
 #   games_turn: ["CHESS", "chess"]
@@ -76,7 +77,7 @@ Parse a FEEN string without raising exceptions:
 require "feen"
 
 # Valid FEEN string
-result = Feen.safe_parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+result = Feen.safe_parse("r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess")
 # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
 
 # Invalid FEEN string
@@ -93,14 +94,14 @@ require "feen"
 
 # Representation of a chess board in initial position
 piece_placement = [
-  ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  ["r'", "n", "b", "q", "k", "b", "n", "r'"],
   ["p", "p", "p", "p", "p", "p", "p", "p"],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["P", "P", "P", "P", "P", "P", "P", "P"],
-  ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+  ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
 ]
 
 result = Feen.dump(
@@ -108,7 +109,7 @@ result = Feen.dump(
   games_turn:      %w[CHESS chess],
   pieces_in_hand:  []
 )
-# => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+# => "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
 ```
 
 ### Validation
@@ -132,6 +133,7 @@ Feen.valid?("lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2gn2sl SHOGI/
 ```
 
 The `valid?` method performs two levels of validation:
+
 1. **Syntax check**: Verifies the string can be parsed as FEEN
 2. **Canonicity check**: Ensures the string is in its canonical form through round-trip conversion
 
@@ -142,11 +144,12 @@ As FEEN is rule-agnostic, it can represent positions from various board games. H
 ### International Chess
 
 ```ruby
-feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+feen_string = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
 ```
 
 In this initial chess position:
-- The `=` suffixes on kings indicate castling rights on both sides (though FEEN doesn't define this semantics)
+
+- The `'` suffixes on rooks indicate an intermediate state (which might represent castling rights in chess, though FEEN doesn't define this semantics)
 - The third field `CHESS/chess` indicates it's the player with uppercase pieces' turn to move
 
 ### Shogi (Japanese Chess)
@@ -156,6 +159,7 @@ feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2gln2s SHOG
 ```
 
 In this shogi position:
+
 - The format supports promotions with the `+` prefix (e.g., `+P` for a promoted pawn)
 - The notation allows for pieces in hand, indicated in the second field
 - `SHOGI/shogi` indicates it's Sente's (Black's, uppercase) turn to move
@@ -176,6 +180,7 @@ feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR - XIA
 ```
 
 In this Xiangqi position:
+
 - The representation uses single letters for the different pieces
 - The format naturally adapts to the presence of a "river" (empty space in the middle)
 
@@ -212,19 +217,15 @@ result = Feen.dump(
 
 FEEN supports prefixes and suffixes for pieces to denote various states or capabilities:
 
-- **Prefix `+`**: May indicate promotion or special state
+- **Prefix `+`**: Enhanced state
   - Example in shogi: `+P` may represent a promoted pawn
 
-- **Suffix `=`**: May indicate dual-option status
-  - Example in chess: `K=` may represent a king eligible for both kingside and queenside castling
+- **Prefix `-`**: Diminished state
+  - Could represent a piece with limited movement or other restrictions
 
-- **Suffix `<`**: May indicate left-side constraint
-  - Example in chess: `K<` may represent a king eligible for queenside castling only
-  - Example in chess: `P<` may represent a pawn that may be captured _en passant_ from the left
-
-- **Suffix `>`**: May indicate right-side constraint
-  - Example in chess: `K>` may represent a king eligible for kingside castling only
-  - Example in chess: `P>` may represent a pawn that may be captured en passant from the right
+- **Suffix `'`**: Intermediate state
+  - Example in chess: `R'` may represent a rook that has intermediate status (such as castling eligibility)
+  - Example in chess: `P'` may represent a pawn that may be captured _en passant_
 
 These modifiers have no defined semantics in the FEEN specification itself but provide a flexible framework for representing piece-specific conditions while maintaining FEEN's rule-agnostic nature.
 
@@ -239,4 +240,4 @@ The [gem](https://rubygems.org/gems/feen) is available as open source under the 
 
 ## About Sashité
 
-This project is maintained by [Sashité](https://sashite.com/) - a project dedicated to promoting chess variants and sharing the beauty of Chinese, Japanese, and Western chess cultures.
+This project is maintained by [Sashité](https://sashite.com/) — promoting chess variants and sharing the beauty of Chinese, Japanese, and Western chess cultures.

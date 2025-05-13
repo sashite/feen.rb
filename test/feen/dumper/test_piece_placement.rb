@@ -79,14 +79,14 @@ expected = [
 assert_equal(expected, result)
 
 # Test a position with pieces having modifiers (prefixes and suffixes)
-result = Feen::Parser::PiecePlacement.parse("rnbqk=bnr/pppppppp/8/3+P4/8/5K<2/PPPP1PPP/RNBQ1BNR")
+result = Feen::Parser::PiecePlacement.parse("r'nbqkbnr'/pppppppp/8/3+P4/8/5K2/PPPP1PPP/RNBQ1BNR")
 expected = [
-  ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  ["r'", "n", "b", "q", "k", "b", "n", "r'"],
   ["p", "p", "p", "p", "p", "p", "p", "p"],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "+P", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "K<", "", ""],
+  ["", "", "", "", "", "K", "", ""],
   ["P", "P", "P", "P", "", "P", "P", "P"],
   ["R", "N", "B", "Q", "", "B", "N", "R"]
 ]
@@ -200,13 +200,13 @@ expected = ["+P", "-P"]
 assert_equal(expected, result)
 
 # Test all valid piece suffixes
-result = Feen::Parser::PiecePlacement.parse("P=P<P>")
-expected = ["P=", "P<", "P>"]
+result = Feen::Parser::PiecePlacement.parse("P'P'P'")
+expected = ["P'", "P'", "P'"]
 assert_equal(expected, result)
 
 # Test both prefix and suffix
-result = Feen::Parser::PiecePlacement.parse("+P=-P<+P>")
-expected = ["+P=", "-P<", "+P>"]
+result = Feen::Parser::PiecePlacement.parse("+P'-P'+P'")
+expected = ["+P'", "-P'", "+P'"]
 assert_equal(expected, result)
 
 # -------------------------------------------------------

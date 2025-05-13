@@ -7,7 +7,7 @@ module Feen
       #
       # @param piece_placement [Array] Hierarchical array representing the board where:
       #   - Empty squares are represented by empty strings ("")
-      #   - Pieces are represented by strings (e.g., "r", "K=", "+P")
+      #   - Pieces are represented by strings (e.g., "r", "R'", "+P")
       #   - Dimensions are represented by nested arrays
       # @return [String] FEEN piece placement string
       # @raise [ArgumentError] If the piece placement structure is invalid

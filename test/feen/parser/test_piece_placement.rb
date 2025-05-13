@@ -70,13 +70,13 @@ expected = ["+P", "-b"]
 assert_equal(expected, result)
 
 # Test pieces with suffixes
-result = Feen::Parser::PiecePlacement.parse("K=P>p<")
-expected = ["K=", "P>", "p<"]
+result = Feen::Parser::PiecePlacement.parse("P'R'p'")
+expected = ["P'", "R'", "p'"]
 assert_equal(expected, result)
 
 # Test pieces with both prefix and suffix
-result = Feen::Parser::PiecePlacement.parse("+B=-P>")
-expected = ["+B=", "-P>"]
+result = Feen::Parser::PiecePlacement.parse("+B'-P'")
+expected = ["+B'", "-P'"]
 assert_equal(expected, result)
 
 # ==========================================================================
@@ -176,10 +176,10 @@ end
 # ==========================================================================
 
 # Test complex valid cases with all features
-result = Feen::Parser::PiecePlacement.parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR")
+result = Feen::Parser::PiecePlacement.parse("r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR'")
 assert_equal(8, result.length)
-assert_equal("k=", result[0][4])
-assert_equal("K=", result[7][4])
+assert_equal("k", result[0][4])
+assert_equal("K", result[7][4])
 
 # Test consistent board shapes
 result = Feen::Parser::PiecePlacement.parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R")

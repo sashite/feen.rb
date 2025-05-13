@@ -21,9 +21,6 @@ Gem::Specification.new do |spec|
     "homepage_uri"          => "https://github.com/sashite/feen.rb",
     "source_code_uri"       => "https://github.com/sashite/feen.rb",
     "specification_uri"     => "https://sashite.dev/documents/feen/1.0.0/",
-    "funding_uri"           => "https://github.com/sponsors/cyril",
     "rubygems_mfa_required" => "true"
   }
-
-  spec.metadata["article_uri"] = "https://blog.cyril.email/posts/2025-05-01/introducing-feen-notation.html"
 end

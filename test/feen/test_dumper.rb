@@ -8,14 +8,14 @@ require_relative "../../lib/feen/dumper"
 
 # Test 1: Initial chess position
 piece_placement = [
-  ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  ["r'", "n", "b", "q", "k", "b", "n", "r'"],
   ["p", "p", "p", "p", "p", "p", "p", "p"],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["P", "P", "P", "P", "P", "P", "P", "P"],
-  ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+  ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
 ]
 games_turn = %w[CHESS chess]
 pieces_in_hand = []
@@ -25,7 +25,7 @@ result = Feen::Dumper.dump(
   games_turn:      games_turn,
   pieces_in_hand:  pieces_in_hand
 )
-expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+expected = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
 raise "Test 1 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 2: Shogi position with pieces in hand
@@ -53,14 +53,14 @@ raise "Test 2 failed: expected #{expected}, got #{result}" unless result == expe
 
 # Test 3: Chess position with black to move
 piece_placement = [
-  ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  ["r'", "n", "b", "q", "k", "b", "n", "r'"],
   ["p", "p", "p", "p", "p", "p", "p", "p"],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", ""],
   ["P", "P", "P", "P", "P", "P", "P", "P"],
-  ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+  ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
 ]
 games_turn = %w[chess CHESS]
 pieces_in_hand = []
@@ -70,7 +70,7 @@ result = Feen::Dumper.dump(
   games_turn:      games_turn,
   pieces_in_hand:  pieces_in_hand
 )
-expected = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - chess/CHESS"
+expected = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - chess/CHESS"
 raise "Test 3 failed: expected #{expected}, got #{result}" unless result == expected
 
 # Test 4: Xiangqi position

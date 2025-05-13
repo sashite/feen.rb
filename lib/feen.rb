@@ -23,21 +23,21 @@ module Feen
   # @raise [ArgumentError] If any parameter is invalid
   # @example
   #   piece_placement = [
-  #     ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  #     ["r'", "n", "b", "q", "k", "b", "n", "r'"],
   #     ["p", "p", "p", "p", "p", "p", "p", "p"],
   #     ["", "", "", "", "", "", "", ""],
   #     ["", "", "", "", "", "", "", ""],
   #     ["", "", "", "", "", "", "", ""],
   #     ["", "", "", "", "", "", "", ""],
   #     ["P", "P", "P", "P", "P", "P", "P", "P"],
-  #     ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+  #     ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
   #   ]
   #   Feen.dump(
   #     piece_placement: piece_placement,
   #     pieces_in_hand: [],
   #     games_turn: ["CHESS", "chess"]
   #   )
-  #   # => "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+  #   # => "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
   def self.dump(piece_placement:, pieces_in_hand:, games_turn:)
     Dumper.dump(piece_placement:, pieces_in_hand:, games_turn:)
   end
@@ -51,18 +51,18 @@ module Feen
   #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
-  #   feen_string = "rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess"
+  #   feen_string = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
   #   Feen.parse(feen_string)
   #   # => {
   #   #      piece_placement: [
-  #   #        ["r", "n", "b", "q", "k=", "b", "n", "r"],
+  #   #        ["r'", "n", "b", "q", "k", "b", "n", "r'"],
   #   #        ["p", "p", "p", "p", "p", "p", "p", "p"],
   #   #        ["", "", "", "", "", "", "", ""],
   #   #        ["", "", "", "", "", "", "", ""],
   #   #        ["", "", "", "", "", "", "", ""],
   #   #        ["", "", "", "", "", "", "", ""],
   #   #        ["P", "P", "P", "P", "P", "P", "P", "P"],
-  #   #        ["R", "N", "B", "Q", "K=", "B", "N", "R"]
+  #   #        ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
   #   #      ],
   #   #      pieces_in_hand: [],
   #   #      games_turn: ["CHESS", "chess"]
@@ -80,7 +80,7 @@ module Feen
   # @return [Hash, nil] Hash containing the parsed position data or nil if parsing fails
   # @example
   #   # Valid FEEN string
-  #   Feen.safe_parse("rnbqk=bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK=BNR - CHESS/chess")
+  #   Feen.safe_parse("r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess")
   #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
   #
   #   # Invalid FEEN string

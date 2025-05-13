@@ -30,10 +30,8 @@ module Feen
       VALID_PREFIXES = [PREFIX_PROMOTION, PREFIX_DIMINISHED].freeze
 
       # Valid piece suffixes
-      SUFFIX_EQUALS = "="
-      SUFFIX_LEFT = "<"
-      SUFFIX_RIGHT = ">"
-      VALID_SUFFIXES = [SUFFIX_EQUALS, SUFFIX_LEFT, SUFFIX_RIGHT].freeze
+      SUFFIX_INTERMEDIATE = "'"
+      VALID_SUFFIXES = [SUFFIX_INTERMEDIATE].freeze
 
       # Build validation pattern step by step to match BNF
       # <letter> ::= <letter-lowercase> | <letter-uppercase>
@@ -42,8 +40,8 @@ module Feen
       # <prefix> ::= "+" | "-"
       PREFIX = "[+-]"
 
-      # <suffix> ::= "=" | "<" | ">"
-      SUFFIX = "[=<>]"
+      # <suffix> ::= "'"
+      SUFFIX = "[']"
 
       # <piece> ::= <letter> | <prefix> <letter> | <letter> <suffix> | <prefix> <letter> <suffix>
       PIECE = "(?:#{PREFIX}?#{LETTER}#{SUFFIX}?)"

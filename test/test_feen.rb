@@ -8,7 +8,7 @@ require_relative "../lib/feen"
 
 # Test 1: Basic parse functionality with standard chess position
 begin
-  feen_string = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
   parsed = Feen.parse(feen_string)
   raise "Test 1 failed: parse returned nil" if parsed.nil?
   raise "Test 1 failed: parse returned incorrect data structure" unless parsed.is_a?(Hash)
@@ -41,14 +41,14 @@ end
 
 # Test 4: Parse with modified pieces (prefixes/suffixes)
 begin
-  feen_string = "r'nbqkbnr'/pppppppp/8/4+P3/8/8/PPPP1PPP/R'NBQKBNR' - CHESS/chess"
+  feen_string = "rnbqkbnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQKBNR - CHESS/chess"
   parsed = Feen.parse(feen_string)
   modified_pawn = parsed[:piece_placement][3][4] # 5th rank, 5th file
   white_rook = parsed[:piece_placement][7][0] # 1st rank, 1st file
   black_rook = parsed[:piece_placement][0][0] # 8th rank, 1st file
   raise "Test 4 failed: modified pawn not correctly parsed" unless modified_pawn == "+P"
-  raise "Test 4 failed: white rook not correctly parsed" unless white_rook == "R'"
-  raise "Test 4 failed: black rook not correctly parsed" unless black_rook == "r'"
+  raise "Test 4 failed: white rook not correctly parsed" unless white_rook == "R"
+  raise "Test 4 failed: black rook not correctly parsed" unless black_rook == "r"
 
   puts "Test 4 passed: parse works with piece modifications"
 end
@@ -71,7 +71,7 @@ end
 
 # Test 6: safe_parse with valid input
 begin
-  feen_string = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
   result = Feen.safe_parse(feen_string)
   raise "Test 6 failed: safe_parse returned nil for valid input" if result.nil?
   raise "Test 6 failed: safe_parse returned incorrect data" unless result[:games_turn] == %w[CHESS chess]
@@ -93,21 +93,21 @@ end
 # Test 8: Basic dump functionality
 begin
   piece_placement = [
-    ["r'", "n", "b", "q", "k", "b", "n", "r'"],
+    ["r", "n", "b", "q", "k", "b", "n", "r"],
     ["p", "p", "p", "p", "p", "p", "p", "p"],
     ["", "", "", "", "", "", "", ""],
     ["", "", "", "", "", "", "", ""],
     ["", "", "", "", "", "", "", ""],
     ["", "", "", "", "", "", "", ""],
     ["P", "P", "P", "P", "P", "P", "P", "P"],
-    ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
+    ["R", "N", "B", "Q", "K", "B", "N", "R"]
   ]
   feen_string = Feen.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  [],
     games_turn:      %w[CHESS chess]
   )
-  expected = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+  expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
   raise "Test 8 failed: dump didn't produce expected FEEN string" unless feen_string == expected
 
   puts "Test 8 passed: dump works with standard position"
@@ -138,7 +138,7 @@ end
 
 # Test 10: Round-trip consistency
 begin
-  original = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+  original = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
   parsed = Feen.parse(original)
   regenerated = Feen.dump(
     piece_placement: parsed[:piece_placement],
@@ -154,7 +154,7 @@ end
 
 # Test 11: valid? with canonical form
 begin
-  canonical_feen = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+  canonical_feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
   raise "Test 11 failed: valid? rejected a canonical FEEN" unless Feen.valid?(canonical_feen)
 
   puts "Test 11 passed: valid? accepts canonical form"

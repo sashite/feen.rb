@@ -176,7 +176,7 @@ end
 # ==========================================================================
 
 # Test complex valid cases with all features
-result = Feen::Parser::PiecePlacement.parse("r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR'")
+result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
 assert_equal(8, result.length)
 assert_equal("k", result[0][4])
 assert_equal("K", result[7][4])

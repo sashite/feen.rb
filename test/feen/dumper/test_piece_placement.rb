@@ -79,9 +79,9 @@ expected = [
 assert_equal(expected, result)
 
 # Test a position with pieces having modifiers (prefixes and suffixes)
-result = Feen::Parser::PiecePlacement.parse("r'nbqkbnr'/pppppppp/8/3+P4/8/5K2/PPPP1PPP/RNBQ1BNR")
+result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pppppppp/8/3+P4/8/5K2/PPPP1PPP/RNBQ1BNR")
 expected = [
-  ["r'", "n", "b", "q", "k", "b", "n", "r'"],
+  ["r", "n", "b", "q", "k", "b", "n", "r"],
   ["p", "p", "p", "p", "p", "p", "p", "p"],
   ["", "", "", "", "", "", "", ""],
   ["", "", "", "+P", "", "", "", ""],

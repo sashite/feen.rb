@@ -26,18 +26,18 @@ module Feen
     # @raise [ArgumentError] If the FEEN string is invalid
     #
     # @example Parsing a standard chess initial position
-    #   feen = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+    #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
     #   result = Feen::Parser.parse(feen)
     #   # => {
     #   #      piece_placement: [
-    #   #        ["r'", "n", "b", "q", "k", "b", "n", "r'"],
+    #   #        ["r", "n", "b", "q", "k", "b", "n", "r"],
     #   #        ["p", "p", "p", "p", "p", "p", "p", "p"],
     #   #        ["", "", "", "", "", "", "", ""],
     #   #        ["", "", "", "", "", "", "", ""],
     #   #        ["", "", "", "", "", "", "", ""],
     #   #        ["", "", "", "", "", "", "", ""],
     #   #        ["P", "P", "P", "P", "P", "P", "P", "P"],
-    #   #        ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
+    #   #        ["R", "N", "B", "Q", "K", "B", "N", "R"]
     #   #      ],
     #   #      pieces_in_hand: [],
     #   #      games_turn: ["CHESS", "chess"]
@@ -76,7 +76,7 @@ module Feen
     # @return [Hash, nil] Hash containing the parsed position data or nil if parsing fails
     #
     # @example Parsing a valid FEEN string
-    #   feen = "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+    #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
     #   result = Feen::Parser.safe_parse(feen)
     #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
     #

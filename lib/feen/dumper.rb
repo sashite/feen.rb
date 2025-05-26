@@ -23,19 +23,19 @@ module Feen
     # @example Creating a FEEN string for chess initial position
     #   Feen::Dumper.dump(
     #     piece_placement: [
-    #       ["r'", "n", "b", "q", "k", "b", "n", "r'"],
+    #       ["r", "n", "b", "q", "k", "b", "n", "r"],
     #       ["p", "p", "p", "p", "p", "p", "p", "p"],
     #       ["", "", "", "", "", "", "", ""],
     #       ["", "", "", "", "", "", "", ""],
     #       ["", "", "", "", "", "", "", ""],
     #       ["", "", "", "", "", "", "", ""],
     #       ["P", "P", "P", "P", "P", "P", "P", "P"],
-    #       ["R'", "N", "B", "Q", "K", "B", "N", "R'"]
+    #       ["R", "N", "B", "Q", "K", "B", "N", "R"]
     #     ],
     #     pieces_in_hand: [],
     #     games_turn: ["CHESS", "chess"]
     #   )
-    #   # => "r'nbqkbnr'/pppppppp/8/8/8/8/PPPPPPPP/R'NBQKBNR' - CHESS/chess"
+    #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
     #
     # @param piece_placement [Array] Board position data structure representing the spatial
     #                                distribution of pieces across the board, where each cell

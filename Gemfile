@@ -6,6 +6,7 @@ gemspec
 
 gem "bundler"
 gem "byebug"
+gem "irb"
 gem "rake"
 gem "rubocop"
 gem "rubocop-gitlab-security"

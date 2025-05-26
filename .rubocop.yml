@@ -30,6 +30,8 @@ AllCops:
   
     - test/.DS_Store
   
+    - test/feen/.DS_Store
+  
     - tmp/
   
     - test.rb

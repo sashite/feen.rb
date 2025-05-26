@@ -184,12 +184,32 @@ begin
   puts "Test 13 passed: handles empty board correctly"
 end
 
-# Test 14: Multiple pieces in hand with counts
+# Test 14: Multiple pieces in hand with counts (canonical ordering)
 begin
-  feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N2P2gln2s SHOGI/shogi"
+  # Original FEEN string with non-canonical pieces in hand order
+  # "N2P2gln2s" needs to be reordered canonically
+
+  # Let's determine the canonical order:
+  # Pieces: N(1), P(2), g(2), l(1), n(1), s(2)
+  # Canonical order: by quantity desc, then alphabetical
+  # Quantities: P(2), g(2), s(2), N(1), l(1), n(1)
+  # Alphabetical within same quantity:
+  #   - Quantity 2: P < g < s -> 2P2g2s
+  #   - Quantity 1: N < l < n -> Nln
+  # Final canonical order: 2P2g2sNln
+
+  feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 2P2g2sNln SHOGI/shogi"
   parsed = Feen.parse(feen_string)
 
-  # Count occurrences of each piece
+  # Verify the parsed pieces in hand are in the expected canonical order
+  expected_pieces = %w[P P g g s s N l n]
+  actual_pieces = parsed[:pieces_in_hand]
+
+  unless actual_pieces == expected_pieces
+    raise "Test 14 failed: Expected pieces #{expected_pieces.inspect}, got #{actual_pieces.inspect}"
+  end
+
+  # Count occurrences of each piece to verify correctness
   piece_counts = {}
   parsed[:pieces_in_hand].each do |piece|
     piece_counts[piece] ||= 0
@@ -208,7 +228,9 @@ begin
     raise "Test 14 failed: piece types don't match, got #{piece_counts.keys.sort.inspect}"
   end
 
-  puts "Test 14 passed: handles multiple pieces in hand with counts"
+  puts "✓ Test 14 passed: handles multiple pieces in hand with canonical ordering"
+rescue ArgumentError => e
+  raise "Test 14 failed: Unexpected error: #{e.message}"
 end
 
 # Test 15: Different game types

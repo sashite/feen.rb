@@ -23,7 +23,7 @@ This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/document
 
 ```ruby
 # In your Gemfile
-gem "feen", ">= 5.0.0.beta5"
+gem "feen", ">= 5.0.0.beta6"
 ```
 
 Or install manually:

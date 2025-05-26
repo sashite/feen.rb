@@ -8,7 +8,7 @@ require_relative "../lib/feen"
 
 # Test 1: Basic parse functionality with standard chess position
 begin
-  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   parsed = Feen.parse(feen_string)
   raise "Test 1 failed: parse returned nil" if parsed.nil?
   raise "Test 1 failed: parse returned incorrect data structure" unless parsed.is_a?(Hash)
@@ -18,7 +18,7 @@ end
 
 # Test 2: Parse with pieces in hand
 begin
-  feen_string = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL Bb SHOGI/shogi"
+  feen_string = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL B/b SHOGI/shogi"
   parsed = Feen.parse(feen_string)
   expected_pieces_in_hand = %w[B b]
   raise "Test 2 failed: pieces in hand not parsed correctly" unless parsed[:pieces_in_hand] == expected_pieces_in_hand
@@ -28,7 +28,7 @@ end
 
 # Test 3: Parse with 3D position
 begin
-  feen_string = "rnb/qkp//PR1/1KQ - FOO/bar"
+  feen_string = "rnb/qkp//PR1/1KQ / FOO/bar"
   parsed = Feen.parse(feen_string)
   raise "Test 3 failed: 3D position not parsed correctly" unless parsed[:piece_placement].is_a?(Array) &&
                                                                  parsed[:piece_placement].all? do |dim|
@@ -41,7 +41,7 @@ end
 
 # Test 4: Parse with modified pieces (prefixes/suffixes)
 begin
-  feen_string = "rnbqkbnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQKBNR - CHESS/chess"
+  feen_string = "rnbqkbnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQKBNR / CHESS/chess"
   parsed = Feen.parse(feen_string)
   modified_pawn = parsed[:piece_placement][3][4] # 5th rank, 5th file
   white_rook = parsed[:piece_placement][7][0] # 1st rank, 1st file
@@ -71,7 +71,7 @@ end
 
 # Test 6: safe_parse with valid input
 begin
-  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   result = Feen.safe_parse(feen_string)
   raise "Test 6 failed: safe_parse returned nil for valid input" if result.nil?
   raise "Test 6 failed: safe_parse returned incorrect data" unless result[:games_turn] == %w[CHESS chess]
@@ -107,7 +107,7 @@ begin
     pieces_in_hand:  [],
     games_turn:      %w[CHESS chess]
   )
-  expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   raise "Test 8 failed: dump didn't produce expected FEEN string" unless feen_string == expected
 
   puts "Test 8 passed: dump works with standard position"
@@ -131,14 +131,14 @@ begin
     pieces_in_hand:  %w[B b],
     games_turn:      %w[SHOGI shogi]
   )
-  raise "Test 9 failed: dump didn't include pieces in hand" unless feen_string.include?(" Bb ")
+  raise "Test 9 failed: dump didn't include pieces in hand" unless feen_string.include?(" B/b ")
 
   puts "Test 9 passed: dump works with pieces in hand"
 end
 
 # Test 10: Round-trip consistency
 begin
-  original = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  original = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   parsed = Feen.parse(original)
   regenerated = Feen.dump(
     piece_placement: parsed[:piece_placement],
@@ -154,7 +154,7 @@ end
 
 # Test 11: valid? with canonical form
 begin
-  canonical_feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  canonical_feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   raise "Test 11 failed: valid? rejected a canonical FEEN" unless Feen.valid?(canonical_feen)
 
   puts "Test 11 passed: valid? accepts canonical form"
@@ -172,7 +172,7 @@ end
 
 # Test 13: Empty board
 begin
-  feen_string = "8/8/8/8/8/8/8/8 - CHESS/chess"
+  feen_string = "8/8/8/8/8/8/8/8 / CHESS/chess"
   parsed = Feen.parse(feen_string)
   dumped = Feen.dump(
     piece_placement: parsed[:piece_placement],
@@ -196,13 +196,13 @@ begin
   # Alphabetical within same quantity:
   #   - Quantity 2: P < g < s -> 2P2g2s
   #   - Quantity 1: N < l < n -> Nln
-  # Final canonical order: 2P2g2sNln
+  # Final canonical order: 2PN/2g2sln
 
-  feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 2P2g2sNln SHOGI/shogi"
+  feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 2PN/2g2sln SHOGI/shogi"
   parsed = Feen.parse(feen_string)
 
   # Verify the parsed pieces in hand are in the expected canonical order
-  expected_pieces = %w[P P g g s s N l n]
+  expected_pieces = %w[N P P g g l n s s]
   actual_pieces = parsed[:pieces_in_hand]
 
   unless actual_pieces == expected_pieces
@@ -235,7 +235,7 @@ end
 
 # Test 15: Different game types
 begin
-  feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR - XIANGQI/xiangqi"
+  feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR / XIANGQI/xiangqi"
   parsed = Feen.parse(feen_string)
   expected_games_turn = %w[XIANGQI xiangqi]
   raise "Test 15 failed: games turn not parsed correctly" unless parsed[:games_turn] == expected_games_turn

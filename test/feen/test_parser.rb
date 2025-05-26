@@ -7,7 +7,7 @@ require_relative "../../lib/feen/parser"
 # --- Tests for valid cases ---
 
 # Test 1: Initial chess position
-result = Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
+result = Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
 expected = {
   piece_placement: [
     ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -25,7 +25,7 @@ expected = {
 raise "Test 1 failed" unless result == expected
 
 # Test 2: Shogi position with pieces in hand
-result = Feen::Parser.parse("lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL Bb SHOGI/shogi")
+result = Feen::Parser.parse("lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL B/b SHOGI/shogi")
 expected = {
   piece_placement: [
     ["l", "n", "s", "g", "k", "", "", "n", "l"],
@@ -44,7 +44,7 @@ expected = {
 raise "Test 2 failed" unless result == expected
 
 # Test 3: Chess position with black to move
-result = Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - chess/CHESS")
+result = Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / chess/CHESS")
 expected = {
   piece_placement: [
     ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -62,7 +62,7 @@ expected = {
 raise "Test 3 failed" unless result == expected
 
 # Test 4: Xiangqi position
-result = Feen::Parser.parse("rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR - XIANGQI/xiangqi")
+result = Feen::Parser.parse("rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR / XIANGQI/xiangqi")
 expected = {
   piece_placement: [
     ["r", "h", "e", "a", "g", "a", "e", "h", "r"],
@@ -82,7 +82,7 @@ expected = {
 raise "Test 4 failed" unless result == expected
 
 # Test 5: Chess position with modified pieces (prefix/suffix)
-result = Feen::Parser.parse("rnbqkbnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQKBNR - CHESS/chess")
+result = Feen::Parser.parse("rnbqkbnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQKBNR / CHESS/chess")
 expected = {
   piece_placement: [
     ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -100,7 +100,7 @@ expected = {
 raise "Test 5 failed" unless result == expected
 
 # Test 6: 3D structure
-result = Feen::Parser.parse("rnb/qkp//PR1/1KQ - FOO/bar")
+result = Feen::Parser.parse("rnb/qkp//PR1/1KQ / FOO/bar")
 expected = {
   piece_placement: [
     [
@@ -118,7 +118,7 @@ expected = {
 raise "Test 6 failed" unless result == expected
 
 # Test 7: Position with many pieces in hand
-result = Feen::Parser.parse("8/8/8/8/8/8/8/8 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz CHESS/chess")
+result = Feen::Parser.parse("8/8/8/8/8/8/8/8 ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz CHESS/chess")
 expected = {
   piece_placement: [
     ["", "", "", "", "", "", "", ""],
@@ -168,7 +168,7 @@ end
 
 # Test 11: Too many parts (extra one)
 begin
-  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess extra")
+  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess extra")
   raise "Test 11 failed: should have raised ArgumentError for extra field"
 rescue ArgumentError
   # Expected behavior
@@ -176,7 +176,7 @@ end
 
 # Test 12: Multiple spaces between parts
 begin
-  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR  - CHESS/chess")
+  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR  / CHESS/chess")
   raise "Test 12 failed: should have raised ArgumentError for multiple spaces"
 rescue ArgumentError
   # Expected behavior
@@ -184,14 +184,14 @@ end
 
 # Test 13: Spaces at the beginning or end
 begin
-  Feen::Parser.parse(" rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
+  Feen::Parser.parse(" rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
   raise "Test 13 failed: should have raised ArgumentError for leading space"
 rescue ArgumentError
   # Expected behavior
 end
 
 begin
-  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess ")
+  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess ")
   raise "Test 13 failed: should have raised ArgumentError for trailing space"
 rescue ArgumentError
   # Expected behavior
@@ -199,7 +199,7 @@ end
 
 # Test 14: Invalid piece placement
 begin
-  Feen::Parser.parse("rnbqkbnrx/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
+  Feen::Parser.parse("rnbqkbnrx/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
   raise "Test 14 failed: should have raised ArgumentError for invalid piece placement"
 rescue ArgumentError
   # Expected behavior
@@ -207,21 +207,21 @@ end
 
 # Test 15: Invalid games turn format
 begin
-  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESSxchess")
+  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESSxchess")
   raise "Test 15 failed: should have raised ArgumentError for invalid games turn format"
 rescue ArgumentError
   # Expected behavior
 end
 
 begin
-  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/CHESS")
+  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/CHESS")
   raise "Test 15 failed: should have raised ArgumentError for both uppercase games"
 rescue ArgumentError
   # Expected behavior
 end
 
 begin
-  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - chess/chess")
+  Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / chess/chess")
   raise "Test 15 failed: should have raised ArgumentError for both lowercase games"
 rescue ArgumentError
   # Expected behavior
@@ -249,14 +249,14 @@ expected = nil
 raise "Test 18 failed: safe_parse should return nil for invalid input" unless result == expected
 
 # Test 19: Testing safe_parse with valid input (should return same as parse)
-result_safe = Feen::Parser.safe_parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
-result_normal = Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
+result_safe = Feen::Parser.safe_parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
+result_normal = Feen::Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
 unless result_safe == result_normal
   raise "Test 19 failed: safe_parse should return the same result as parse for valid inputs"
 end
 
 # Test 20: Testing safe_parse with type conversion (Symbol to String)
-result = Feen::Parser.safe_parse(:"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
+result = Feen::Parser.safe_parse(:"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
 raise "Test 20 failed: safe_parse should handle Symbol conversion" unless result == result_normal
 
 puts "All tests passed successfully!"

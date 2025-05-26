@@ -10,7 +10,10 @@ module Feen
         invalid_format:            "Invalid pieces in hand format: %s",
         invalid_pnn_piece:         "Invalid PNN piece format: '%s'. Expected format: [prefix]letter[suffix] where prefix is + or -, suffix is ', and letter is a-z or A-Z",
         invalid_count:             "Invalid count format: '%s'. Count cannot be '0' or '1', use the piece without count instead",
-        canonical_order_violation: "Pieces in hand must be in canonical order (by quantity descending, then alphabetically). Got: '%<actual>s', expected: '%<expected>s'"
+        canonical_order_violation: "Pieces in hand must be in canonical order (by quantity descending, then alphabetically). Got: '%<actual>s', expected: '%<expected>s'",
+        missing_separator:         "Pieces in hand format must contain exactly one '/' separator. Got: %s",
+        wrong_case_in_section:     "Piece '%<piece>s' has wrong case for %<section>s section",
+        invalid_section_format:    "Invalid format in %<section>s section: %<content>s"
       }.freeze
     end
   end

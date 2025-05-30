@@ -9,10 +9,11 @@ module Feen
     module PiecesInHand
       # Error messages for validation
       Errors = {
-        invalid_type:      "Pieces in hand must be a string, got %s",
-        empty_string:      "Pieces in hand string cannot be empty",
-        invalid_format:    "Invalid pieces in hand format: %s",
-        missing_separator: "Pieces in hand format must contain exactly one '/' separator. Got: %s"
+        invalid_type:          "Pieces in hand must be a string, got %s",
+        empty_string:          "Pieces in hand string cannot be empty",
+        invalid_format:        "Invalid pieces in hand format: %s",
+        missing_separator:     "Pieces in hand format must contain exactly one '/' separator. Got: %s",
+        modifiers_not_allowed: 'Pieces in hand cannot contain modifiers: "%s"'
       }.freeze
 
       # Base piece pattern: single letter only (no modifiers allowed in hand)
@@ -22,16 +23,16 @@ module Feen
       VALID_COUNT_PATTERN = /\A(?:[2-9]|[1-9]\d+)\z/
 
       # Pattern for piece with optional count in pieces in hand
-      PIECE_WITH_COUNT_PATTERN = /(?:([2-9]|[1-9]\d+))?([a-zA-Z])/
+      PIECE_WITH_COUNT_PATTERN = /(?:([2-9]|[1-9]\d+))?([-+]?[a-zA-Z]'?)/
 
       # Complete validation pattern for pieces in hand string
       VALID_FORMAT_PATTERN = %r{\A
-        (?:                             # Uppercase section (optional)
-          (?:(?:[2-9]|[1-9]\d+)?[A-Z])* # Zero or more uppercase pieces with optional counts
+        (?:                                     # Uppercase section (optional)
+          (?:(?:[2-9]|[1-9]\d+)?[-+]?[A-Z]'?)*  # Zero or more uppercase pieces with optional counts and modifiers
         )
-        /                               # Mandatory separator
-        (?:                             # Lowercase section (optional)
-          (?:(?:[2-9]|[1-9]\d+)?[a-z])* # Zero or more lowercase pieces with optional counts
+        /                                       # Mandatory separator
+        (?:                                     # Lowercase section (optional)
+          (?:(?:[2-9]|[1-9]\d+)?[-+]?[a-z]'?)*  # Zero or more lowercase pieces with optional counts and modifiers
         )
       \z}x
 
@@ -94,7 +95,7 @@ module Feen
         parts_count = str.count("/")
         raise ::ArgumentError, format(Errors[:missing_separator], parts_count) unless parts_count == 1
 
-        # Must match the overall pattern
+        # Must match the overall pattern (including potential modifiers for detection)
         raise ::ArgumentError, format(Errors[:invalid_format], str) unless str.match?(VALID_FORMAT_PATTERN)
 
         # Additional validation: check for any modifiers (forbidden in hand)
@@ -111,9 +112,9 @@ module Feen
         return unless str.match?(/[+\-']/)
 
         # Find the specific invalid piece to provide a better error message
-        invalid_pieces = str.scan(/(?:[2-9]|[1-9]\d+)?[+\-']?[a-zA-Z]'?/).grep(/[+\-']/)
+        invalid_pieces = str.scan(/(?:[2-9]|[1-9]\d+)?[-+]?[a-zA-Z]'?/).grep(/[+\-']/)
 
-        raise ::ArgumentError, "Pieces in hand cannot contain modifiers: '#{invalid_pieces.first}'"
+        raise ::ArgumentError, format(Errors[:modifiers_not_allowed], invalid_pieces.first)
       end
 
       # Parses a specific section (uppercase or lowercase) and returns expanded pieces
@@ -145,12 +146,15 @@ module Feen
           match = section[position..].match(PIECE_WITH_COUNT_PATTERN)
           break unless match
 
-          count_str, piece = match.captures
+          count_str, piece_with_modifiers = match.captures
           count = count_str ? count_str.to_i : 1
 
+          # Extract just the base piece (remove any modifiers)
+          base_piece = extract_base_piece(piece_with_modifiers)
+
           # Validate piece is base form only (single letter)
-          unless piece.match?(BASE_PIECE_PATTERN)
-            raise ::ArgumentError, "Pieces in hand must be base form only: '#{piece}'"
+          unless base_piece.match?(BASE_PIECE_PATTERN)
+            raise ::ArgumentError, "Pieces in hand must be base form only: '#{base_piece}'"
           end
 
           # Validate count format
@@ -159,20 +163,32 @@ module Feen
           end
 
           # Validate that the piece matches the expected case
-          piece_case = piece.match?(/[A-Z]/) ? :uppercase : :lowercase
+          piece_case = base_piece.match?(/[A-Z]/) ? :uppercase : :lowercase
           unless piece_case == case_type
             case_name = case_type == :uppercase ? "uppercase" : "lowercase"
-            raise ::ArgumentError, "Piece '#{piece}' has wrong case for #{case_name} section"
+            raise ::ArgumentError, "Piece '#{base_piece}' has wrong case for #{case_name} section"
           end
 
           # Add to our result with piece type and count
-          result << { piece: piece, count: count }
+          result << { piece: base_piece, count: count }
 
           # Move position forward
           position += match[0].length
         end
 
         result
+      end
+
+      # Extracts the base piece from a piece string that may contain modifiers
+      #
+      # @param piece_str [String] Piece string potentially with modifiers
+      # @return [String] Base piece without modifiers
+      private_class_method def self.extract_base_piece(piece_str)
+        # Remove prefix modifiers (+ or -)
+        without_prefix = piece_str.gsub(/^[-+]/, "")
+
+        # Remove suffix modifiers (')
+        without_prefix.gsub(/'$/, "")
       end
 
       # Expands the pieces based on their counts into an array.

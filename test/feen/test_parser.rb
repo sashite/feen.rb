@@ -189,7 +189,7 @@ run_test("Propagates pieces in hand errors") do
   Feen::Parser.parse("K +P/ TEST/test") # Modifiers not allowed in hand
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Should propagate pieces in hand error" unless e.message.include?("Invalid pieces in hand format")
+  raise "Should propagate pieces in hand error" unless e.message.eql?('Pieces in hand cannot contain modifiers: "+P"')
 end
 
 run_test("Propagates games turn errors") do

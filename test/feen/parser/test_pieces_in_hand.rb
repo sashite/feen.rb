@@ -249,35 +249,35 @@ run_test("Raises error for enhanced modifier (+)") do
   Feen::Parser::PiecesInHand.parse("+P/p")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+  raise "Wrong error message: #{e.message}" unless e.message.eql?('Pieces in hand cannot contain modifiers: "+P"')
 end
 
 run_test("Raises error for diminished modifier (-)") do
   Feen::Parser::PiecesInHand.parse("P/-r")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+  raise "Wrong error message: #{e.message}" unless e.message.eql?('Pieces in hand cannot contain modifiers: "-r"')
 end
 
 run_test("Raises error for intermediate state (')") do
   Feen::Parser::PiecesInHand.parse("K'/p")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+  raise "Wrong error message: #{e.message}" unless e.message.eql?('Pieces in hand cannot contain modifiers: "K\'"')
 end
 
 run_test("Raises error for multiple modifiers") do
   Feen::Parser::PiecesInHand.parse("+P'/p")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+  raise "Wrong error message: #{e.message}" unless e.message.eql?('Pieces in hand cannot contain modifiers: "+P\'"')
 end
 
 run_test("Raises error for modifiers with counts") do
   Feen::Parser::PiecesInHand.parse("3+P/p")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+  raise "Wrong error message: #{e.message}" unless e.message.eql?('Pieces in hand cannot contain modifiers: "3+P"')
 end
 
 # Error cases - invalid counts

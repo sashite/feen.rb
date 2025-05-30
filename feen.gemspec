@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
                                 "Xiangqi, and others."
   spec.homepage               = "https://github.com/sashite/feen.rb"
   spec.license                = "MIT"
-  spec.files                  = ::Dir["LICENSE.md", "README.md", "lib/**/*"]
+  spec.files                  = ::Dir["LICENSE.md", "README.md", "lib/**/*.rb"]
   spec.required_ruby_version  = ">= 3.2.0"
 
   spec.metadata = {
@@ -21,6 +21,7 @@ Gem::Specification.new do |spec|
     "homepage_uri"          => "https://github.com/sashite/feen.rb",
     "source_code_uri"       => "https://github.com/sashite/feen.rb",
     "specification_uri"     => "https://sashite.dev/documents/feen/1.0.0/",
-    "rubygems_mfa_required" => "true"
+    "rubygems_mfa_required" => "true",
+    "keywords"              => %w[board board-games chess deserialization feen fen game makruk notation serialization shogi xiangqi"].join(", ")
   }
 end

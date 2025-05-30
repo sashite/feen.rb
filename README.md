@@ -24,7 +24,7 @@ FEEN is like taking a snapshot of any board game position and turning it into a 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "feen", ">= 5.0.0.beta8"
+gem "feen", ">= 5.0.0.beta9"
 ```
 
 Or install it directly:
@@ -45,8 +45,8 @@ board = [["r", "k", "r"]]
 
 feen_string = Feen.dump(
   piece_placement: board,
-  pieces_in_hand:  [],           # No captured pieces
-  games_turn:      ["GAME", "game"]  # GAME player's turn
+  pieces_in_hand:  [],              # No captured pieces
+  games_turn:      ["GAME", "game"] # GAME player's turn
 )
 
 feen_string # => "rkr / GAME/game"
@@ -87,11 +87,11 @@ The board shows where pieces are placed:
 **Examples:**
 
 ```ruby
-"K"           # Single piece on 1x1 board
-"3"           # Three empty squares
-"Kqr"         # Three pieces: K, q, r
-"K2r"         # K, two empty squares, then r
-"Kqr/3/R2k"   # 3x3 board with multiple ranks
+"K"         # Single piece on 1x1 board
+"3"         # Three empty squares
+"Kqr"       # Three pieces: K, q, r
+"K2r"       # K, two empty squares, then r
+"Kqr/3/R2k" # 3x3 board with multiple ranks
 ```
 
 ### Part 2: Captured Pieces (Pieces in Hand)
@@ -106,10 +106,10 @@ Shows pieces that have been captured and can potentially be used again:
 **Examples:**
 
 ```ruby
-"/"          # No pieces captured
-"P/"         # First player has one P piece
-"/p"         # Second player has one p piece
-"2PK/3p"     # First player: 2 P's + 1 K, Second player: 3 p's
+"/"         # No pieces captured
+"P/"        # First player has one P piece
+"/p"        # Second player has one p piece
+"2PK/3p"    # First player: 2 P's + 1 K, Second player: 3 p's
 ```
 
 ### Part 3: Turn Information
@@ -123,9 +123,9 @@ Shows whose turn it is and identifies the game types:
 **Examples:**
 
 ```ruby
-"CHESS/chess"    # CHESS player (uppercase pieces) to move
-"shogi/SHOGI"    # shogi player (lowercase pieces) to move
-"GAME1/game2"    # Mixed game types
+"CHESS/chess" # CHESS player (uppercase pieces) to move
+"shogi/SHOGI" # shogi player (lowercase pieces) to move
+"GAME1/game2" # GAME1 player (uppercase pieces) to move (mixed game types)
 ```
 
 ## Complete API Reference
@@ -147,9 +147,9 @@ Converts position components into a FEEN string.
 
 ```ruby
 board = [
-  ["r", "n", "k", "n", "r"],   # Back rank
-  ["", "", "", "", ""],        # Empty rank
-  ["P", "P", "P", "P", "P"]    # Front rank
+  ["r", "n", "k", "n", "r"],  # Back rank
+  ["", "", "", "", ""],       # Empty rank
+  ["P", "P", "P", "P", "P"]   # Front rank
 ]
 
 feen = Feen.dump(
@@ -214,9 +214,9 @@ Checks if a string is valid, canonical FEEN notation.
 **Example:**
 
 ```ruby
-Feen.valid?("k/K / GAME/game")        # => true
-Feen.valid?("invalid")                # => false
-Feen.valid?("k/K P3K/ GAME/game")     # => false (wrong piece order)
+Feen.valid?("k/K / GAME/game")    # => true
+Feen.valid?("invalid")            # => false
+Feen.valid?("k/K P3K/ GAME/game") # => false (wrong piece order)
 ```
 
 ## Working with Different Board Sizes
@@ -313,8 +313,8 @@ For games that need special piece states, use modifiers **only on the board**:
 
 ```ruby
 board = [
-  ["+P", "K", "-R"],    # Enhanced pawn, King, diminished rook
-  ["N'", "", "B"]       # Knight with special state, empty, Bishop
+  ["+P", "K", "-R"],  # Enhanced pawn, King, diminished rook
+  ["N'", "", "B"]     # Knight with special state, empty, Bishop
 ]
 
 # Note: Modifiers (+, -, ') are ONLY allowed on the board
@@ -335,9 +335,9 @@ FEEN can represent positions mixing different game systems:
 ```ruby
 # FOO pieces vs bar pieces
 mixed_feen = Feen.dump(
-  piece_placement: ["K", "G", "k", "r"],    # Mixed piece types
-  pieces_in_hand:  ["P", "g"],              # Captured from both sides
-  games_turn:      ["bar", "FOO"]           # Different game systems
+  piece_placement: ["K", "G", "k", "r"],  # Mixed piece types
+  pieces_in_hand:  ["P", "g"],            # Captured from both sides
+  games_turn:      ["bar", "FOO"]         # Different game systems
 )
 
 mixed_feen # => "KGkr P/g bar/FOO"
@@ -350,16 +350,16 @@ mixed_feen # => "KGkr P/g bar/FOO"
 ```ruby
 # ERROR: Wrong argument types
 Feen.dump(
-  piece_placement: "not an array",    # Must be Array
-  pieces_in_hand:  "not an array",   # Must be Array
-  games_turn:      "not an array"    # Must be Array[2]
+  piece_placement: "not an array",  # Must be Array
+  pieces_in_hand:  "not an array",  # Must be Array
+  games_turn:      "not an array"   # Must be Array[2]
 )
 # => ArgumentError
 
 # ERROR: Modifiers in captured pieces
 Feen.dump(
   piece_placement: [["K"]],
-  pieces_in_hand:  ["+P"],           # Invalid: no modifiers allowed
+  pieces_in_hand:  ["+P"],          # Invalid: no modifiers allowed
   games_turn:      ["GAME", "game"]
 )
 # => ArgumentError
@@ -368,7 +368,7 @@ Feen.dump(
 Feen.dump(
   piece_placement: [["K"]],
   pieces_in_hand:  [],
-  games_turn:      ["GAME", "ALSO"]  # Must be different cases
+  games_turn:      ["GAME", "ALSO"] # Must be different cases
 )
 # => ArgumentError
 ```
@@ -450,7 +450,7 @@ end
 db = PositionDatabase.new
 db.store_position("start", [["r", "k", "r"]], [], ["GAME", "game"])
 position = db.retrieve_position("start")
-# => {piece_placement: [["r", "k", "r"]], pieces_in_hand: [], games_turn: ["GAME", "game"]}
+# => { piece_placement: [["r", "k", "r"]], pieces_in_hand: [], games_turn: ["GAME", "game"] }
 ```
 
 ## Best Practices

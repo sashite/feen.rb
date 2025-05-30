@@ -13,7 +13,7 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - 'test/feen/test_parser.rb'
 
-# Offense count: 507
+# Offense count: 508
 # Configuration parameters: Only, Ignore.
 Lint/ConstantResolution:
   Enabled: false

@@ -1,273 +1,367 @@
 # frozen_string_literal: true
 
+# Tests for Feen::Parser::PiecesInHand conforming to FEEN Specification v1.0.0
+#
+# FEEN specifies that pieces in hand must be parsed from format:
+# - Format: "UPPERCASE_PIECES/LOWERCASE_PIECES" with mandatory "/" separator
+# - Pieces MUST be in base form only (no modifiers like +, -, ' allowed)
+# - Uses count notation for quantities > 1 (e.g., "3P" means 3 P pieces)
+# - Within each section, pieces are sorted by quantity (descending) then alphabetically
+# - Returns expanded array of piece identifiers sorted alphabetically
+#
+# This test assumes the existence of the following files:
+# - lib/feen/parser/pieces_in_hand.rb
+
 require_relative "../../../lib/feen/parser/pieces_in_hand"
 
-# File: test/feen/parser/test_pieces_in_hand.rb
+# Helper function to run a test and report errors
+def run_test(name)
+  print "  #{name}... "
+  yield
+  puts "✓ Success"
+rescue StandardError => e
+  warn "✗ Failure: #{e.message}"
+  warn "    #{e.backtrace.first}"
+  exit(1)
+end
 
-puts "Running Feen::Parser::PiecesInHand tests..."
+puts
+puts "Tests for Feen::Parser::PiecesInHand"
+puts
 
-# --- Tests for valid cases ---
+# Basic cases
+run_test("No pieces in hand") do
+  result = Feen::Parser::PiecesInHand.parse("/")
+  expected = []
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 1: No pieces in hand (format: "/")
-result = Feen::Parser::PiecesInHand.parse("/")
-expected = []
-raise "Test 1 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+run_test("Single piece (uppercase)") do
+  result = Feen::Parser::PiecesInHand.parse("P/")
+  expected = ["P"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 1 passed: No pieces in hand"
+run_test("Single piece (lowercase)") do
+  result = Feen::Parser::PiecesInHand.parse("/p")
+  expected = ["p"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 2: Single uppercase piece
-result = Feen::Parser::PiecesInHand.parse("P/")
-expected = ["P"]
-raise "Test 2 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+run_test("Mixed case single pieces") do
+  result = Feen::Parser::PiecesInHand.parse("P/p")
+  expected = %w[P p]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 2 passed: Single uppercase piece"
+# Multiple pieces with counts
+run_test("Multiple pieces same type (uppercase)") do
+  result = Feen::Parser::PiecesInHand.parse("3P/")
+  expected = %w[P P P]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 2b: Single lowercase piece
-result = Feen::Parser::PiecesInHand.parse("/p")
-expected = ["p"]
-raise "Test 2b failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+run_test("Multiple pieces same type (lowercase)") do
+  result = Feen::Parser::PiecesInHand.parse("/5p")
+  expected = %w[p p p p p]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 2b passed: Single lowercase piece"
+run_test("Two pieces same type") do
+  result = Feen::Parser::PiecesInHand.parse("2B/")
+  expected = %w[B B]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 3: Multiple uppercase pieces in canonical order
-result = Feen::Parser::PiecesInHand.parse("BNP/")
-expected = %w[B N P]
-raise "Test 3 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+# Multiple different pieces
+run_test("Multiple different pieces (uppercase only)") do
+  result = Feen::Parser::PiecesInHand.parse("BPR/")
+  expected = %w[B P R]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 3 passed: Multiple uppercase pieces in order"
+run_test("Multiple different pieces (lowercase only)") do
+  result = Feen::Parser::PiecesInHand.parse("/bpr")
+  expected = %w[b p r]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 3b: Multiple lowercase pieces in canonical order
-result = Feen::Parser::PiecesInHand.parse("/bnp")
-expected = %w[b n p]
-raise "Test 3b failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+run_test("Multiple different pieces (mixed case)") do
+  result = Feen::Parser::PiecesInHand.parse("BR/pr")
+  expected = %w[B R p r]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 3b passed: Multiple lowercase pieces in order"
+# Complex canonical format parsing
+run_test("Parse canonical format with counts") do
+  result = Feen::Parser::PiecesInHand.parse("3P2B/p")
+  expected = %w[B B P P P p]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 4: Pieces with counts (uppercase)
-result = Feen::Parser::PiecesInHand.parse("3P2B/")
-expected = %w[B B P P P]
-raise "Test 4 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+run_test("Parse complex canonical format") do
+  result = Feen::Parser::PiecesInHand.parse("5P2BR/")
+  expected = %w[B B P P P P P R]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 4 passed: Uppercase pieces with counts"
+run_test("Parse mixed quantities and types") do
+  result = Feen::Parser::PiecesInHand.parse("5P3Q2BNR/4p2g")
+  expected = %w[B B N P P P P P Q Q Q R g g p p p p]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 4b: Pieces with counts (lowercase)
-result = Feen::Parser::PiecesInHand.parse("/3p2b")
-expected = %w[b b p p p]
-raise "Test 4b failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+# Large quantities
+run_test("Large quantities") do
+  result = Feen::Parser::PiecesInHand.parse("10P/15p")
+  expected = Array.new(10, "P") + Array.new(15, "p")
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 4b passed: Lowercase pieces with counts"
+run_test("Very large quantities") do
+  result = Feen::Parser::PiecesInHand.parse("123K/456k")
+  expected = Array.new(123, "K") + Array.new(456, "k")
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 5: Piece with + prefix (uppercase)
-result = Feen::Parser::PiecesInHand.parse("+P/")
-expected = ["+P"]
-raise "Test 5 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+# Shogi-style examples
+run_test("Shogi pieces in hand") do
+  result = Feen::Parser::PiecesInHand.parse("5P2G2L/pr")
+  expected = %w[G G L L P P P P P p r]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 5 passed: Uppercase piece with + prefix"
+run_test("Complex Shogi hand") do
+  result = Feen::Parser::PiecesInHand.parse("2B2P/2g2sln")
+  expected = %w[B B P P g g l n s s]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 6: Piece with - prefix (lowercase)
-result = Feen::Parser::PiecesInHand.parse("/-p")
-expected = ["-p"]
-raise "Test 6 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+# All letters test
+run_test("All uppercase letters") do
+  result = Feen::Parser::PiecesInHand.parse("ABCDEFGHIJKLMNOPQRSTUVWXYZ/")
+  expected = ("A".."Z").to_a
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 6 passed: Lowercase piece with - prefix"
+run_test("All lowercase letters") do
+  result = Feen::Parser::PiecesInHand.parse("/abcdefghijklmnopqrstuvwxyz")
+  expected = ("a".."z").to_a
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 7: Piece with ' suffix (uppercase)
-result = Feen::Parser::PiecesInHand.parse("P'/")
-expected = ["P'"]
-raise "Test 7 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+# Mixed counts and single pieces
+run_test("Mixed counts and single pieces") do
+  result = Feen::Parser::PiecesInHand.parse("3PBRN/2pr")
+  expected = %w[B N P P P R p p r]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 7 passed: Uppercase piece with ' suffix"
+# Two-digit and higher counts
+run_test("Two-digit counts") do
+  result = Feen::Parser::PiecesInHand.parse("12P/34p")
+  expected = Array.new(12, "P") + Array.new(34, "p")
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test 8: Piece with both prefix and suffix (uppercase)
-result = Feen::Parser::PiecesInHand.parse("+P'/")
-expected = ["+P'"]
-raise "Test 8 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+run_test("Three-digit counts") do
+  result = Feen::Parser::PiecesInHand.parse("100K/999k")
+  expected = Array.new(100, "K") + Array.new(999, "k")
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✓ Test 8 passed: Piece with prefix and suffix"
-
-# Test 9: Mixed case with modifiers and counts
-result = Feen::Parser::PiecesInHand.parse("3+P2B'/2p'-p")
-expected = ["+P", "+P", "+P", "-p", "B'", "B'", "p'", "p'"]
-raise "Test 9 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
-
-puts "✓ Test 9 passed: Mixed case with modifiers and counts"
-
-# Test 10: Canonical ordering example adapted for case separation
-result = Feen::Parser::PiecesInHand.parse("10P5K4B+PR/2p'-pbq")
-expected = ["+P",
-            "-p",
-            "B", "B", "B", "B",
-            "K", "K", "K", "K", "K",
-            "P", "P", "P", "P", "P", "P", "P", "P", "P", "P",
-            "R",
-            "b",
-            "p'", "p'",
-            "q"]
-raise "Test 10 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
-
-puts "✓ Test 10 passed: Canonical ordering with case separation"
-
-# Test 11: Large counts (uppercase)
-result = Feen::Parser::PiecesInHand.parse("100P/")
-expected_size = 100
-raise "Test 11 failed: Expected array size #{expected_size}, got #{result.size}" unless result.size == expected_size
-raise "Test 11 failed: Not all elements are 'P'" unless result.all? { |p| p == "P" }
-
-puts "✓ Test 11 passed: Large counts"
-
-# Test 12: Mixed case with modifiers (both sections)
-result = Feen::Parser::PiecesInHand.parse("2+P/2-p")
-expected = ["+P", "+P", "-p", "-p"]
-raise "Test 12 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
-
-puts "✓ Test 12 passed: Mixed case with modifiers"
-
-# Test 13: All modifier combinations in canonical order (uppercase)
-result = Feen::Parser::PiecesInHand.parse("+P-PPP'/")
-expected = ["+P", "-P", "P", "P'"]
-raise "Test 13 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
-
-puts "✓ Test 13 passed: All modifier combinations"
-
-# Test 13b: Debug alphabetical order of modifiers
-pieces = ["+P", "-P", "P'", "P"]
-sorted_pieces = pieces.sort
-puts "Debug: Alphabetical order of pieces: #{sorted_pieces.inspect}"
-
-# Test 14: Complex mixed case scenario
-result = Feen::Parser::PiecesInHand.parse("3P+PB'K/2p+pb'k")
-expected = ["+P", "+p", "B'", "K", "P", "P", "P", "b'", "k", "p", "p"]
-raise "Test 14 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
-
-puts "✓ Test 14 passed: Complex mixed case scenario"
-
-# Test 15: Same letter different cases
-result = Feen::Parser::PiecesInHand.parse("2P/2p")
-expected = %w[P P p p]
-raise "Test 15 failed: Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
-
-puts "✓ Test 15 passed: Same letter different cases"
-
-# --- Tests for error cases ---
-
-# Test 16: Non-string input
-begin
+# Error cases - invalid input types
+run_test("Raises error for non-string input") do
   Feen::Parser::PiecesInHand.parse(123)
-  raise "Test 16 failed: Should have raised ArgumentError for non-string input"
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  expected_message = "Pieces in hand must be a string, got Integer"
-  unless e.message == expected_message
-    raise "Test 16 failed: Wrong error message. Expected '#{expected_message}', got '#{e.message}'"
-  end
-
-  puts "✓ Test 16 passed: Non-string input error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Pieces in hand must be a string")
 end
 
-# Test 17: Empty string
-begin
+run_test("Raises error for nil input") do
+  Feen::Parser::PiecesInHand.parse(nil)
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Pieces in hand must be a string")
+end
+
+run_test("Raises error for array input") do
+  Feen::Parser::PiecesInHand.parse(%w[P p])
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Pieces in hand must be a string")
+end
+
+# Error cases - empty string
+run_test("Raises error for empty string") do
   Feen::Parser::PiecesInHand.parse("")
-  raise "Test 17 failed: Should have raised ArgumentError for empty string"
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  expected_message = "Pieces in hand string cannot be empty"
-  unless e.message == expected_message
-    raise "Test 17 failed: Wrong error message. Expected '#{expected_message}', got '#{e.message}'"
-  end
-
-  puts "✓ Test 17 passed: Empty string error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Pieces in hand string cannot be empty")
 end
 
-# Test 18: Missing separator
-begin
-  Feen::Parser::PiecesInHand.parse("P")
-  raise "Test 18 failed: Should have raised ArgumentError for missing separator"
+# Error cases - missing separator
+run_test("Raises error for missing separator") do
+  Feen::Parser::PiecesInHand.parse("Pp")
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Invalid pieces in hand format: P")
-    raise "Test 18 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 18 passed: Missing separator error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("must contain exactly one '/' separator")
 end
 
-# Test 19: Too many separators
-begin
-  Feen::Parser::PiecesInHand.parse("P/p/q")
-  raise "Test 19 failed: Should have raised ArgumentError for too many separators"
+run_test("Raises error for multiple separators") do
+  Feen::Parser::PiecesInHand.parse("P/p/B")
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Invalid pieces in hand format: P/p/q")
-    raise "Test 19 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 19 passed: Too many separators error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("must contain exactly one '/' separator")
 end
 
-# Test 20: Invalid pieces in hand format (double prefix)
-begin
-  Feen::Parser::PiecesInHand.parse("++P/")
-  raise "Test 20 failed: Should have raised ArgumentError for invalid PNN format"
+run_test("Raises error for no separator") do
+  Feen::Parser::PiecesInHand.parse("PPBB")
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Invalid pieces in hand format: ++P") || e.message.include?("Invalid PNN piece format")
-    raise "Test 20 failed: Wrong error type or message: #{e.message}"
-  end
-
-  puts "✓ Test 20 passed: Invalid PNN format error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("must contain exactly one '/' separator")
 end
 
-# Test 21: Invalid count (0)
-begin
-  Feen::Parser::PiecesInHand.parse("0P/")
-  raise "Test 21 failed: Should have raised ArgumentError for count 0"
+# Error cases - invalid format
+run_test("Raises error for invalid characters") do
+  Feen::Parser::PiecesInHand.parse("P@/p")
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Invalid pieces in hand format: 0P") || e.message.include?("Invalid count format")
-    raise "Test 21 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 21 passed: Invalid count 0 error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
 end
 
-# Test 22: Invalid count (1)
-begin
-  Feen::Parser::PiecesInHand.parse("1P/")
-  raise "Test 22 failed: Should have raised ArgumentError for count 1"
+run_test("Raises error for spaces") do
+  Feen::Parser::PiecesInHand.parse("P P/p")
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Invalid pieces in hand format: 1P") || e.message.include?("Invalid count format")
-    raise "Test 22 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 22 passed: Invalid count 1 error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
 end
 
-# Test 23: Invalid overall format (special characters)
-begin
-  Feen::Parser::PiecesInHand.parse("P@Q/")
-  raise "Test 23 failed: Should have raised ArgumentError for invalid format"
+run_test("Raises error for numbers in wrong position") do
+  Feen::Parser::PiecesInHand.parse("P3/p")
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Invalid pieces in hand format: P@Q")
-    raise "Test 23 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 23 passed: Invalid format error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
 end
 
-# Test 24: Wrong case in section (lowercase in uppercase section)
-begin
+# Error cases - modifiers (forbidden in pieces in hand)
+run_test("Raises error for enhanced modifier (+)") do
+  Feen::Parser::PiecesInHand.parse("+P/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for diminished modifier (-)") do
+  Feen::Parser::PiecesInHand.parse("P/-r")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for intermediate state (')") do
+  Feen::Parser::PiecesInHand.parse("K'/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for multiple modifiers") do
+  Feen::Parser::PiecesInHand.parse("+P'/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for modifiers with counts") do
+  Feen::Parser::PiecesInHand.parse("3+P/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+# Error cases - invalid counts
+run_test("Raises error for count of 0") do
+  Feen::Parser::PiecesInHand.parse("0P/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for count of 1") do
+  Feen::Parser::PiecesInHand.parse("1P/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for count with leading zero") do
+  Feen::Parser::PiecesInHand.parse("01P/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+run_test("Raises error for count with leading zeros") do
+  Feen::Parser::PiecesInHand.parse("002P/p")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
+end
+
+# Error cases - wrong case in section
+run_test("Raises error for lowercase piece in uppercase section") do
   Feen::Parser::PiecesInHand.parse("Pp/")
-  raise "Test 24 failed: Should have raised ArgumentError for wrong case in section"
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("contains lowercase piece") || e.message.include?("Invalid pieces in hand format")
-    raise "Test 24 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 24 passed: Wrong case in uppercase section error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format")
 end
 
-# Test 25: Wrong case in section (uppercase in lowercase section)
-begin
+run_test("Raises error for uppercase piece in lowercase section") do
   Feen::Parser::PiecesInHand.parse("/pP")
-  raise "Test 25 failed: Should have raised ArgumentError for wrong case in section"
+  raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("contains uppercase piece") || e.message.include?("Invalid pieces in hand format")
-    raise "Test 25 failed: Wrong error message: #{e.message}"
-  end
-
-  puts "✓ Test 25 passed: Wrong case in lowercase section error"
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format: /pP")
 end
+
+run_test("Raises error for mixed case with counts") do
+  Feen::Parser::PiecesInHand.parse("3Pp/")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid pieces in hand format: 3Pp/")
+end
+
+# Edge cases - minimal valid inputs
+run_test("Minimal valid single uppercase") do
+  result = Feen::Parser::PiecesInHand.parse("A/")
+  expected = ["A"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Minimal valid single lowercase") do
+  result = Feen::Parser::PiecesInHand.parse("/z")
+  expected = ["z"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Minimal valid count") do
+  result = Feen::Parser::PiecesInHand.parse("2A/")
+  expected = %w[A A]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+# Alphabetical sorting verification
+run_test("Result is alphabetically sorted") do
+  result = Feen::Parser::PiecesInHand.parse("ZYX/cba")
+  expected = %w[X Y Z a b c]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Complex sorting with mixed counts") do
+  result = Feen::Parser::PiecesInHand.parse("5Z3Y2X/4c3b2a")
+  expected = %w[X X Y Y Y Z Z Z Z Z a a b b b c c c c]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+puts
+puts "All tests passed! ✓"

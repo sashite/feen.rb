@@ -1,22 +1,47 @@
 # frozen_string_literal: true
 
-require_relative File.join("pieces_in_hand", "errors")
-require_relative File.join("pieces_in_hand", "pnn_patterns")
-
 module Feen
   module Parser
     # Handles parsing of the pieces in hand section of a FEEN string.
     # Pieces in hand represent pieces available for dropping onto the board.
-    # This implementation supports full PNN notation including prefixes and suffixes.
+    # According to FEEN specification, pieces in hand MUST be in base form only (no modifiers).
     # Format: "UPPERCASE_PIECES/LOWERCASE_PIECES"
     module PiecesInHand
+      # Error messages for validation
+      Errors = {
+        invalid_type:      "Pieces in hand must be a string, got %s",
+        empty_string:      "Pieces in hand string cannot be empty",
+        invalid_format:    "Invalid pieces in hand format: %s",
+        missing_separator: "Pieces in hand format must contain exactly one '/' separator. Got: %s"
+      }.freeze
+
+      # Base piece pattern: single letter only (no modifiers allowed in hand)
+      BASE_PIECE_PATTERN = /\A[a-zA-Z]\z/
+
+      # Valid count pattern: 2-9 or any number with 2+ digits (no 0, 1, or leading zeros)
+      VALID_COUNT_PATTERN = /\A(?:[2-9]|[1-9]\d+)\z/
+
+      # Pattern for piece with optional count in pieces in hand
+      PIECE_WITH_COUNT_PATTERN = /(?:([2-9]|[1-9]\d+))?([a-zA-Z])/
+
+      # Complete validation pattern for pieces in hand string
+      VALID_FORMAT_PATTERN = %r{\A
+        (?:                                               # Uppercase section (optional)
+          (?:(?:[2-9]|[1-9]\d+)?[A-Z])*                  # Zero or more uppercase pieces with optional counts
+        )
+        /                                                 # Mandatory separator
+        (?:                                               # Lowercase section (optional)
+          (?:(?:[2-9]|[1-9]\d+)?[a-z])*                  # Zero or more lowercase pieces with optional counts
+        )
+      \z}x
+
       # Parses the pieces in hand section of a FEEN string.
       #
       # @param pieces_in_hand_str [String] FEEN pieces in hand string in format "UPPERCASE/lowercase"
-      # @return [Array<String>] Array of piece identifiers in full PNN format,
+      # @return [Array<String>] Array of piece identifiers in base form only,
       #   expanded based on their counts and sorted alphabetically.
       #   Empty array if no pieces are in hand.
-      # @raise [ArgumentError] If the input string is invalid
+      # @raise [ArgumentError] If the input string is invalid or contains modifiers
       #
       # @example Parse no pieces in hand
       #   PiecesInHand.parse("/")
@@ -26,13 +51,10 @@ module Feen
       #   PiecesInHand.parse("3P2B/p")
       #   # => ["B", "B", "P", "P", "P", "p"]
       #
-      # @example Parse complex pieces with counts and modifiers
-      #   PiecesInHand.parse("10P5K3B/2p'+p-pbq")
-      #   # => ["+p", "-p", "B", "B", "B", "K", "K", "K", "K", "K",
-      #   #     "P", "P", "P", "P", "P", "P", "P", "P", "P", "P",
-      #   #     "b", "p'", "p'", "q"]
+      # @example Invalid - modifiers not allowed in hand
+      #   PiecesInHand.parse("+P/p")
+      #   # => ArgumentError: Pieces in hand cannot contain modifiers: '+P'
       def self.parse(pieces_in_hand_str)
-        # Validate input
         validate_input_type(pieces_in_hand_str)
         validate_format(pieces_in_hand_str)
 
@@ -42,7 +64,7 @@ module Feen
         # Split by the separator to get uppercase and lowercase sections
         uppercase_section, lowercase_section = pieces_in_hand_str.split("/", 2)
 
-        # Parse each section separately
+        # Parse each section separately and validate no modifiers
         uppercase_pieces = parse_pieces_section(uppercase_section || "", :uppercase)
         lowercase_pieces = parse_pieces_section(lowercase_section || "", :lowercase)
 
@@ -62,103 +84,36 @@ module Feen
       end
 
       # Validates that the input string matches the expected format according to FEEN specification.
-      # Format must be: "UPPERCASE_PIECES/LOWERCASE_PIECES"
+      # Format must be: "UPPERCASE_PIECES/LOWERCASE_PIECES" with base pieces only (no modifiers).
       #
       # @param str [String] Input string to validate
-      # @raise [ArgumentError] If format is invalid
+      # @raise [ArgumentError] If format is invalid or contains modifiers
       # @return [void]
       private_class_method def self.validate_format(str)
         # Must contain exactly one "/" separator
         parts_count = str.count("/")
-        raise ::ArgumentError, format(Errors[:invalid_format], str) unless parts_count == 1
+        raise ::ArgumentError, format(Errors[:missing_separator], parts_count) unless parts_count == 1
 
-        uppercase_section, lowercase_section = str.split("/", 2)
+        # Must match the overall pattern
+        raise ::ArgumentError, format(Errors[:invalid_format], str) unless str.match?(VALID_FORMAT_PATTERN)
 
-        # Each section can be empty, but if not empty, must follow PNN patterns
-        validate_section_format(uppercase_section, :uppercase) unless uppercase_section.empty?
-        validate_section_format(lowercase_section, :lowercase) unless lowercase_section.empty?
+        # Additional validation: check for any modifiers (forbidden in hand)
+        validate_no_modifiers(str)
       end
 
-      # Validates the format of a specific section (uppercase or lowercase)
+      # Validates that no modifiers are present in the pieces in hand string
       #
-      # @param section [String] The section to validate
-      # @param case_type [Symbol] Either :uppercase or :lowercase
-      # @raise [ArgumentError] If the section format is invalid
+      # @param str [String] Input string to validate
+      # @raise [ArgumentError] If modifiers are found
       # @return [void]
-      private_class_method def self.validate_section_format(section, case_type)
-        return if section.empty?
+      private_class_method def self.validate_no_modifiers(str)
+        # Check for any modifier characters that are forbidden in pieces in hand
+        return unless str.match?(/[+\-']/)
 
-        # Build the appropriate pattern based on case type
-        case_pattern = case case_type
-                       when :uppercase
-                         PnnPatterns::UPPERCASE_SECTION_PATTERN
-                       when :lowercase
-                         PnnPatterns::LOWERCASE_SECTION_PATTERN
-                       else
-                         raise ArgumentError, "Invalid case type: #{case_type}"
-                       end
+        # Find the specific invalid piece to provide a better error message
+        invalid_pieces = str.scan(/(?:[2-9]|[1-9]\d+)?[+\-']?[a-zA-Z]'?/).grep(/[+\-']/)
 
-        # Validate overall section pattern
-        raise ::ArgumentError, format(Errors[:invalid_format], section) unless section.match?(case_pattern)
-
-        # Validate individual pieces in the section
-        validate_individual_pieces_in_section(section, case_type)
-      end
-
-      # Validates each individual piece in a section for PNN compliance
-      #
-      # @param section [String] FEEN pieces section string
-      # @param case_type [Symbol] Either :uppercase or :lowercase
-      # @raise [ArgumentError] If any piece is invalid PNN format
-      # @return [void]
-      private_class_method def self.validate_individual_pieces_in_section(section, case_type)
-        position = 0
-
-        while position < section.length
-          match = section[position..].match(PnnPatterns::PIECE_WITH_COUNT_PATTERN)
-
-          unless match
-            remaining = section[position..]
-            raise ::ArgumentError, format(Errors[:invalid_format], remaining)
-          end
-
-          count_str, piece = match.captures
-
-          # Skip empty matches (shouldn't happen with our pattern, but safety check)
-          if piece.nil? || piece.empty?
-            position += 1
-            next
-          end
-
-          # Validate the piece follows PNN specification
-          unless piece.match?(PnnPatterns::PNN_PIECE_PATTERN)
-            raise ::ArgumentError, format(Errors[:invalid_pnn_piece], piece)
-          end
-
-          # Validate count format (no "0" or "1" prefixes allowed)
-          if count_str && !count_str.match?(PnnPatterns::VALID_COUNT_PATTERN)
-            raise ::ArgumentError, format(Errors[:invalid_count], count_str)
-          end
-
-          # Validate that the piece matches the expected case
-          piece_case = piece_is_uppercase?(piece) ? :uppercase : :lowercase
-          unless piece_case == case_type
-            case_name = case_type == :uppercase ? "uppercase" : "lowercase"
-            raise ::ArgumentError, "#{case_name.capitalize} section contains #{piece_case} piece: '#{piece}'"
-          end
-
-          position += match[0].length
-        end
-      end
-
-      # Determines if a piece belongs to the uppercase group
-      #
-      # @param piece [String] Piece identifier (e.g., "P", "+P", "P'", "+P'")
-      # @return [Boolean] True if the piece's main letter is uppercase
-      private_class_method def self.piece_is_uppercase?(piece)
-        # Extract the main letter (skip prefixes like + or -)
-        main_letter = piece.gsub(/\A[+-]/, "").gsub(/'\z/, "")
-        main_letter.match?(/[A-Z]/)
+        raise ::ArgumentError, "Pieces in hand cannot contain modifiers: '#{invalid_pieces.first}'"
       end
 
       # Parses a specific section (uppercase or lowercase) and returns expanded pieces
@@ -166,30 +121,49 @@ module Feen
       # @param section [String] The section string to parse
       # @param case_type [Symbol] Either :uppercase or :lowercase (for validation)
       # @return [Array<String>] Array of expanded pieces from this section
-      private_class_method def self.parse_pieces_section(section, _case_type)
+      private_class_method def self.parse_pieces_section(section, case_type)
         return [] if section.empty?
 
         # Extract pieces with their counts
-        pieces_with_counts = extract_pieces_with_counts_from_section(section)
+        pieces_with_counts = extract_pieces_with_counts_from_section(section, case_type)
 
-        # Expand the pieces into an array (no canonical order validation needed)
+        # Expand the pieces into an array
         expand_pieces(pieces_with_counts)
       end
 
       # Extracts pieces with their counts from a section string.
       #
       # @param section [String] FEEN pieces section string
+      # @param case_type [Symbol] Either :uppercase or :lowercase
       # @return [Array<Hash>] Array of hashes with :piece and :count keys
-      private_class_method def self.extract_pieces_with_counts_from_section(section)
+      # @raise [ArgumentError] If pieces don't match the expected case or contain modifiers
+      private_class_method def self.extract_pieces_with_counts_from_section(section, case_type)
         result = []
         position = 0
 
         while position < section.length
-          match = section[position..].match(PnnPatterns::PIECE_WITH_COUNT_PATTERN)
+          match = section[position..].match(PIECE_WITH_COUNT_PATTERN)
           break unless match
 
           count_str, piece = match.captures
           count = count_str ? count_str.to_i : 1
+
+          # Validate piece is base form only (single letter)
+          unless piece.match?(BASE_PIECE_PATTERN)
+            raise ::ArgumentError, "Pieces in hand must be base form only: '#{piece}'"
+          end
+
+          # Validate count format
+          if count_str && !count_str.match?(VALID_COUNT_PATTERN)
+            raise ::ArgumentError, "Invalid count format: '#{count_str}'. Count cannot be '0' or '1', use the piece without count instead"
+          end
+
+          # Validate that the piece matches the expected case
+          piece_case = piece.match?(/[A-Z]/) ? :uppercase : :lowercase
+          unless piece_case == case_type
+            case_name = case_type == :uppercase ? "uppercase" : "lowercase"
+            raise ::ArgumentError, "Piece '#{piece}' has wrong case for #{case_name} section"
+          end
 
           # Add to our result with piece type and count
           result << { piece: piece, count: count }

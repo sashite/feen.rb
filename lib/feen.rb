@@ -16,11 +16,12 @@ module Feen
   #
   # @param piece_placement [Array] Board position data structure representing the spatial
   #                               distribution of pieces across the board
-  # @param pieces_in_hand [Array<String>] Pieces available for dropping onto the board
+  # @param pieces_in_hand [Array<String>] Pieces available for dropping onto the board.
+  #                                      MUST be in base form only (no modifiers allowed)
   # @param games_turn [Array<String>] A two-element array where the first element is the
   #                                  active player's variant and the second is the inactive player's variant
   # @return [String] FEEN notation string
-  # @raise [ArgumentError] If any parameter is invalid
+  # @raise [ArgumentError] If any parameter is invalid or pieces_in_hand contains modifiers
   # @example
   #   piece_placement = [
   #     ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -37,7 +38,7 @@ module Feen
   #     pieces_in_hand: [],
   #     games_turn: ["CHESS", "chess"]
   #   )
-  #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   def self.dump(piece_placement:, pieces_in_hand:, games_turn:)
     Dumper.dump(piece_placement:, pieces_in_hand:, games_turn:)
   end
@@ -47,11 +48,11 @@ module Feen
   # @param feen_string [String] Complete FEEN notation string
   # @return [Hash] Hash containing the parsed position data with the following keys:
   #   - :piece_placement [Array] - Hierarchical array structure representing the board
-  #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board
+  #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board (base form only)
   #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
-  #   feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+  #   feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
   #   Feen.parse(feen_string)
   #   # => {
   #   #      piece_placement: [
@@ -80,7 +81,7 @@ module Feen
   # @return [Hash, nil] Hash containing the parsed position data or nil if parsing fails
   # @example
   #   # Valid FEEN string
-  #   Feen.safe_parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess")
+  #   Feen.safe_parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
   #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
   #
   #   # Invalid FEEN string
@@ -100,17 +101,27 @@ module Feen
   # This approach guarantees that the string not only follows FEEN syntax
   # but is also in its most compact, canonical representation.
   #
+  # According to FEEN specification:
+  # - Pieces in hand must be in base form only (no modifiers like +, -, ')
+  # - Pieces in hand must be sorted canonically within each case section:
+  #   1. By quantity (descending)
+  #   2. By piece letter (alphabetically ascending)
+  # - Case separation is enforced (uppercase/lowercase)
+  #
   # @param feen_string [String] FEEN string to validate
   # @return [Boolean] True if the string is a valid and canonical FEEN string
   # @example
   #   # Canonical form
-  #   Feen.valid?("lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 2g2s5PNln SHOGI/shogi") # => true
+  #   Feen.valid?("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / SHOGI/shogi") # => true
   #
   #   # Invalid syntax
   #   Feen.valid?("invalid feen string") # => false
   #
-  #   # Valid syntax but non-canonical form (pieces in hand not in lexicographic order)
-  #   Feen.valid?("lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL N5P2gn2sl SHOGI/shogi") # => false
+  #   # Valid syntax but non-canonical form (pieces in hand with modifiers)
+  #   Feen.valid?("8/8/8/8/8/8/8/8 +P/ FOO/bar") # => false
+  #
+  #   # Valid syntax but non-canonical form (wrong ordering in pieces in hand)
+  #   Feen.valid?("8/8/8/8/8/8/8/8 P3K/ FOO/bar") # => false
   def self.valid?(feen_string)
     # First check: Basic syntax validation
     begin

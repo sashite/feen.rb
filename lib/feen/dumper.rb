@@ -35,13 +35,13 @@ module Feen
     #     pieces_in_hand: [],
     #     games_turn: ["CHESS", "chess"]
     #   )
-    #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+    #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
     #
     # @param piece_placement [Array] Board position data structure representing the spatial
     #                                distribution of pieces across the board, where each cell
     #                                is represented by a String (or empty string for empty cells)
     # @param pieces_in_hand [Array<String>] Pieces available for dropping onto the board,
-    #                                    each represented as a single character string
+    #                                    each represented as a single character string (base form only)
     # @param games_turn [Array<String>] A two-element array where the first element is the
     #                                  active player's variant and the second is the inactive player's variant
     # @return [String] Complete FEEN string representation compliant with the specification

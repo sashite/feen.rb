@@ -2,69 +2,91 @@
 
 module Feen
   module Dumper
+    # Handles conversion of piece placement data to FEEN notation string
     module PiecePlacement
+      # Error messages
+      ERRORS = {
+        invalid_type:       "Piece placement must be an Array, got %s",
+        inconsistent_shape: "Inconsistent dimension structure detected",
+        invalid_cell:       "Invalid cell content: %s (must be String)"
+      }.freeze
+
       # Converts a piece placement structure to a FEEN-compliant string
       #
       # @param piece_placement [Array] Hierarchical array representing the board where:
       #   - Empty squares are represented by empty strings ("")
-      #   - Pieces are represented by strings (e.g., "r", "R'", "+P")
+      #   - Pieces are represented by strings (e.g., "r", "R", "+P", "K'")
       #   - Dimensions are represented by nested arrays
       # @return [String] FEEN piece placement string
       # @raise [ArgumentError] If the piece placement structure is invalid
+      #
+      # @example 2D chess board
+      #   PiecePlacement.dump([
+      #     ["r", "n", "b", "q", "k", "b", "n", "r"],
+      #     ["p", "p", "p", "p", "p", "p", "p", "p"],
+      #     ["", "", "", "", "", "", "", ""],
+      #     ["", "", "", "", "", "", "", ""],
+      #     ["", "", "", "", "", "", "", ""],
+      #     ["", "", "", "", "", "", "", ""],
+      #     ["P", "P", "P", "P", "P", "P", "P", "P"],
+      #     ["R", "N", "B", "Q", "K", "B", "N", "R"]
+      #   ])
+      #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+      #
+      # @example 3D board
+      #   PiecePlacement.dump([
+      #     [["r", "n"], ["p", "p"]],
+      #     [["", ""], ["P", "P"]],
+      #     [["R", "N"], ["", ""]]
+      #   ])
+      #   # => "rn/pp//2/PP//RN/2"
       def self.dump(piece_placement)
-        # Détecter la forme du tableau directement à partir de la structure
-        detect_shape(piece_placement)
-
-        # Formater directement la structure en chaîne FEEN
+        validate_input(piece_placement)
         format_placement(piece_placement)
       end
 
-      # Detects the shape of the board based on the piece_placement structure
+      # Validates the input piece placement structure
       #
-      # @param piece_placement [Array] Hierarchical array structure representing the board
-      # @return [Array<Integer>] Array of dimension sizes
-      # @raise [ArgumentError] If the piece_placement structure is invalid
-      def self.detect_shape(piece_placement)
-        return [] if piece_placement.empty?
+      # @param piece_placement [Object] Structure to validate
+      # @raise [ArgumentError] If the structure is invalid
+      # @return [void]
+      private_class_method def self.validate_input(piece_placement)
+        raise ArgumentError, format(ERRORS[:invalid_type], piece_placement.class) unless piece_placement.is_a?(Array)
 
-        dimensions = []
-        current = piece_placement
-
-        # Traverse the structure to determine shape
-        while current.is_a?(Array) && !current.empty?
-          dimensions << current.size
-
-          # Check if all elements at this level have the same structure
-          validate_dimension_uniformity(current)
-
-          # Check if we've reached the leaf level (array of strings)
-          break if current.first.is_a?(String) ||
-                   (current.first.is_a?(Array) && current.first.empty?)
-
-          current = current.first
-        end
-
-        dimensions
+        validate_structure_consistency(piece_placement)
       end
 
-      # Validates that all elements in a dimension have the same structure
+      # Validates that the structure is consistent (all dimensions have same size)
       #
-      # @param dimension [Array] Array of elements at a particular dimension level
-      # @raise [ArgumentError] If elements have inconsistent structure
-      def self.validate_dimension_uniformity(dimension)
-        return if dimension.empty?
+      # @param structure [Array] Structure to validate
+      # @raise [ArgumentError] If structure is inconsistent
+      # @return [void]
+      private_class_method def self.validate_structure_consistency(structure)
+        return if structure.empty?
 
-        first_type = dimension.first.class
-        first_size = dimension.first.is_a?(Array) ? dimension.first.size : nil
-
-        dimension.each do |element|
-          unless element.class == first_type
-            raise ArgumentError, "Inconsistent element types in dimension: #{first_type} vs #{element.class}"
+        # Check if this is a rank (array of strings) or multi-dimensional
+        if structure.all?(String)
+          # This is a rank - validate each cell
+          structure.each_with_index do |cell, _index|
+            raise ArgumentError, format(ERRORS[:invalid_cell], cell.inspect) unless cell.is_a?(String)
           end
-
-          if element.is_a?(Array) && element.size != first_size
-            raise ArgumentError, "Inconsistent dimension sizes: expected #{first_size}, got #{element.size}"
+        elsif structure.all?(Array)
+          # This is multi-dimensional - check consistency and validate recursively
+          structure.each do |element|
+            # Recursively validate sub-structures
+            validate_structure_consistency(element)
           end
+        else
+          # Mixed types - check for non-string elements in what should be a rank
+          non_string_elements = structure.reject { |element| element.is_a?(String) }
+          raise ArgumentError, ERRORS[:inconsistent_shape] unless non_string_elements.any?
+
+          # If we have non-string elements, report the first one as invalid cell content
+          first_invalid = non_string_elements.first
+          raise ArgumentError, format(ERRORS[:invalid_cell], first_invalid.inspect)
+
+          # This shouldn't happen, but keep the original error as fallback
+
         end
       end
 
@@ -72,28 +94,26 @@ module Feen
       #
       # @param placement [Array] Piece placement structure
       # @return [String] FEEN piece placement string
-      def self.format_placement(placement)
-        # For 1D arrays (ranks), format directly
-        if !placement.is_a?(Array) ||
-           (placement.is_a?(Array) && (placement.empty? || !placement.first.is_a?(Array)))
-          return format_rank(placement)
-        end
+      private_class_method def self.format_placement(placement)
+        return "" if placement.empty?
 
-        # For 2D+ arrays, format each sub-element and join with appropriate separator
+        # Check if this is a rank (1D array of strings)
+        return format_rank(placement) if placement.all?(String)
+
+        # This is multi-dimensional - determine separator depth
         depth = calculate_depth(placement) - 1
         separator = "/" * depth
 
-        # Important: Ne pas inverser le tableau - nous voulons maintenir l'ordre original
-        elements = placement
-        elements.map { |element| format_placement(element) }.join(separator)
+        # Format each sub-element and join
+        placement.map { |element| format_placement(element) }.join(separator)
       end
 
-      # Formats a rank (1D array of cells)
+      # Formats a rank (1D array of cells) into FEEN notation
       #
-      # @param rank [Array] 1D array of cells
+      # @param rank [Array<String>] 1D array of cells
       # @return [String] FEEN rank string
-      def self.format_rank(rank)
-        return "" if !rank.is_a?(Array) || rank.empty?
+      private_class_method def self.format_rank(rank)
+        return "" if rank.empty?
 
         result = ""
         empty_count = 0
@@ -102,9 +122,11 @@ module Feen
           if cell.empty?
             empty_count += 1
           else
-            # Add accumulated empty squares
-            result += empty_count.to_s if empty_count > 0
-            empty_count = 0
+            # Add accumulated empty squares count
+            if empty_count.positive?
+              result += empty_count.to_s
+              empty_count = 0
+            end
 
             # Add the piece
             result += cell
@@ -112,16 +134,16 @@ module Feen
         end
 
         # Add any trailing empty squares
-        result += empty_count.to_s if empty_count > 0
+        result += empty_count.to_s if empty_count.positive?
 
         result
       end
 
-      # Calculates the depth of a nested structure
+      # Calculates the depth of a nested array structure
       #
       # @param structure [Array] Structure to analyze
       # @return [Integer] Depth of the structure
-      def self.calculate_depth(structure)
+      private_class_method def self.calculate_depth(structure)
         return 0 unless structure.is_a?(Array) && !structure.empty?
 
         if structure.first.is_a?(Array)

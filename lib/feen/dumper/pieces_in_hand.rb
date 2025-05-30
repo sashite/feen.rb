@@ -1,30 +1,42 @@
 # frozen_string_literal: true
 
-require_relative File.join("pieces_in_hand", "errors")
-
 module Feen
   module Dumper
     # Handles conversion of pieces in hand data to FEEN notation string
     module PiecesInHand
+      # Error messages for validation
+      ERRORS = {
+        invalid_type:   "Piece at index %d must be a String, got %s",
+        invalid_format: "Piece at index %d must be base form only (single letter): '%s'",
+        has_modifiers:  "Piece at index %d cannot contain modifiers: '%s'. Pieces in hand must be base form only"
+      }.freeze
+
       # Converts an array of piece identifiers to a FEEN-formatted pieces in hand string
       #
-      # @param piece_chars [Array<String>] Array of piece identifiers (e.g., ["P", "p", "B", "B", "p", "+P"])
+      # @param piece_chars [Array<String>] Array of piece identifiers in base form only (e.g., ["P", "p", "B", "B", "p"])
       # @return [String] FEEN-formatted pieces in hand string following the format:
       #   - Groups pieces by case: uppercase first, then lowercase, separated by "/"
       #   - Within each group, sorts by quantity (descending), then alphabetically (ascending)
       #   - Uses count notation for quantities > 1 (e.g., "3P" instead of "PPP")
-      # @raise [ArgumentError] If any piece identifier is invalid
-      # @example
+      # @raise [ArgumentError] If any piece identifier is invalid or contains modifiers
+      #
+      # @example Valid pieces in hand
       #   PiecesInHand.dump("P", "P", "P", "B", "B", "p", "p", "p", "p", "p")
       #   # => "3P2B/5p"
       #
+      # @example Valid pieces in hand with mixed order
       #   PiecesInHand.dump("p", "P", "B")
       #   # => "BP/p"
       #
-      #   PiecesInHand.dump
+      # @example No pieces in hand
+      #   PiecesInHand.dump()
       #   # => "/"
+      #
+      # @example Invalid - modifiers not allowed
+      #   PiecesInHand.dump("+P", "p")
+      #   # => ArgumentError: Piece at index 0 cannot contain modifiers: '+P'
       def self.dump(*piece_chars)
-        # Validate each piece character according to the FEEN specification
+        # Validate each piece character according to FEEN specification (base form only)
         validated_chars = validate_piece_chars(piece_chars)
 
         # Group pieces by case
@@ -43,32 +55,10 @@ module Feen
       # @param pieces [Array<String>] Array of validated piece identifiers
       # @return [Array<Array<String>, Array<String>>] Two arrays: [uppercase_pieces, lowercase_pieces]
       private_class_method def self.group_pieces_by_case(pieces)
-        uppercase_pieces = pieces.select { |piece| piece_is_uppercase?(piece) }
-        lowercase_pieces = pieces.select { |piece| piece_is_lowercase?(piece) }
+        uppercase_pieces = pieces.grep(/[A-Z]/)
+        lowercase_pieces = pieces.grep(/[a-z]/)
 
         [uppercase_pieces, lowercase_pieces]
-      end
-
-      # Determines if a piece belongs to the uppercase group
-      # A piece is considered uppercase if its main letter is uppercase (ignoring prefixes/suffixes)
-      #
-      # @param piece [String] Piece identifier (e.g., "P", "+P", "P'", "+P'")
-      # @return [Boolean] True if the piece's main letter is uppercase
-      private_class_method def self.piece_is_uppercase?(piece)
-        # Extract the main letter (skip prefixes like + or -)
-        main_letter = piece.gsub(/\A[+-]/, "").gsub(/'\z/, "")
-        main_letter.match?(/[A-Z]/)
-      end
-
-      # Determines if a piece belongs to the lowercase group
-      # A piece is considered lowercase if its main letter is lowercase (ignoring prefixes/suffixes)
-      #
-      # @param piece [String] Piece identifier (e.g., "p", "+p", "p'", "+p'")
-      # @return [Boolean] True if the piece's main letter is lowercase
-      private_class_method def self.piece_is_lowercase?(piece)
-        # Extract the main letter (skip prefixes like + or -)
-        main_letter = piece.gsub(/\A[+-]/, "").gsub(/'\z/, "")
-        main_letter.match?(/[a-z]/)
       end
 
       # Formats a group of pieces according to FEEN specification
@@ -106,11 +96,11 @@ module Feen
         end.join
       end
 
-      # Validates all piece characters according to FEEN specification
+      # Validates all piece characters according to FEEN specification (base form only)
       #
       # @param piece_chars [Array<Object>] Array of piece character candidates
       # @return [Array<String>] Array of validated piece characters
-      # @raise [ArgumentError] If any piece character is invalid
+      # @raise [ArgumentError] If any piece character is invalid or contains modifiers
       private_class_method def self.validate_piece_chars(piece_chars)
         piece_chars.each_with_index.map do |char, index|
           validate_piece_char(char, index)
@@ -118,34 +108,22 @@ module Feen
       end
 
       # Validates a single piece character according to FEEN specification
-      # Supports full PNN notation: [prefix]letter[suffix] where:
-      # - prefix can be "+" or "-"
-      # - letter must be a-z or A-Z
-      # - suffix can be "'"
+      # For pieces in hand, only base form is allowed: single letter (a-z or A-Z)
+      # NO modifiers (+, -, ') are allowed in pieces in hand
       #
       # @param char [Object] Piece character candidate
       # @param index [Integer] Index of the character in the original array
       # @return [String] Validated piece character
-      # @raise [ArgumentError] If the piece character is invalid
+      # @raise [ArgumentError] If the piece character is invalid or contains modifiers
       private_class_method def self.validate_piece_char(char, index)
         # Validate type
-        unless char.is_a?(::String)
-          raise ::ArgumentError, format(
-            Errors[:invalid_type],
-            index: index,
-            type:  char.class
-          )
-        end
+        raise ArgumentError, format(ERRORS[:invalid_type], index, char.class) unless char.is_a?(String)
 
-        # Validate format using PNN pattern: [prefix]letter[suffix]
-        # where prefix is +/-, letter is a-zA-Z, suffix is '
-        unless char.match?(/\A[+-]?[a-zA-Z]'?\z/)
-          raise ::ArgumentError, format(
-            Errors[:invalid_format],
-            index: index,
-            value: char
-          )
-        end
+        # Check for forbidden modifiers first (clearer error message)
+        raise ArgumentError, format(ERRORS[:has_modifiers], index, char) if char.match?(/[+\-']/)
+
+        # Validate format: must be exactly one letter (base form only)
+        raise ArgumentError, format(ERRORS[:invalid_format], index, char) unless char.match?(/\A[a-zA-Z]\z/)
 
         char
       end

@@ -1,320 +1,329 @@
 # frozen_string_literal: true
 
+# Tests for Feen::Parser::PiecePlacement conforming to FEEN Specification v1.0.0
+#
+# FEEN specifies that piece placement must be parsed from format:
+# - Spatial distribution of pieces across the board
+# - Empty squares represented by digits 1-n for consecutive empty cells
+# - Pieces denoted using PNN notation (including modifiers for pieces on the board)
+# - Dimension separators: "/" for 2D, "//" for 3D, "///" for 4D, etc.
+# - Supports arbitrary-dimensional board configurations
+# - Returns hierarchical array structure representing the board
+#
+# This test assumes the existence of the following files:
+# - lib/feen/parser/piece_placement.rb
+
 require_relative "../../../lib/feen/parser/piece_placement"
 
-# Helper method for assertions
-def assert_equal(expected, actual, message = "")
-  raise "#{message}\nExpected: #{expected.inspect}\nActual: #{actual.inspect}" unless expected == actual
-end
-
-def assert_raises(exception_class, message_pattern = nil)
+# Helper function to run a test and report errors
+def run_test(name)
+  print "  #{name}... "
   yield
-  raise "Expected #{exception_class} to be raised"
-rescue exception_class => e
-  if message_pattern && !e.message.match?(message_pattern)
-    raise "Expected error message to match #{message_pattern.inspect}, got: #{e.message}"
-  end
-
-  e
+  puts "✓ Success"
+rescue StandardError => e
+  warn "✗ Failure: #{e.message}"
+  warn "    #{e.backtrace.first}"
+  exit(1)
 end
 
-# ==========================================================================
-# Basic parsing tests
-# ==========================================================================
+puts
+puts "Tests for Feen::Parser::PiecePlacement"
+puts
 
-# Test simple rank with pieces
-result = Feen::Parser::PiecePlacement.parse("rnbqkbnr")
-expected = %w[r n b q k b n r]
-assert_equal(expected, result)
-
-# Test rank with empty squares
-result = Feen::Parser::PiecePlacement.parse("r2qk2r")
-expected = ["r", "", "", "q", "k", "", "", "r"]
-assert_equal(expected, result)
-
-# Test multiple ranks (standard chess starting position) - uniform 8x8
-result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-expected = [
-  ["r", "n", "b", "q", "k", "b", "n", "r"],
-  ["p", "p", "p", "p", "p", "p", "p", "p"],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["P", "P", "P", "P", "P", "P", "P", "P"],
-  ["R", "N", "B", "Q", "K", "B", "N", "R"]
-]
-assert_equal(expected, result)
-
-# ==========================================================================
-# Shape validation tests
-# ==========================================================================
-
-# Test shape validation - inconsistent rank sizes
-assert_raises(ArgumentError, /Inconsistent rank size/) do
-  Feen::Parser::PiecePlacement.parse("rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR") # 7 pawns vs 8
+# Basic single rank cases
+run_test("Single piece") do
+  result = Feen::Parser::PiecePlacement.parse("K")
+  expected = ["K"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test shape validation - inconsistent dimension sizes
-assert_raises(ArgumentError, /Mixed separator depths/) do
-  Feen::Parser::PiecePlacement.parse("kp/qr//KP") # Mixed separator depths (/ and //)
+run_test("Single empty cell") do
+  result = Feen::Parser::PiecePlacement.parse("1")
+  expected = [""]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# ==========================================================================
-# Piece format tests
-# ==========================================================================
-
-# Test pieces with prefixes
-result = Feen::Parser::PiecePlacement.parse("+P-b")
-expected = ["+P", "-b"]
-assert_equal(expected, result)
-
-# Test pieces with suffixes
-result = Feen::Parser::PiecePlacement.parse("P'R'p'")
-expected = ["P'", "R'", "p'"]
-assert_equal(expected, result)
-
-# Test pieces with both prefix and suffix
-result = Feen::Parser::PiecePlacement.parse("+B'-P'")
-expected = ["+B'", "-P'"]
-assert_equal(expected, result)
-
-# ==========================================================================
-# Multi-dimensional board tests
-# ==========================================================================
-
-# Test multi-dimensional board (3D example) - uniform shape
-result = Feen::Parser::PiecePlacement.parse("r2/k2//P2/K2")
-expected = [
-  [["r", "", ""], ["k", "", ""]],
-  [["P", "", ""], ["K", "", ""]]
-]
-assert_equal(expected, result)
-
-# Test invalid multi-dimensional structure - inconsistent sizes
-assert_raises(ArgumentError, /Inconsistent rank size/) do
-  Feen::Parser::PiecePlacement.parse("ab/cd///12/345") # "ab","cd" have 2 cells but "345" has 3
+run_test("Multiple empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("4")
+  expected = ["", "", "", ""]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# ==========================================================================
-# Edge case tests
-# ==========================================================================
-
-# Test edge case: single piece
-result = Feen::Parser::PiecePlacement.parse("K")
-expected = ["K"]
-assert_equal(expected, result)
-
-# Test edge case: single empty square
-result = Feen::Parser::PiecePlacement.parse("1")
-expected = [""]
-assert_equal(expected, result)
-
-# Test edge case: large number of empty squares
-result = Feen::Parser::PiecePlacement.parse("15")
-expected = [""] * 15
-assert_equal(expected, result)
-
-# ==========================================================================
-# Input validation tests
-# ==========================================================================
-
-# Test invalid input: not a string
-assert_raises(ArgumentError, /must be a string/) do
-  Feen::Parser::PiecePlacement.parse(nil)
+run_test("Mixed pieces and empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("r2k1r")
+  expected = ["r", "", "", "k", "", "r"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-assert_raises(ArgumentError, /must be a string/) do
-  Feen::Parser::PiecePlacement.parse(123)
+run_test("All pieces (no empty cells)") do
+  result = Feen::Parser::PiecePlacement.parse("rnbq")
+  expected = %w[r n b q]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test invalid input: empty string
-assert_raises(ArgumentError, /cannot be empty/) do
-  Feen::Parser::PiecePlacement.parse("")
+run_test("All empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("8")
+  expected = ["", "", "", "", "", "", "", ""]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test invalid characters
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("K@Q")
+# Pieces with PNN modifiers
+run_test("Pieces with enhanced state (+)") do
+  result = Feen::Parser::PiecePlacement.parse("+P+Bk")
+  expected = ["+P", "+B", "k"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("K Q")
+run_test("Pieces with diminished state (-)") do
+  result = Feen::Parser::PiecePlacement.parse("-r1-k")
+  expected = ["-r", "", "-k"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test invalid prefix
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("*K")
+run_test("Pieces with intermediate state (')") do
+  result = Feen::Parser::PiecePlacement.parse("K'1R'")
+  expected = ["K'", "", "R'"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test invalid suffix
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("K!")
+run_test("Pieces with multiple modifiers") do
+  result = Feen::Parser::PiecePlacement.parse("+P'-R'k")
+  expected = ["+P'", "-R'", "k"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test prefix without piece
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("+")
-end
-
-# Test trailing separator
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("K/")
-end
-
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("K/Q//")
-end
-
-# Test number starting with zero
-assert_raises(ArgumentError, /Invalid piece placement format/) do
-  Feen::Parser::PiecePlacement.parse("K01Q")
-end
-
-# ==========================================================================
-# Complex valid cases
-# ==========================================================================
-
-# Test complex valid cases with all features
-result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-assert_equal(8, result.length)
-assert_equal("k", result[0][4])
-assert_equal("K", result[7][4])
-
-# Test consistent board shapes
-result = Feen::Parser::PiecePlacement.parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R")
-assert_equal(8, result.length)
-result.each do |rank|
-  assert_equal(8, rank.length, "All ranks should have 8 cells")
-end
-
-# Test shogi position with consistent 9x9 board
-result = Feen::Parser::PiecePlacement.parse("lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL")
-assert_equal(9, result.length)
-result.each do |rank|
-  assert_equal(9, rank.length, "All ranks should have 9 cells")
-end
-
-# Test xiangqi position with consistent 10x9 board (10 ranks, 9 files)
-result = Feen::Parser::PiecePlacement.parse("rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR")
-assert_equal(10, result.length, "Xiangqi board should have 10 ranks")
-result.each do |rank|
-  assert_equal(9, rank.length, "Each rank should have 9 cells")
-end
-# Verify specific pieces in the Xiangqi starting position
-assert_equal("r", result[0][0])
-assert_equal("r", result[0][8])
-assert_equal("a", result[0][3])
-assert_equal("a", result[0][5])
-assert_equal("c", result[2][1])
-assert_equal("c", result[2][7])
-assert_equal("s", result[3][0])
-assert_equal("s", result[3][8])
-
-# ==========================================================================
-# Additional shape validation tests
-# ==========================================================================
-
-# Test 4x4 board
-result = Feen::Parser::PiecePlacement.parse("4/4/4/4")
-assert_equal(4, result.length)
-result.each do |rank|
-  assert_equal(4, rank.length)
-end
-
-# Test 4x8 board (rectangular)
-result = Feen::Parser::PiecePlacement.parse("8/8/8/8")
-assert_equal(4, result.length, "Should have 4 ranks")
-result.each do |rank|
-  assert_equal(8, rank.length, "Each rank should have 8 cells")
-end
-
-# Test 7x7 board (square)
-result = Feen::Parser::PiecePlacement.parse("7/7/7/7/7/7/7")
-assert_equal(7, result.length, "Should have 7 ranks")
-result.each do |rank|
-  assert_equal(7, rank.length, "Each rank should have 7 cells")
-end
-
-# Test 5x5x5 cube
-result = Feen::Parser::PiecePlacement.parse("5/5/5/5/5//5/5/5/5/5//5/5/5/5/5//5/5/5/5/5//5/5/5/5/5")
-assert_equal(5, result.length, "Should have 5 planes")
-result.each do |plane|
-  assert_equal(5, plane.length, "Each plane should have 5 ranks")
-  plane.each do |rank|
-    assert_equal(5, rank.length, "Each rank should have 5 cells")
-  end
-end
-
-# Test complex but valid nested structure with mixed separator depths
-result = Feen::Parser::PiecePlacement.parse("ab/cd//ef/gh///ij/kl//mn/op")
-expected = [
-  [
-    [%w[a b], %w[c d]],
-    [%w[e f], %w[g h]]
-  ],
-  [
-    [%w[i j], %w[k l]],
-    [%w[m n], %w[o p]]
+# 2D boards (chess-like)
+run_test("Chess initial position") do
+  result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+  expected = [
+    ["r", "n", "b", "q", "k", "b", "n", "r"],
+    ["p", "p", "p", "p", "p", "p", "p", "p"],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["P", "P", "P", "P", "P", "P", "P", "P"],
+    ["R", "N", "B", "Q", "K", "B", "N", "R"]
   ]
-]
-assert_equal(expected, result)
-
-# ==========================================================================
-# Shape validation failure cases
-# ==========================================================================
-
-# Test shape validation failure - inconsistent rank sizes
-assert_raises(ArgumentError, /Inconsistent rank size/) do
-  Feen::Parser::PiecePlacement.parse("8/7/8/8") # Inconsistent 2D shape
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test shape validation failure - inconsistent dimensions
-assert_raises(ArgumentError, /Inconsistent rank size/) do
-  Feen::Parser::PiecePlacement.parse("3/3/3//3/3//3/3/3") # Inconsistent 3D shape (3-2-3)
+run_test("Chess mid-game position") do
+  result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R")
+  expected = [
+    ["r", "n", "b", "q", "k", "b", "n", "r"],
+    ["p", "p", "", "p", "p", "p", "p", "p"],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "p", "", "", "", "", ""],
+    ["", "", "", "", "P", "", "", ""],
+    ["", "", "", "", "", "N", "", ""],
+    ["P", "P", "P", "P", "", "P", "P", "P"],
+    ["R", "N", "B", "Q", "K", "B", "", "R"]
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# ==========================================================================
-# New separator inconsistency tests
-# ==========================================================================
-
-# Test mixed separator depths at the same level (generic case)
-assert_raises(ArgumentError, /Mixed separator depths/) do
-  Feen::Parser::PiecePlacement.parse("ab/cd//ef")
+# Shogi examples with promoted pieces
+run_test("Shogi position with promoted pieces") do
+  result = Feen::Parser::PiecePlacement.parse("9/9/9/9/4+P4/9/5+B3/9/9")
+  expected = [
+    ["", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "+P", "", "", "", ""],
+    ["", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "+B", "", "", ""],
+    ["", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", "", ""]
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test mixed separator depths in a more complex structure
-assert_raises(ArgumentError, /Mixed separator depths/) do
-  Feen::Parser::PiecePlacement.parse("ab/cd///ef//gh")
+# 3D boards
+run_test("Simple 3D board (2x2x2)") do
+  result = Feen::Parser::PiecePlacement.parse("rn/pp//RN/PP")
+  expected = [
+    [%w[r n], %w[p p]],
+    [%w[R N], %w[P P]]
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test mixed separator depths in multiple segments
-assert_raises(ArgumentError, /Mixed separator depths/) do
-  Feen::Parser::PiecePlacement.parse("ab/cd//ef///gh/ij//kl")
+run_test("3D board with empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("r1/1p//2/2")
+  expected = [
+    [["r", ""], ["", "p"]],
+    [["", ""], ["", ""]]
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Our specific problematic case
-assert_raises(ArgumentError, /Mixed separator depths/) do
-  Feen::Parser::PiecePlacement.parse("kp/qr//KP")
+run_test("Complex 3D board") do
+  result = Feen::Parser::PiecePlacement.parse("rnb/qkp//PR1/1KQ//3/3")
+  expected = [
+    [%w[r n b], %w[q k p]],
+    [["P", "R", ""], ["", "K", "Q"]],
+    [["", "", ""], ["", "", ""]]
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
 end
 
-# Test valid but complex multi-dimensional structure
-result = Feen::Parser::PiecePlacement.parse("ab/cd//ef/gh//ij/kl")
-expected = [
-  [%w[a b], %w[c d]],
-  [%w[e f], %w[g h]],
-  [%w[i j], %w[k l]]
-]
-assert_equal(expected, result)
+# 4D board
+run_test("4D board") do
+  result = Feen::Parser::PiecePlacement.parse("K/P///1/1////k/p///1/1")
+  expected = [
+    [
+      [["K"], ["P"]],
+      [[""], [""]]
+    ],
+    [
+      [["k"], ["p"]],
+      [[""], [""]]
+    ]
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-# Test deeply nested structure
-result = Feen::Parser::PiecePlacement.parse("ab/cd///ef/gh///ij/kl///mn/op")
-expected = [
-  [%w[a b], %w[c d]],
-  [%w[e f], %w[g h]],
-  [%w[i j], %w[k l]],
-  [%w[m n], %w[o p]]
-]
-assert_equal(expected, result, "La structure 4D devrait être analysée correctement")
+# Large numbers
+run_test("Large number of empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("15")
+  expected = Array.new(15, "")
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
 
-puts "✅ All PiecePlacement parse tests passed."
+run_test("Very large number of empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("123")
+  expected = Array.new(123, "")
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+# Edge cases with leading/trailing empty cells
+run_test("Leading empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("2KR")
+  expected = ["", "", "K", "R"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Trailing empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("KR2")
+  expected = ["K", "R", "", ""]
+  raise "Expected #{expected.inspire}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Leading and trailing empty cells") do
+  result = Feen::Parser::PiecePlacement.parse("1K1")
+  expected = ["", "K", ""]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+# Mixed case pieces
+run_test("Mixed case pieces") do
+  result = Feen::Parser::PiecePlacement.parse("RnBqKbNr")
+  expected = %w[R n B q K b N r]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+# Irregular board shapes
+run_test("Irregular board shapes") do
+  result = Feen::Parser::PiecePlacement.parse("rnbqkbnr/ppppppp/8")
+  expected = [
+    ["r", "n", "b", "q", "k", "b", "n", "r"],  # 8 cells
+    ["p", "p", "p", "p", "p", "p", "p"],       # 7 cells
+    ["", "", "", "", "", "", "", ""]           # 8 cells
+  ]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+# Error cases - simplified error handling
+run_test("Raises error for non-string input") do
+  Feen::Parser::PiecePlacement.parse(123)
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Piece placement must be a string")
+end
+
+run_test("Raises error for nil input") do
+  Feen::Parser::PiecePlacement.parse(nil)
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Piece placement must be a string")
+end
+
+run_test("Raises error for array input") do
+  Feen::Parser::PiecePlacement.parse(%w[r n b])
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Piece placement must be a string")
+end
+
+run_test("Raises error for empty string") do
+  Feen::Parser::PiecePlacement.parse("")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Piece placement string cannot be empty")
+end
+
+# Invalid format cases - all use generic "Invalid piece placement format" message
+run_test("Raises error for invalid characters") do
+  Feen::Parser::PiecePlacement.parse("r@n")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid piece placement format")
+end
+
+run_test("Raises error for spaces") do
+  Feen::Parser::PiecePlacement.parse("r n")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid piece placement format")
+end
+
+run_test("Raises error for trailing separator") do
+  Feen::Parser::PiecePlacement.parse("rnbqkbnr/")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid piece placement format")
+end
+
+run_test("Raises error for invalid piece without letter") do
+  Feen::Parser::PiecePlacement.parse("+")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid piece placement format")
+end
+
+run_test("Raises error for zero empty cells") do
+  Feen::Parser::PiecePlacement.parse("0")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Invalid piece placement format")
+end
+
+# Edge cases - minimal valid inputs
+run_test("Minimal valid single piece") do
+  result = Feen::Parser::PiecePlacement.parse("a")
+  expected = ["a"]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Minimal valid single empty") do
+  result = Feen::Parser::PiecePlacement.parse("1")
+  expected = [""]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Minimal valid 2D") do
+  result = Feen::Parser::PiecePlacement.parse("a/b")
+  expected = [["a"], ["b"]]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+run_test("Minimal valid 3D") do
+  result = Feen::Parser::PiecePlacement.parse("a//b")
+  expected = [["a"], ["b"]]
+  raise "Expected #{expected.inspect}, got #{result.inspect}" unless result == expected
+end
+
+puts
+puts "All tests passed! ✓"

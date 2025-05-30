@@ -5,390 +5,526 @@
 ![Ruby](https://github.com/sashite/feen.rb/actions/workflows/main.yml/badge.svg?branch=main)
 [![License](https://img.shields.io/github/license/sashite/feen.rb?label=License&logo=github)](https://github.com/sashite/feen.rb/raw/main/LICENSE.md)
 
-> **FEEN** (Forsyth–Edwards Enhanced Notation) support for the Ruby language.
+> A Ruby library for **FEEN** (Forsyth–Edwards Enhanced Notation) - a flexible format for representing positions in two-player piece-placement games.
 
 ## What is FEEN?
 
-FEEN (Forsyth–Edwards Enhanced Notation) is a compact, canonical, and rule-agnostic textual format for representing static board positions in two-player piece-placement games.
+FEEN is like taking a snapshot of any board game position and turning it into a text string. Think of it as a "save file" format that works across different board games - from Chess to Shōgi to custom variants.
 
-This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/documents/feen/1.0.0/), providing a Ruby interface for:
+**Key Features:**
 
-- Representing positions from various games without knowledge of specific rules
-- Supporting boards of arbitrary dimensions (2D, 3D, and beyond)
-- Encoding pieces in hand with full PNN (Piece Name Notation) support
-- Facilitating serialization and deserialization of positions
-- Ensuring canonical representation for consistent data handling
-
-## FEEN Format
-
-A FEEN record consists of three space-separated fields:
-
-```
-<PIECE-PLACEMENT> <PIECES-IN-HAND> <GAMES-TURN>
-```
-
-### Field Details
-
-1. **Piece Placement**: Spatial distribution of pieces on the board using [PNN notation](https://sashite.dev/documents/pnn/1.0.0/)
-2. **Pieces in Hand**: Off-board pieces available for placement, formatted as `"UPPERCASE/lowercase"` and sorted canonically within each section
-3. **Games Turn**: Game identifiers and active player indication
+- **Versatile**: Supports Chess, Shōgi, Xiangqi, and similar games
+- **Bidirectional**: Convert positions to text and back
+- **Compact**: Efficient representation
+- **Rule-agnostic**: No knowledge of specific game rules required
+- **Multi-dimensional**: Supports 2D, 3D, and higher dimensions
 
 ## Installation
 
+Add this line to your application's Gemfile:
+
 ```ruby
-# In your Gemfile
-gem "feen", ">= 5.0.0.beta7"
+gem "feen", ">= 5.0.0.beta8"
 ```
 
-Or install manually:
+Or install it directly:
 
-```sh
+```bash
 gem install feen --pre
 ```
 
-## Basic Usage
+## Quick Start
 
-### Parsing FEEN Strings
-
-Convert a FEEN string into a structured Ruby object:
+### Basic Example: Converting a Position to Text
 
 ```ruby
 require "feen"
 
-feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-position = Feen.parse(feen_string)
+# Represent a simple 3x1 board with pieces "r", "k", "r"
+board = [["r", "k", "r"]]
 
-# Result is a hash:
-# {
-#   piece_placement: [
-#     ["r", "n", "b", "q", "k", "b", "n", "r"],
-#     ["p", "p", "p", "p", "p", "p", "p", "p"],
-#     ["", "", "", "", "", "", "", ""],
-#     ["", "", "", "", "", "", "", ""],
-#     ["", "", "", "", "", "", "", ""],
-#     ["", "", "", "", "", "", "", ""],
-#     ["P", "P", "P", "P", "P", "P", "P", "P"],
-#     ["R", "N", "B", "Q", "K", "B", "N", "R"]
-#   ],
-#   pieces_in_hand: [],
-#   games_turn: ["CHESS", "chess"]
-# }
+feen_string = Feen.dump(
+  piece_placement: board,
+  pieces_in_hand:  [],           # No captured pieces
+  games_turn:      ["GAME", "game"]  # GAME player's turn
+)
+
+feen_string # => "rkr / GAME/game"
 ```
 
-### Safe Parsing
-
-Parse a FEEN string without raising exceptions:
+### Basic Example: Converting Text Back to Position
 
 ```ruby
 require "feen"
 
-# Valid FEEN string
-result = Feen.safe_parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
-# => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
+feen_string = "rkr / GAME/game"
+position = Feen.parse(feen_string)
 
-# Invalid FEEN string
-result = Feen.safe_parse("invalid feen string")
+position[:piece_placement]  # => ["r", "k", "r"]
+position[:pieces_in_hand]   # => []
+position[:games_turn]       # => ["GAME", "game"]
+```
+
+## Understanding FEEN Format
+
+A FEEN string has exactly **three parts separated by single spaces**:
+
+```
+<BOARD> <CAPTURED_PIECES> <TURN_INFO>
+```
+
+### Part 1: Board Representation
+
+The board shows where pieces are placed:
+
+- **Pieces**: Represented by letters (case matters!)
+  - `K` = piece belonging to first player (uppercase)
+  - `k` = piece belonging to second player (lowercase)
+- **Empty spaces**: Represented by numbers
+  - `3` = three empty squares in a row
+- **Ranks (rows)**: Separated by `/`
+
+**Examples:**
+
+```ruby
+"K"           # Single piece on 1x1 board
+"3"           # Three empty squares
+"Kqr"         # Three pieces: K, q, r
+"K2r"         # K, two empty squares, then r
+"Kqr/3/R2k"   # 3x3 board with multiple ranks
+```
+
+### Part 2: Captured Pieces (Pieces in Hand)
+
+Shows pieces that have been captured and can potentially be used again:
+
+- Format: `UPPERCASE_PIECES/lowercase_pieces`
+- **Always separated by `/`** even if empty
+- Count notation: `3P` means three `P` pieces
+- **Base form only**: No special modifiers allowed here
+
+**Examples:**
+
+```ruby
+"/"          # No pieces captured
+"P/"         # First player has one P piece
+"/p"         # Second player has one p piece
+"2PK/3p"     # First player: 2 P's + 1 K, Second player: 3 p's
+```
+
+### Part 3: Turn Information
+
+Shows whose turn it is and identifies the game types:
+
+- Format: `ACTIVE_PLAYER/INACTIVE_PLAYER`
+- **One must be uppercase, other lowercase**
+- The uppercase/lowercase corresponds to piece ownership
+
+**Examples:**
+
+```ruby
+"CHESS/chess"    # CHESS player (uppercase pieces) to move
+"shogi/SHOGI"    # shogi player (lowercase pieces) to move
+"GAME1/game2"    # Mixed game types
+```
+
+## Complete API Reference
+
+### Core Methods
+
+#### `Feen.dump(**options)`
+
+Converts position components into a FEEN string.
+
+**Parameters:**
+- `piece_placement:` [Array] - Nested array representing the board
+- `pieces_in_hand:` [Array] - List of captured pieces (strings)
+- `games_turn:` [Array] - Two-element array: [active_player, inactive_player]
+
+**Returns:** String - FEEN notation
+
+**Example:**
+
+```ruby
+board = [
+  ["r", "n", "k", "n", "r"],   # Back rank
+  ["", "", "", "", ""],        # Empty rank
+  ["P", "P", "P", "P", "P"]    # Front rank
+]
+
+feen = Feen.dump(
+  piece_placement: board,
+  pieces_in_hand:  ["Q", "p"],
+  games_turn:      ["WHITE", "black"]
+)
+# => "rnknr/5/PPPPP Q/p WHITE/black"
+```
+
+#### `Feen.parse(feen_string)`
+
+Converts a FEEN string back into position components.
+
+**Parameters:**
+
+- `feen_string` [String] - Valid FEEN notation
+
+**Returns:** Hash with keys:
+
+- `:piece_placement` - The board as nested arrays
+- `:pieces_in_hand` - Captured pieces as array of strings
+- `:games_turn` - [active_player, inactive_player]
+
+**Example:**
+
+```ruby
+position = Feen.parse("rnknr/5/PPPPP Q/p WHITE/black")
+
+position[:piece_placement]
+# => [["r", "n", "k", "n", "r"], ["", "", "", "", ""], ["P", "P", "P", "P", "P"]]
+
+position[:pieces_in_hand]
+# => ["Q", "p"]
+
+position[:games_turn]
+# => ["WHITE", "black"]
+```
+
+#### `Feen.safe_parse(feen_string)`
+
+Like `parse()` but returns `nil` instead of raising exceptions for invalid input.
+
+**Example:**
+
+```ruby
+# Valid input
+result = Feen.safe_parse("k/K / GAME/game")
+# => { piece_placement: [["k"], ["K"]], pieces_in_hand: [], games_turn: ["GAME", "game"] }
+
+# Invalid input
+result = Feen.safe_parse("invalid")
 # => nil
 ```
 
-### Creating FEEN Strings
+#### `Feen.valid?(feen_string)`
 
-Convert position components to a FEEN string using named arguments:
+Checks if a string is valid, canonical FEEN notation.
+
+**Returns:** Boolean
+
+**Example:**
 
 ```ruby
-require "feen"
+Feen.valid?("k/K / GAME/game")        # => true
+Feen.valid?("invalid")                # => false
+Feen.valid?("k/K P3K/ GAME/game")     # => false (wrong piece order)
+```
 
-# Representation of a chess board in initial position
-piece_placement = [
-  ["r", "n", "b", "q", "k", "b", "n", "r"],
-  ["p", "p", "p", "p", "p", "p", "p", "p"],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["P", "P", "P", "P", "P", "P", "P", "P"],
-  ["R", "N", "B", "Q", "K", "B", "N", "R"]
+## Working with Different Board Sizes
+
+### Standard 2D Boards
+
+```ruby
+# 8x8 chess-like board (empty)
+board = Array.new(8) { Array.new(8, "") }
+
+# 9x9 board with pieces in corners
+board = Array.new(9) { Array.new(9, "") }
+board[0][0] = "r"  # Top-left
+board[8][8] = "R"  # Bottom-right
+
+feen = Feen.dump(
+  piece_placement: board,
+  pieces_in_hand:  [],
+  games_turn:      ["PLAYERA", "playerb"]
+)
+
+feen # => "r8/9/9/9/9/9/9/9/8R / PLAYERA/playerb"
+```
+
+### 3D Boards
+
+```ruby
+# Simple 2x2x2 cube
+board_3d = [
+  [["a", "b"], ["c", "d"]],  # First layer
+  [["A", "B"], ["C", "D"]]   # Second layer
 ]
 
-result = Feen.dump(
-  piece_placement: piece_placement,
-  games_turn:      %w[CHESS chess],
-  pieces_in_hand:  []
+feen = Feen.dump(
+  piece_placement: board_3d,
+  pieces_in_hand:  [],
+  games_turn:      ["UP", "down"]
 )
-# => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
+# => "ab/cd//AB/CD / UP/down"
 ```
 
-### Validation
-
-Check if a string is valid FEEN notation and in canonical form:
+### Irregular Boards
 
 ```ruby
-require "feen"
+# Different sized ranks are allowed
+irregular_board = [
+  ["r", "k", "r"],      # 3 squares
+  ["p", "p"],           # 2 squares
+  ["P", "P", "P", "P"]  # 4 squares
+]
 
-# Canonical form
-Feen.valid?("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / SHOGI/shogi")
-# => true
-
-# Invalid syntax
-Feen.valid?("invalid feen string")
-# => false
-
-# Valid syntax but non-canonical form (pieces in hand not in canonical order)
-Feen.valid?("8/8/8/8/8/8/8/8 P3K/ CHESS/chess")
-# => false (wrong quantity sorting in uppercase section)
+feen = Feen.dump(
+  piece_placement: irregular_board,
+  pieces_in_hand:  [],
+  games_turn:      ["GAME", "game"]
+)
+# => "rkr/pp/PPPP / GAME/game"
 ```
 
-The `valid?` method performs two levels of validation:
+## Working with Captured Pieces
 
-1. **Syntax check**: Verifies the string can be parsed as FEEN
-2. **Canonicity check**: Ensures the string is in its canonical form through round-trip conversion
-
-## Game Examples
-
-As FEEN is rule-agnostic, it can represent positions from various board games. Here are some examples:
-
-### International Chess
+### Basic Captures
 
 ```ruby
-feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
+# Player 1 captured 3 pawns and 1 rook
+# Player 2 captured 2 pawns
+captured = ["P", "P", "P", "R", "p", "p"]
+
+feen = Feen.dump(
+  piece_placement: [["k"], ["K"]],  # Minimal board
+  pieces_in_hand:  captured,
+  games_turn:      ["FIRST", "second"]
+)
+# => "k/K 3PR/2p FIRST/second"
 ```
 
-In this initial chess position, the third field `CHESS/chess` indicates it's the player with uppercase pieces' turn to move.
+### Understanding Piece Sorting
 
-### Shogi (Japanese Chess)
+Captured pieces are automatically sorted in canonical order:
 
-```ruby
-feen_string = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / SHOGI/shogi"
-```
-
-**With pieces in hand and promotions:**
+1. **By quantity** (most frequent first)
+2. **By letter** (alphabetical within same quantity)
 
 ```ruby
-feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 5P2G2L/2gln2s SHOGI/shogi"
-```
-
-In this shogi position:
-
-- The format supports promotions with the `+` prefix (e.g., `+P` for a promoted pawn)
-- Pieces in hand are separated by case: `5P2G2L/2gln2s`
-  - **Uppercase section** (Sente): 5 Pawns, 2 Golds, 2 Lances
-  - **Lowercase section** (Gote): 2 golds, lance, knight, 2 silvers
-- Each section is sorted by quantity (descending) then alphabetically
-- `SHOGI/shogi` indicates it's Sente's (Black's, uppercase) turn to move
-
-### Makruk (Thai Chess)
-
-```ruby
-feen_string = "rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBKQBNR / MAKRUK/makruk"
-```
-
-### Xiangqi (Chinese Chess)
-
-```ruby
-feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR / XIANGQI/xiangqi"
+pieces = ["B", "B", "P", "P", "P", "R", "R"]
+# Result: "3P2B2R/" (3P first, then 2B and 2R alphabetically)
 ```
 
 ## Advanced Features
 
-### Pieces in Hand with Case Separation
+### Special Piece States (On Board Only)
 
-FEEN uses case separation for pieces in hand to distinguish between players using the format `"UPPERCASE_PIECES/LOWERCASE_PIECES"`:
-
-```ruby
-require "feen"
-
-# Parse pieces in hand with case separation
-pieces_in_hand = Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR 3P2B/2pn CHESS/chess")[:pieces_in_hand]
-# => ["B", "B", "P", "P", "P", "n", "p", "p"]  # Sorted alphabetically
-
-# Create FEEN with pieces in hand
-result = Feen.dump(
-  piece_placement: [["k"], ["K"]],
-  pieces_in_hand: ["P", "P", "B", "p", "n"],
-  games_turn: ["TEST", "test"]
-)
-# => "k/K 2BP/np TEST/test"
-```
-
-### Piece Name Notation (PNN) Support
-
-FEEN supports the complete [PNN specification](https://sashite.dev/documents/pnn/1.0.0/) for representing pieces with state modifiers:
-
-#### PNN Modifiers
-
-- **Prefix `+`**: Enhanced state (e.g., promoted pieces in shogi)
-- **Prefix `-`**: Diminished state (e.g., restricted movement)
-- **Suffix `'`**: Intermediate state (e.g., castling rights, en passant eligibility)
-
-#### Examples with PNN
+For games that need special piece states, use modifiers **only on the board**:
 
 ```ruby
-# Shogi position with promoted pieces on board
-piece_placement = [
-  ["", "", "", "", "+P", "", "", "", ""] # Promoted pawn on board
-  # ... other ranks
+board = [
+  ["+P", "K", "-R"],    # Enhanced pawn, King, diminished rook
+  ["N'", "", "B"]       # Knight with special state, empty, Bishop
 ]
 
-# Pieces in hand with PNN modifiers - case separated
-pieces_in_hand = ["+P", "+P", "+P", "B'", "B'", "-p", "P"]
-
-result = Feen.dump(
-  piece_placement: piece_placement,
-  pieces_in_hand:  pieces_in_hand,
-  games_turn:      %w[SHOGI shogi]
+# Note: Modifiers (+, -, ') are ONLY allowed on the board
+# Pieces in hand must be in base form only
+feen = Feen.dump(
+  piece_placement: board,
+  pieces_in_hand:  ["P", "R"],  # Base form only!
+  games_turn:      ["GAME", "game"]
 )
-# => "8/8/8/8/4+P4/8/8/8/8 3+P2B'P/-p SHOGI/shogi"
+
+feen # => "+PK-R/N'1B PR/ GAME/game"
 ```
 
-### Canonical Pieces in Hand Sorting
+### Cross-Game Scenarios
 
-FEEN enforces canonical ordering of pieces in hand within each case section according to the specification:
-
-1. **By quantity (descending)**
-2. **By complete PNN representation (alphabetically ascending)**
-
-The dumper organizes pieces by case first, then applies canonical sorting within each section:
+FEEN can represent positions mixing different game systems:
 
 ```ruby
-# Input pieces in any order
-pieces = ["P", "b", "P", "+P", "B", "p", "+P", "+P"]
-
-result = Feen.dump(
-  piece_placement: [["k"], ["K"]],
-  pieces_in_hand: pieces,
-  games_turn: %w[GAME game]
+# FOO pieces vs bar pieces
+mixed_feen = Feen.dump(
+  piece_placement: ["K", "G", "k", "r"],    # Mixed piece types
+  pieces_in_hand:  ["P", "g"],              # Captured from both sides
+  games_turn:      ["bar", "FOO"]           # Different game systems
 )
-# => "k/K 3+P2PB/bp GAME/game"
-# Breakdown:
-# - Uppercase: 3×+P (most frequent), 2×P, 1×B (alphabetical within same quantity)
-# - Lowercase: 1×b, 1×p (alphabetical)
-```
 
-The parser returns pieces in simple alphabetical order for easy handling:
-
-```ruby
-pieces_in_hand = Feen.parse("k/K 3+P2PB/bp GAME/game")[:pieces_in_hand]
-# => ["+P", "+P", "+P", "B", "P", "P", "b", "p"]  # Alphabetically sorted
-```
-
-### Multi-dimensional Boards
-
-FEEN supports arbitrary-dimensional board configurations:
-
-```ruby
-require "feen"
-
-# 3D board (2×2×3 configuration)
-piece_placement = [
-  [
-    %w[r n b],
-    %w[q k p]
-  ],
-  [
-    ["P", "R", ""],
-    ["", "K", "Q"]
-  ]
-]
-
-result = Feen.dump(
-  piece_placement: piece_placement,
-  games_turn:      %w[FOO bar],
-  pieces_in_hand:  []
-)
-# => "rnb/qkp//PR1/1KQ / FOO/bar"
-```
-
-### Hybrid Games
-
-FEEN supports hybrid games mixing different piece sets:
-
-```ruby
-# Chess-Shogi hybrid position
-feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR 3+P2B'/p CHESS/shogi"
-```
-
-This represents a position where:
-
-- The board uses chess-style pieces
-- Pieces in hand use shogi-style promotion (`+P`) and intermediate states (`B'`)
-- Chess player to move, against shogi player
-- Case separation shows which player has which pieces
-
-## Round-trip Consistency
-
-FEEN.rb guarantees round-trip consistency - parsing and dumping produces identical canonical strings:
-
-```ruby
-original = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 5P2G2L/2gln2s SHOGI/shogi"
-parsed = Feen.parse(original)
-dumped = Feen.dump(**parsed)
-
-original == dumped # => true (guaranteed canonical form)
+mixed_feen # => "KGkr P/g bar/FOO"
 ```
 
 ## Error Handling
 
-### Validation Errors
+### Common Errors and Solutions
 
 ```ruby
-# Invalid PNN format
+# ERROR: Wrong argument types
 Feen.dump(
-  piece_placement: [["k"]],
-  pieces_in_hand: ["++P"],  # Invalid: double prefix
-  games_turn: %w[GAME game]
+  piece_placement: "not an array",    # Must be Array
+  pieces_in_hand:  "not an array",   # Must be Array
+  games_turn:      "not an array"    # Must be Array[2]
 )
-# => ArgumentError: Invalid format at index: 0, value: '++P'
+# => ArgumentError
 
-# Invalid games turn
+# ERROR: Modifiers in captured pieces
 Feen.dump(
-  piece_placement: [["P"]],
+  piece_placement: [["K"]],
+  pieces_in_hand:  ["+P"],           # Invalid: no modifiers allowed
+  games_turn:      ["GAME", "game"]
+)
+# => ArgumentError
+
+# ERROR: Same case in games_turn
+Feen.dump(
+  piece_placement: [["K"]],
   pieces_in_hand:  [],
-  games_turn:      %w[BOTH_UPPERCASE ALSO_UPPERCASE] # Both same case
+  games_turn:      ["GAME", "ALSO"]  # Must be different cases
 )
-# => ArgumentError: One variant must be uppercase and the other lowercase
-
-# Invalid pieces in hand format (parsing)
-Feen.parse("8/8/8/8/8/8/8/8 NoSeparator CHESS/chess")
-# => ArgumentError: Invalid pieces in hand format: NoSeparator
+# => ArgumentError
 ```
 
-### Safe Operations
+### Safe Parsing for User Input
 
 ```ruby
-# Use safe_parse for user input
-user_input = gets.chomp
-position = Feen.safe_parse(user_input)
+def process_user_feen(user_input)
+  position = Feen.safe_parse(user_input)
 
-if position
-  puts "Valid FEEN position!"
-  puts "Pieces in hand: #{position[:pieces_in_hand]}"
-else
-  puts "Invalid FEEN format"
+  if position
+    puts "Valid position with #{position[:pieces_in_hand].size} captured pieces"
+    # Process the position...
+  else
+    puts "Invalid FEEN format. Please check your input."
+  end
 end
 ```
 
-## Performance Considerations
+## Real-World Examples
 
-- **Parsing**: Optimized recursive descent parser with O(n) complexity
-- **Case separation**: Efficient single-pass processing for pieces in hand
-- **Validation**: Round-trip validation ensures canonical form
-- **Memory**: Efficient array-based representation for large boards
-- **Sorting**: In-place canonical sorting for pieces in hand
+### Save/Load Game State
 
-## Compatibility
+```ruby
+class GameState
+  def save_position(board, captured, current_player, opponent)
+    feen = Feen.dump(
+      piece_placement: board,
+      pieces_in_hand:  captured,
+      games_turn:      [current_player, opponent]
+    )
 
-- **Ruby version**: >= 3.2.0
-- **FEEN specification**: v1.0.0 compliant
-- **PNN specification**: v1.0.0 compliant
-- **Thread safety**: All operations are thread-safe (no shared mutable state)
+    File.write("game_save.feen", feen)
+  end
 
-## Related Specifications
+  def load_position(filename)
+    feen_string = File.read(filename)
+    Feen.parse(feen_string)
+  rescue => e
+    warn "Could not load game: #{e.message}"
+    nil
+  end
+end
+```
 
-FEEN is part of a family of specifications for abstract strategy games:
+### Position Database
 
-- [FEEN Specification v1.0.0](https://sashite.dev/documents/feen/1.0.0/) - Board position notation
-- [PNN Specification v1.0.0](https://sashite.dev/documents/pnn/1.0.0/) - Piece name notation
-- [GAN Specification v1.0.0](https://sashite.dev/documents/gan/1.0.0/) - Game-qualified piece identifiers
+```ruby
+class PositionDatabase
+  def initialize
+    @positions = {}
+  end
+
+  def store_position(name, board, captured, turn_info)
+    feen = Feen.dump(
+      piece_placement: board,
+      pieces_in_hand:  captured,
+      games_turn:      turn_info
+    )
+
+    @positions[name] = feen
+  end
+
+  def retrieve_position(name)
+    feen = @positions[name]
+    return nil unless feen
+
+    Feen.parse(feen)
+  end
+
+  def validate_all_positions
+    @positions.each do |name, feen|
+      puts "Invalid position: #{name}" unless Feen.valid?(feen)
+    end
+  end
+end
+
+# Usage example:
+db = PositionDatabase.new
+db.store_position("start", [["r", "k", "r"]], [], ["GAME", "game"])
+position = db.retrieve_position("start")
+# => {piece_placement: [["r", "k", "r"]], pieces_in_hand: [], games_turn: ["GAME", "game"]}
+```
+
+## Best Practices
+
+### 1. Always Validate Input
+
+```ruby
+def create_feen_safely(board, captured, turn)
+  # Validate before creating
+  return nil unless board.is_a?(Array)
+  return nil unless captured.is_a?(Array)
+  return nil unless turn.is_a?(Array) && turn.size == 2
+
+  Feen.dump(
+    piece_placement: board,
+    pieces_in_hand:  captured,
+    games_turn:      turn
+  )
+rescue ArgumentError => e
+  puts "FEEN creation failed: #{e.message}"
+  nil
+end
+```
+
+### 2. Use Consistent Naming
+
+```ruby
+# Good: Clear piece type distinctions
+PLAYER_1_PIECES = %w[K Q R B N P]
+PLAYER_2_PIECES = %w[k q r b n p]
+
+# Good: Descriptive game identifiers
+GAME_TYPES = {
+  chess_white: "CHESS",
+  chess_black: "chess",
+  shogi_sente: "SHOGI",
+  shogi_gote: "shogi"
+}
+```
+
+### 3. Round-trip Validation
+
+```ruby
+def verify_feen_consistency(original_feen)
+  # Parse and re-dump to check consistency
+  position = Feen.parse(original_feen)
+  regenerated = Feen.dump(**position)
+
+  if original_feen == regenerated
+    puts "✓ FEEN is canonical"
+  else
+    puts "✗ FEEN inconsistency detected"
+    puts "Original:    #{original_feen}"
+    puts "Regenerated: #{regenerated}"
+  end
+end
+```
+
+## Compatibility and Performance
+
+- **Ruby Version**: >= 3.2.0
+- **Thread Safety**: All operations are thread-safe
+- **Memory**: Efficient array-based representation
+- **Performance**: O(n) parsing and generation complexity
+
+## Related Resources
+
+- [FEEN Specification v1.0.0](https://sashite.dev/documents/feen/1.0.0/) - Complete format specification
+- [PNN Specification v1.0.0](https://sashite.dev/documents/pnn/1.0.0/) - Piece notation details
+- [GAN Specification v1.0.0](https://sashite.dev/documents/gan/1.0.0/) - Game-qualified identifiers
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/sashite/feen.rb.
 
 ## License
 

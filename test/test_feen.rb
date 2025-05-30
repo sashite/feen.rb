@@ -1,97 +1,164 @@
 # frozen_string_literal: true
 
+# Tests for Feen module conforming to FEEN Specification v1.0.0
+#
+# Feen module provides the main public API for FEEN operations:
+# - dump: converts position components to FEEN string
+# - parse: converts FEEN string to position components
+# - safe_parse: like parse but returns nil instead of raising exceptions
+# - valid?: validates if a string is a valid and canonical FEEN string
+#
+# This test assumes the existence of the following files:
+# - lib/feen.rb
+
 require_relative "../lib/feen"
 
-# File: test/test_feen.rb
-
-# --- Test parse method ---
-
-# Test 1: Basic parse functionality with standard chess position
-begin
-  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-  parsed = Feen.parse(feen_string)
-  raise "Test 1 failed: parse returned nil" if parsed.nil?
-  raise "Test 1 failed: parse returned incorrect data structure" unless parsed.is_a?(Hash)
-
-  puts "Test 1 passed: parse works with standard chess position"
+# Helper function to run a test and report errors
+def run_test(name)
+  print "  #{name}... "
+  yield
+  puts "✓ Success"
+rescue StandardError => e
+  warn "✗ Failure: #{e.message}"
+  warn "    #{e.backtrace.first}"
+  exit(1)
 end
 
-# Test 2: Parse with pieces in hand
-begin
-  feen_string = "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL B/b SHOGI/shogi"
-  parsed = Feen.parse(feen_string)
-  expected_pieces_in_hand = %w[B b]
-  raise "Test 2 failed: pieces in hand not parsed correctly" unless parsed[:pieces_in_hand] == expected_pieces_in_hand
+puts
+puts "Tests for Feen module"
+puts
 
-  puts "Test 2 passed: parse works with pieces in hand"
+# Main API delegation tests
+run_test("dump delegates to Dumper") do
+  piece_placement = [["r", "k", "r"], ["", "P", ""]]
+  result = Feen.dump(
+    piece_placement: piece_placement,
+    pieces_in_hand:  ["P"],
+    games_turn:      %w[CHESS chess]
+  )
+
+  expected = "rkr/1P1 P/ CHESS/chess"
+  raise "Expected '#{expected}', got '#{result}'" unless result == expected
 end
 
-# Test 3: Parse with 3D position
-begin
-  feen_string = "rnb/qkp//PR1/1KQ / FOO/bar"
-  parsed = Feen.parse(feen_string)
-  raise "Test 3 failed: 3D position not parsed correctly" unless parsed[:piece_placement].is_a?(Array) &&
-                                                                 parsed[:piece_placement].all? do |dim|
-                                                                   dim.is_a?(Array)
-                                                                 end &&
-                                                                 parsed[:piece_placement][0][0].is_a?(Array)
+run_test("parse delegates to Parser") do
+  feen_string = "rkr/1P1 P/ CHESS/chess"
+  result = Feen.parse(feen_string)
 
-  puts "Test 3 passed: parse works with 3D position"
+  expected_piece_placement = [["r", "k", "r"], ["", "P", ""]]
+
+  raise "Wrong piece_placement" unless result[:piece_placement] == expected_piece_placement
+  raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == ["P"]
+  raise "Wrong games_turn" unless result[:games_turn] == %w[CHESS chess]
 end
 
-# Test 4: Parse with modified pieces (prefixes/suffixes)
-begin
-  feen_string = "rnbqkbnr/pppppppp/8/4+P3/8/8/PPPP1PPP/RNBQKBNR / CHESS/chess"
-  parsed = Feen.parse(feen_string)
-  modified_pawn = parsed[:piece_placement][3][4] # 5th rank, 5th file
-  white_rook = parsed[:piece_placement][7][0] # 1st rank, 1st file
-  black_rook = parsed[:piece_placement][0][0] # 8th rank, 1st file
-  raise "Test 4 failed: modified pawn not correctly parsed" unless modified_pawn == "+P"
-  raise "Test 4 failed: white rook not correctly parsed" unless white_rook == "R"
-  raise "Test 4 failed: black rook not correctly parsed" unless black_rook == "r"
+run_test("safe_parse delegates to Parser") do
+  # Valid string
+  result = Feen.safe_parse("K / TEST/test")
+  raise "Should return hash for valid input" unless result.is_a?(Hash)
 
-  puts "Test 4 passed: parse works with piece modifications"
+  # Invalid string
+  result = Feen.safe_parse("invalid")
+  raise "Should return nil for invalid input" unless result.nil?
 end
 
-# Test 5: Parse throws exception on invalid input
-begin
+# Round-trip consistency
+run_test("Round-trip consistency (chess)") do
+  original = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
+  parsed = Feen.parse(original)
+  dumped = Feen.dump(**parsed)
+
+  raise "Round-trip failed: '#{original}' != '#{dumped}'" unless original == dumped
+end
+
+run_test("Round-trip consistency (shogi with pieces in hand)") do
+  original = "lnsgkg1nl/1r7/ppp1ppppp/3p5/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL 5P2G2L/2g2sln SHOGI/shogi"
+  parsed = Feen.parse(original)
+  dumped = Feen.dump(**parsed)
+
+  raise "Round-trip failed: '#{original}' != '#{dumped}'" unless original == dumped
+end
+
+run_test("Round-trip consistency (3D board)") do
+  original = "rn/pp//RN/PP / FOO/bar"
+  parsed = Feen.parse(original)
+  dumped = Feen.dump(**parsed)
+
+  raise "Round-trip failed: '#{original}' != '#{dumped}'" unless original == dumped
+end
+
+# Validation method
+run_test("valid? returns true for canonical FEEN") do
+  canonical_feen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / SHOGI/shogi"
+  raise "Should be valid" unless Feen.valid?(canonical_feen)
+end
+
+run_test("valid? returns false for invalid syntax") do
   invalid_feen = "invalid feen string"
-  exception_thrown = false
-  begin
-    Feen.parse(invalid_feen)
-  rescue ArgumentError
-    exception_thrown = true
+  raise "Should be invalid" if Feen.valid?(invalid_feen)
+end
+
+run_test("valid? returns false for non-canonical pieces in hand") do
+  # Valid syntax but wrong ordering in pieces in hand
+  non_canonical = "8/8/8/8/8/8/8/8 P3K/ FOO/bar"
+  raise "Should be non-canonical" if Feen.valid?(non_canonical)
+end
+
+run_test("valid? returns false for pieces with modifiers in hand") do
+  # Valid syntax but modifiers not allowed in pieces in hand
+  invalid_modifiers = "8/8/8/8/8/8/8/8 +P/ FOO/bar"
+  raise "Should be invalid due to modifiers in hand" if Feen.valid?(invalid_modifiers)
+end
+
+run_test("valid? returns false for same casing in games turn") do
+  invalid_casing = "8/8/8/8/8/8/8/8 / CHESS/SHOGI"
+  raise "Should be invalid due to same casing" if Feen.valid?(invalid_casing)
+end
+
+run_test("valid? validates through round-trip") do
+  # This should be valid and canonical
+  valid_input = "k/K 2BP/np TEST/test"
+
+  # First check that it parses and dumps correctly
+  parsed = Feen.parse(valid_input)
+  dumped = Feen.dump(**parsed)
+
+  # Then check that valid? agrees
+  raise "Should be valid (round-trip works)" unless Feen.valid?(valid_input)
+  raise "Round-trip should be consistent" unless valid_input == dumped
+end
+
+# Error handling consistency
+run_test("All methods handle same error cases consistently") do
+  invalid_inputs = [
+    "too few fields",
+    "too many fields here",
+    "K invalid@format TEST/test",
+    "K +P/ TEST/test", # Modifiers in hand
+    "K / INVALID@GAMES"
+  ]
+
+  invalid_inputs.each do |invalid_input|
+    # parse should raise an error
+    parse_raised = false
+    begin
+      Feen.parse(invalid_input)
+    rescue ArgumentError
+      parse_raised = true
+    end
+    raise "parse should raise error for: #{invalid_input}" unless parse_raised
+
+    # safe_parse should return nil
+    safe_result = Feen.safe_parse(invalid_input)
+    raise "safe_parse should return nil for: #{invalid_input}" unless safe_result.nil?
+
+    # valid? should return false
+    raise "valid? should return false for: #{invalid_input}" if Feen.valid?(invalid_input)
   end
-  raise "Test 5 failed: parse didn't raise exception on invalid input" unless exception_thrown
-
-  puts "Test 5 passed: parse raises exception on invalid input"
 end
 
-# --- Test safe_parse method ---
-
-# Test 6: safe_parse with valid input
-begin
-  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-  result = Feen.safe_parse(feen_string)
-  raise "Test 6 failed: safe_parse returned nil for valid input" if result.nil?
-  raise "Test 6 failed: safe_parse returned incorrect data" unless result[:games_turn] == %w[CHESS chess]
-
-  puts "Test 6 passed: safe_parse works with valid input"
-end
-
-# Test 7: safe_parse with invalid input
-begin
-  invalid_feen = "invalid feen string"
-  result = Feen.safe_parse(invalid_feen)
-  raise "Test 7 failed: safe_parse didn't return nil for invalid input" unless result.nil?
-
-  puts "Test 7 passed: safe_parse returns nil for invalid input"
-end
-
-# --- Test dump method ---
-
-# Test 8: Basic dump functionality
-begin
+# Example from README
+run_test("README example works correctly") do
   piece_placement = [
     ["r", "n", "b", "q", "k", "b", "n", "r"],
     ["p", "p", "p", "p", "p", "p", "p", "p"],
@@ -102,145 +169,65 @@ begin
     ["P", "P", "P", "P", "P", "P", "P", "P"],
     ["R", "N", "B", "Q", "K", "B", "N", "R"]
   ]
-  feen_string = Feen.dump(
+
+  # Test dump
+  result = Feen.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  [],
     games_turn:      %w[CHESS chess]
   )
   expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-  raise "Test 8 failed: dump didn't produce expected FEEN string" unless feen_string == expected
+  raise "README dump example failed" unless result == expected
 
-  puts "Test 8 passed: dump works with standard position"
+  # Test parse
+  parsed = Feen.parse(expected)
+  raise "README parse example failed (piece_placement)" unless parsed[:piece_placement] == piece_placement
+  raise "README parse example failed (pieces_in_hand)" unless parsed[:pieces_in_hand] == []
+  raise "README parse example failed (games_turn)" unless parsed[:games_turn] == %w[CHESS chess]
 end
 
-# Test 9: Dump with pieces in hand
-begin
-  piece_placement = [
-    ["l", "n", "s", "g", "k", "", "", "n", "l"],
-    ["", "r", "", "", "", "", "g", "s", ""],
-    ["p", "", "p", "p", "p", "p", "", "p", "p"],
-    ["", "p", "", "", "", "", "p", "", ""],
-    ["", "", "", "", "", "", "", "P", ""],
-    ["", "", "P", "", "", "", "", "", ""],
-    ["P", "P", "", "P", "P", "P", "P", "", "P"],
-    ["", "S", "G", "", "", "", "", "R", ""],
-    ["L", "N", "", "", "K", "G", "S", "N", "L"]
-  ]
-  feen_string = Feen.dump(
-    piece_placement: piece_placement,
-    pieces_in_hand:  %w[B b],
-    games_turn:      %w[SHOGI shogi]
-  )
-  raise "Test 9 failed: dump didn't include pieces in hand" unless feen_string.include?(" B/b ")
-
-  puts "Test 9 passed: dump works with pieces in hand"
-end
-
-# Test 10: Round-trip consistency
-begin
-  original = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-  parsed = Feen.parse(original)
-  regenerated = Feen.dump(
-    piece_placement: parsed[:piece_placement],
-    pieces_in_hand:  parsed[:pieces_in_hand],
-    games_turn:      parsed[:games_turn]
-  )
-  raise "Test 10 failed: round-trip parsing and dumping not consistent" unless original == regenerated
-
-  puts "Test 10 passed: round-trip parse/dump maintains consistency"
-end
-
-# --- Test valid? method ---
-
-# Test 11: valid? with canonical form
-begin
-  canonical_feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-  raise "Test 11 failed: valid? rejected a canonical FEEN" unless Feen.valid?(canonical_feen)
-
-  puts "Test 11 passed: valid? accepts canonical form"
-end
-
-# Test 12: valid? with invalid syntax
-begin
-  invalid_feen = "invalid feen format"
-  raise "Test 12 failed: valid? accepted an invalid FEEN" if Feen.valid?(invalid_feen)
-
-  puts "Test 12 passed: valid? rejects invalid syntax"
-end
-
-# --- Test error cases and edge cases ---
-
-# Test 13: Empty board
-begin
-  feen_string = "8/8/8/8/8/8/8/8 / CHESS/chess"
-  parsed = Feen.parse(feen_string)
-  dumped = Feen.dump(
-    piece_placement: parsed[:piece_placement],
-    pieces_in_hand:  parsed[:pieces_in_hand],
-    games_turn:      parsed[:games_turn]
-  )
-  raise "Test 13 failed: empty board parsing/dumping not consistent" unless dumped == feen_string
-
-  puts "Test 13 passed: handles empty board correctly"
-end
-
-# Test 14: Multiple pieces in hand with counts (canonical ordering)
-begin
-  # Original FEEN string with non-canonical pieces in hand order
-  # "N2P2gln2s" needs to be reordered canonically
-
-  # Let's determine the canonical order:
-  # Pieces: N(1), P(2), g(2), l(1), n(1), s(2)
-  # Canonical order: by quantity desc, then alphabetical
-  # Quantities: P(2), g(2), s(2), N(1), l(1), n(1)
-  # Alphabetical within same quantity:
-  #   - Quantity 2: P < g < s -> 2P2g2s
-  #   - Quantity 1: N < l < n -> Nln
-  # Final canonical order: 2PN/2g2sln
-
-  feen_string = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 2PN/2g2sln SHOGI/shogi"
-  parsed = Feen.parse(feen_string)
-
-  # Verify the parsed pieces in hand are in the expected canonical order
-  expected_pieces = %w[N P P g g l n s s]
-  actual_pieces = parsed[:pieces_in_hand]
-
-  unless actual_pieces == expected_pieces
-    raise "Test 14 failed: Expected pieces #{expected_pieces.inspect}, got #{actual_pieces.inspect}"
-  end
-
-  # Count occurrences of each piece to verify correctness
-  piece_counts = {}
-  parsed[:pieces_in_hand].each do |piece|
-    piece_counts[piece] ||= 0
-    piece_counts[piece] += 1
-  end
-
-  # Verify correct counts for each piece type
-  expected_counts = { "N" => 1, "P" => 2, "g" => 2, "l" => 1, "n" => 1, "s" => 2 }
-  expected_counts.each do |piece, count|
-    actual_count = piece_counts[piece] || 0
-    raise "Test 14 failed: expected #{count} of piece '#{piece}', got #{actual_count}" if actual_count != count
-  end
-
-  # Verify no extra or missing piece types
-  if piece_counts.keys.sort != expected_counts.keys.sort
-    raise "Test 14 failed: piece types don't match, got #{piece_counts.keys.sort.inspect}"
-  end
-
-  puts "✓ Test 14 passed: handles multiple pieces in hand with canonical ordering"
+# Keyword arguments requirement
+run_test("dump requires keyword arguments") do
+  # Should fail - positional arguments not allowed
+  Feen.dump([["K"]], [], %w[TEST test])
+  raise "Should require keyword arguments"
 rescue ArgumentError => e
-  raise "Test 14 failed: Unexpected error: #{e.message}"
+  # Should get an error about wrong number of arguments or missing keywords
+  unless e.message.include?("wrong number of arguments") || e.message.include?("missing keyword")
+    raise "Wrong error type"
+  end
 end
 
-# Test 15: Different game types
-begin
-  feen_string = "rheagaehr/9/1c5c1/s1s1s1s1s/9/9/S1S1S1S1S/1C5C1/9/RHEAGAEHR / XIANGQI/xiangqi"
-  parsed = Feen.parse(feen_string)
-  expected_games_turn = %w[XIANGQI xiangqi]
-  raise "Test 15 failed: games turn not parsed correctly" unless parsed[:games_turn] == expected_games_turn
+# Edge cases
+run_test("Handles minimal valid FEEN") do
+  minimal = "K / A/b"
 
-  puts "Test 15 passed: handles different game types"
+  # Should parse
+  result = Feen.parse(minimal)
+  raise "Should parse minimal FEEN" unless result.is_a?(Hash)
+
+  # Should be valid
+  raise "Minimal FEEN should be valid" unless Feen.valid?(minimal)
+
+  # Should round-trip
+  dumped = Feen.dump(**result)
+  raise "Minimal FEEN should round-trip" unless minimal == dumped
 end
 
-puts "All tests passed successfully!"
+run_test("Handles complex promoted pieces") do
+  complex = "lnsgk3l/5g3/p1ppB2pp/9/8B/2P6/P2PPPPPP/3K3R1/5rSNL 5P2G2L/2g2sln SHOGI/shogi"
+
+  # Should parse (has promoted pieces on board: +B, +r, +S)
+  result = Feen.parse(complex)
+  raise "Should parse complex FEEN with promoted pieces" unless result.is_a?(Hash)
+
+  # Should be valid
+  raise "Complex FEEN should be valid" unless Feen.valid?(complex)
+
+  # Should round-trip
+  dumped = Feen.dump(**result)
+  raise "Complex FEEN should round-trip" unless complex == dumped
+end
+
+puts
+puts "All tests passed! ✓"

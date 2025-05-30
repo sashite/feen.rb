@@ -4,12 +4,13 @@ module Feen
   module Dumper
     # Handles conversion of games turn data to FEEN notation string
     module GamesTurn
+      # Error messages for validation
       ERRORS = {
-        type:   "%s must be a String, got %s",
-        empty:  "%s cannot be empty",
-        mixed:  "%s has mixed case: %s",
-        casing: "One variant must be uppercase and the other lowercase",
-        chars:  "Variant identifiers must contain only alphabetic characters (a-z, A-Z)"
+        invalid_type:  "%s must be a String, got %s",
+        empty_string:  "%s cannot be empty",
+        invalid_chars: "%s must contain only alphabetic characters (a-z, A-Z)",
+        mixed_case:    "%s has mixed case: %s",
+        same_casing:   "One variant must be uppercase and the other lowercase"
       }.freeze
 
       # Converts the active and inactive variant identifiers to a FEEN-formatted games turn string
@@ -17,6 +18,15 @@ module Feen
       # @param active_variant [String] Identifier for the player to move and their game variant
       # @param inactive_variant [String] Identifier for the opponent and their game variant
       # @return [String] FEEN-formatted games turn string
+      # @raise [ArgumentError] If the variant identifiers are invalid
+      #
+      # @example Valid games turn
+      #   GamesTurn.dump("CHESS", "chess")
+      #   # => "CHESS/chess"
+      #
+      # @example Invalid - same casing
+      #   GamesTurn.dump("CHESS", "SHOGI")
+      #   # => ArgumentError: One variant must be uppercase and the other lowercase
       def self.dump(active_variant, inactive_variant)
         validate_variants(active_variant, inactive_variant)
         "#{active_variant}/#{inactive_variant}"
@@ -29,38 +39,31 @@ module Feen
       # @raise [ArgumentError] If the variant identifiers are invalid
       # @return [void]
       private_class_method def self.validate_variants(active, inactive)
-        # Validate basic type and presence
+        # Validate basic type, presence and format
         [["Active variant", active], ["Inactive variant", inactive]].each do |name, variant|
-          raise ArgumentError, format(ERRORS[:type], name, variant.class) unless variant.is_a?(String)
-          raise ArgumentError, format(ERRORS[:empty], name) if variant.empty?
-          raise ArgumentError, ERRORS[:chars] unless variant.match?(/\A[a-zA-Z]+\z/)
+          # Type validation
+          raise ArgumentError, format(ERRORS[:invalid_type], name, variant.class) unless variant.is_a?(String)
+
+          # Empty validation
+          raise ArgumentError, format(ERRORS[:empty_string], name) if variant.empty?
+
+          # Character validation
+          raise ArgumentError, format(ERRORS[:invalid_chars], name) unless variant.match?(/\A[a-zA-Z]+\z/)
+
+          # Mixed case validation
+          unless variant == variant.upcase || variant == variant.downcase
+            raise ArgumentError, format(ERRORS[:mixed_case], name, variant)
+          end
         end
 
-        # Validate casing (one must be uppercase, one must be lowercase)
-        active_uppercase = active == active.upcase && active != active.downcase
-        inactive_uppercase = inactive == inactive.upcase && inactive != inactive.downcase
+        # Casing difference validation
+        active_is_uppercase = active == active.upcase
+        inactive_is_uppercase = inactive == inactive.upcase
 
-        # If both have the same casing (both uppercase or both lowercase), raise error
-        raise ArgumentError, ERRORS[:casing] if active_uppercase == inactive_uppercase
+        # Both variants must have different casing
+        return unless active_is_uppercase == inactive_is_uppercase
 
-        # Check for mixed case (must be all uppercase or all lowercase)
-        if active_uppercase && active != active.upcase
-          raise ArgumentError, format(ERRORS[:mixed], "Active variant", active)
-        end
-
-        if inactive_uppercase && inactive != inactive.upcase
-          raise ArgumentError, format(ERRORS[:mixed], "Inactive variant", inactive)
-        end
-
-        if !active_uppercase && active != active.downcase
-          raise ArgumentError, format(ERRORS[:mixed], "Active variant", active)
-        end
-
-        if !inactive_uppercase && inactive != inactive.downcase
-          raise ArgumentError, format(ERRORS[:mixed], "Inactive variant", inactive)
-        end
-
-        true
+        raise ArgumentError, ERRORS[:same_casing]
       end
     end
   end

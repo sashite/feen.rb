@@ -21,12 +21,12 @@ module Feen
     # @param feen_string [String] Complete FEEN notation string
     # @return [Hash] Hash containing the parsed position data with the following keys:
     #   - :piece_placement [Array] - Hierarchical array structure representing the board
-    #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board
+    #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board (base form only)
     #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
     # @raise [ArgumentError] If the FEEN string is invalid
     #
     # @example Parsing a standard chess initial position
-    #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+    #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
     #   result = Feen::Parser.parse(feen)
     #   # => {
     #   #      piece_placement: [
@@ -76,7 +76,7 @@ module Feen
     # @return [Hash, nil] Hash containing the parsed position data or nil if parsing fails
     #
     # @example Parsing a valid FEEN string
-    #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR - CHESS/chess"
+    #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
     #   result = Feen::Parser.safe_parse(feen)
     #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
     #

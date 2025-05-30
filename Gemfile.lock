@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    feen (5.0.0.beta7)
+    feen (5.0.0.beta8)
 
 GEM
   remote: https://rubygems.org/
@@ -39,7 +39,7 @@ GEM
     regexp_parser (2.10.0)
     reline (0.6.1)
       io-console (~> 0.5)
-    rubocop (1.75.7)
+    rubocop (1.75.8)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -53,11 +53,6 @@ GEM
     rubocop-ast (1.44.1)
       parser (>= 3.3.7.2)
       prism (~> 1.4)
-    rubocop-gitlab-security (0.1.1)
-      rubocop (>= 0.51)
-    rubocop-md (2.0.1)
-      lint_roller (~> 1.1)
-      rubocop (>= 1.72.1)
     rubocop-performance (1.25.0)
       lint_roller (~> 1.1)
       rubocop (>= 1.75.0, < 2.0)
@@ -65,9 +60,6 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
-    rubocop-thread_safety (0.7.2)
-      lint_roller (~> 1.1)
-      rubocop (~> 1.72, >= 1.72.1)
     ruby-progressbar (1.13.0)
     simplecov (0.22.0)
       docile (~> 1.1)
@@ -91,12 +83,8 @@ DEPENDENCIES
   feen!
   irb
   rake
-  rubocop
-  rubocop-gitlab-security
-  rubocop-md
   rubocop-performance
   rubocop-rake
-  rubocop-thread_safety
   simplecov
   yard
 

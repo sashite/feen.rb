@@ -1,3 +1,4 @@
+# Configuration principale
 AllCops:
   # @see https://docs.rubocop.org/rubocop/configuration.html#pre-processing
   Exclude:
@@ -8,47 +9,42 @@ AllCops:
     - config/**/*
     - tmp/**/*
     - spec/**/*
-
   NewCops: enable
   TargetRubyVersion: 3.2
 
-require:
-  - rubocop-gitlab-security
-  - rubocop-md
+# Plugins
+plugins:
+  - rubocop-performance
+  - rubocop-rake
 
 inherit_from:
-  - https://raw.githubusercontent.com/sashite/sashite-rubocop.rb/v1.0.3/config/rubocop.yml
-  - https://raw.githubusercontent.com/sashite/sashite-rubocop.rb/v1.0.3/config/rubocop/performance.yml
-  - https://raw.githubusercontent.com/sashite/sashite-rubocop.rb/v1.0.3/config/rubocop/rake.yml
-  - https://raw.githubusercontent.com/sashite/sashite-rubocop.rb/v1.0.3/config/rubocop/thread_safety.yml
   - .rubocop_todo.yml
 
-Naming/MethodName:
-  Enabled: false
-
-Naming/FileName:
-  Enabled: false
-
-# Check with yard instead.
-Style/Documentation:
-  Enabled: false
+# Layout
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: table
+  EnforcedColonStyle: table
 
 Layout/LineLength:
   Exclude:
     - README.md
-
   Include:
     - app/**/*
     - config/**/*
     - test/**/*
 
+# Lint
+Lint/ConstantResolution:
+  Enabled: true
+
 Lint/RequireRelativeSelfPath:
   Enabled: false
 
-Style/RedundantConstantBase:
+# Metrics
+Metrics/BlockLength:
   Enabled: false
 
-Metrics/BlockLength:
+Metrics/ClassLength:
   Enabled: false
 
 Metrics/MethodLength:
@@ -57,5 +53,36 @@ Metrics/MethodLength:
 Metrics/ModuleLength:
   Enabled: false
 
+# Naming
 Naming/ConstantName:
   Enabled: false
+
+Naming/FileName:
+  Enabled: false
+
+Naming/MemoizedInstanceVariableName:
+  EnforcedStyleForLeadingUnderscores: required
+
+Naming/MethodName:
+  Enabled: false
+
+# Style
+Style/ClassAndModuleChildren:
+  EnforcedStyle: nested
+
+# Check with yard instead.
+Style/Documentation:
+  Enabled: false
+
+Style/EmptyMethod:
+  EnforcedStyle: expanded
+
+Style/RedundantConstantBase:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# As long as we don't need to use a version lower or equal to 1.9, we can use the new syntax.
+Style/SymbolArray:
+  Enabled: true

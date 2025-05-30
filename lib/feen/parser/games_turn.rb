@@ -15,8 +15,8 @@ module Feen
       # <games-turn> ::= <game-id-uppercase> "/" <game-id-lowercase>
       #                | <game-id-lowercase> "/" <game-id-uppercase>
       VALID_GAMES_TURN_PATTERN = %r{
-        \A                    # Start of string
-        (?:                   # Non-capturing group for alternatives
+        \A                            # Start of string
+        (?:                           # Non-capturing group for alternatives
           (?<uppercase_first>[A-Z]+)  # Named group: uppercase identifier first
           /                           # Separator
           (?<lowercase_second>[a-z]+) # Named group: lowercase identifier second
@@ -25,7 +25,7 @@ module Feen
           /                           # Separator
           (?<uppercase_second>[A-Z]+) # Named group: uppercase identifier second
         )
-        \z                    # End of string
+        \z                            # End of string
       }x
 
       # Parses the games turn section of a FEEN string
@@ -35,12 +35,12 @@ module Feen
       # @raise [ArgumentError] If the input string is invalid
       #
       # @example Valid games turn string with uppercase first
-      #   GamesTurn.parse("CHESS/shogi")
-      #   # => ["CHESS", "shogi"]
+      #   GamesTurn.parse("CHESS/ogi")
+      #   # => ["CHESS", "ogi"]
       #
       # @example Valid games turn string with lowercase first
-      #   GamesTurn.parse("chess/SHOGI")
-      #   # => ["chess", "SHOGI"]
+      #   GamesTurn.parse("chess/OGI")
+      #   # => ["chess", "OGI"]
       def self.parse(games_turn_str)
         validate_input_type(games_turn_str)
 

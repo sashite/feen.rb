@@ -26,12 +26,12 @@ module Feen
 
       # Complete validation pattern for pieces in hand string
       VALID_FORMAT_PATTERN = %r{\A
-        (?:                                               # Uppercase section (optional)
-          (?:(?:[2-9]|[1-9]\d+)?[A-Z])*                  # Zero or more uppercase pieces with optional counts
+        (?:                             # Uppercase section (optional)
+          (?:(?:[2-9]|[1-9]\d+)?[A-Z])* # Zero or more uppercase pieces with optional counts
         )
-        /                                                 # Mandatory separator
-        (?:                                               # Lowercase section (optional)
-          (?:(?:[2-9]|[1-9]\d+)?[a-z])*                  # Zero or more lowercase pieces with optional counts
+        /                               # Mandatory separator
+        (?:                             # Lowercase section (optional)
+          (?:(?:[2-9]|[1-9]\d+)?[a-z])* # Zero or more lowercase pieces with optional counts
         )
       \z}x
 

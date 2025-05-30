@@ -42,8 +42,8 @@ run_test("Valid lowercase first, uppercase second") do
 end
 
 run_test("Valid different game variants") do
-  result = Feen::Dumper::GamesTurn.dump("MAKRUK", "xiangqi")
-  raise "Expected 'MAKRUK/xiangqi', got '#{result}'" unless result == "MAKRUK/xiangqi"
+  result = Feen::Dumper::GamesTurn.dump("MAKRUK", "xiongqi")
+  raise "Expected 'MAKRUK/xiongqi', got '#{result}'" unless result == "MAKRUK/xiongqi"
 end
 
 run_test("Valid single letter identifiers") do
@@ -140,7 +140,7 @@ end
 
 # Same casing validation
 run_test("Raises error for both uppercase variants") do
-  Feen::Dumper::GamesTurn.dump("CHESS", "SHOGI")
+  Feen::Dumper::GamesTurn.dump("CHESS", "MAKRUK")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
   unless e.message.include?("One variant must be uppercase and the other lowercase")
@@ -149,7 +149,7 @@ rescue ArgumentError => e
 end
 
 run_test("Raises error for both lowercase variants") do
-  Feen::Dumper::GamesTurn.dump("chess", "shogi")
+  Feen::Dumper::GamesTurn.dump("chess", "ogi")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
   unless e.message.include?("One variant must be uppercase and the other lowercase")

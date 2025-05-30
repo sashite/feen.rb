@@ -25,7 +25,7 @@ module Feen
       #   # => "CHESS/chess"
       #
       # @example Invalid - same casing
-      #   GamesTurn.dump("CHESS", "SHOGI")
+      #   GamesTurn.dump("CHESS", "MAKRUK")
       #   # => ArgumentError: One variant must be uppercase and the other lowercase
       def self.dump(active_variant, inactive_variant)
         validate_variants(active_variant, inactive_variant)

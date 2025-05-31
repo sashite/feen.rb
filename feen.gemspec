@@ -21,7 +21,6 @@ Gem::Specification.new do |spec|
     "homepage_uri"          => "https://github.com/sashite/feen.rb",
     "source_code_uri"       => "https://github.com/sashite/feen.rb",
     "specification_uri"     => "https://sashite.dev/documents/feen/1.0.0/",
-    "rubygems_mfa_required" => "true",
-    "keywords"              => %w[board board-games chess deserialization feen fen game makruk notation serialization shogi xiangqi"].join(", ")
+    "rubygems_mfa_required" => "true"
   }
 end

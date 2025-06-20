@@ -17,11 +17,11 @@ module Feen
   # @param piece_placement [Array] Board position data structure representing the spatial
   #                               distribution of pieces across the board
   # @param pieces_in_hand [Array<String>] Pieces available for dropping onto the board.
-  #                                      MUST be in base form only (no modifiers allowed)
-  # @param games_turn [Array<String>] A two-element array where the first element is the
-  #                                  active player's variant and the second is the inactive player's variant
+  #                                      May include PNN modifiers (per FEEN v1.0.0 specification)
+  # @param style_turn [Array<String>] A two-element array where the first element is the
+  #                                  active player's style and the second is the inactive player's style
   # @return [String] FEEN notation string
-  # @raise [ArgumentError] If any parameter is invalid or pieces_in_hand contains modifiers
+  # @raise [ArgumentError] If any parameter is invalid
   # @example
   #   piece_placement = [
   #     ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -36,11 +36,11 @@ module Feen
   #   Feen.dump(
   #     piece_placement: piece_placement,
   #     pieces_in_hand: [],
-  #     games_turn: ["CHESS", "chess"]
+  #     style_turn: ["CHESS", "chess"]
   #   )
   #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
-  def self.dump(piece_placement:, pieces_in_hand:, games_turn:)
-    Dumper.dump(piece_placement:, pieces_in_hand:, games_turn:)
+  def self.dump(piece_placement:, pieces_in_hand:, style_turn:)
+    Dumper.dump(piece_placement:, pieces_in_hand:, style_turn:)
   end
 
   # Parses a FEEN string into position components.
@@ -48,8 +48,8 @@ module Feen
   # @param feen_string [String] Complete FEEN notation string
   # @return [Hash] Hash containing the parsed position data with the following keys:
   #   - :piece_placement [Array] - Hierarchical array structure representing the board
-  #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board (base form only)
-  #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
+  #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board (may include modifiers)
+  #   - :style_turn [Array<String>] - A two-element array with [active_style, inactive_style]
   # @raise [ArgumentError] If the FEEN string is invalid
   # @example
   #   feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
@@ -66,7 +66,7 @@ module Feen
   #   #        ["R", "N", "B", "Q", "K", "B", "N", "R"]
   #   #      ],
   #   #      pieces_in_hand: [],
-  #   #      games_turn: ["CHESS", "chess"]
+  #   #      style_turn: ["CHESS", "chess"]
   #   #    }
   def self.parse(feen_string)
     Parser.parse(feen_string)
@@ -82,7 +82,7 @@ module Feen
   # @example
   #   # Valid FEEN string
   #   Feen.safe_parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess")
-  #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
+  #   # => {piece_placement: [...], pieces_in_hand: [...], style_turn: [...]}
   #
   #   # Invalid FEEN string
   #   Feen.safe_parse("invalid feen string")
@@ -101,12 +101,15 @@ module Feen
   # This approach guarantees that the string not only follows FEEN syntax
   # but is also in its most compact, canonical representation.
   #
-  # According to FEEN specification:
-  # - Pieces in hand must be in base form only (no modifiers like +, -, ')
-  # - Pieces in hand must be sorted canonically within each case section:
-  #   1. By quantity (descending)
-  #   2. By piece letter (alphabetically ascending)
-  # - Case separation is enforced (uppercase/lowercase)
+  # According to FEEN v1.0.0 specification:
+  # - Pieces in hand may include PNN modifiers (prefixes and suffixes)
+  # - Pieces in hand must be sorted canonically according to the sorting algorithm:
+  #   1. By player (uppercase/lowercase separated by '/')
+  #   2. By quantity (descending)
+  #   3. By base letter (ascending)
+  #   4. By prefix (specific order: '-', '+', then no prefix)
+  #   5. By suffix (specific order: no suffix, then "'")
+  # - Style identifiers must follow SNN specification with semantic casing
   #
   # @param feen_string [String] FEEN string to validate
   # @return [Boolean] True if the string is a valid and canonical FEEN string
@@ -117,24 +120,21 @@ module Feen
   #   # Invalid syntax
   #   Feen.valid?("invalid feen string") # => false
   #
-  #   # Valid syntax but non-canonical form (pieces in hand with modifiers)
-  #   Feen.valid?("8/8/8/8/8/8/8/8 +P/ FOO/bar") # => false
-  #
   #   # Valid syntax but non-canonical form (wrong ordering in pieces in hand)
   #   Feen.valid?("8/8/8/8/8/8/8/8 P3K/ FOO/bar") # => false
+  #
+  #   # Canonical form with modifiers in pieces in hand
+  #   Feen.valid?("8/8/8/8/8/8/8/8 2+B5BK3-P-P'3+P'9PR2SS'/ FOO/bar") # => true
   def self.valid?(feen_string)
     # First check: Basic syntax validation
-    begin
-      parsed_data = parse(feen_string)
-    rescue ::ArgumentError
-      return false
-    end
+    parsed_data = safe_parse(feen_string)
+    return false if parsed_data.nil?
 
     # Second check: Canonicity validation through round-trip conversion
     # Generate a fresh FEEN string from the parsed data
     canonical_feen = dump(**parsed_data)
 
-    # Compare the original string with the canonical form
-    feen_string == canonical_feen
+    # Compare the canonical form with the original string
+    canonical_feen == feen_string
   end
 end

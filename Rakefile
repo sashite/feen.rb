@@ -25,5 +25,4 @@ task default: %i[
   generate_rubocop_yaml
   yard
   test
-  rubocop:autocorrect
 ]

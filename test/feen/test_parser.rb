@@ -7,7 +7,7 @@
 # of each field to specialized submodules:
 # - Piece placement (board state)
 # - Pieces in hand (captured/available pieces)
-# - Games turn (active/inactive players)
+# - Style turn (active/inactive players)
 #
 # This test assumes the existence of the following files:
 # - lib/feen/parser.rb
@@ -47,7 +47,7 @@ run_test("Chess initial position") do
 
   raise "Wrong piece_placement" unless result[:piece_placement] == expected_piece_placement
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == []
-  raise "Wrong games_turn" unless result[:games_turn] == %w[CHESS chess]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[CHESS chess]
 end
 
 run_test("Shogi position with pieces in hand") do
@@ -55,7 +55,7 @@ run_test("Shogi position with pieces in hand") do
   result = Feen::Parser.parse(feen_string)
 
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == %w[B b]
-  raise "Wrong games_turn" unless result[:games_turn] == %w[SHOGI shogi]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[SHOGI shogi]
   raise "Wrong piece_placement size" unless result[:piece_placement].size == 9
 end
 
@@ -70,18 +70,18 @@ run_test("3D board example") do
 
   raise "Wrong piece_placement" unless result[:piece_placement] == expected_piece_placement
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == []
-  raise "Wrong games_turn" unless result[:games_turn] == %w[FOO bar]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[FOO bar]
 end
 
 run_test("Complex pieces in hand") do
   feen_string = "k/K 3P2B/p GAME/game"
   result = Feen::Parser.parse(feen_string)
 
-  expected_pieces_in_hand = %w[B B P P P p]
+  expected_pieces_in_hand = %w[P P P B B p]
 
   raise "Wrong piece_placement" unless result[:piece_placement] == [["k"], ["K"]]
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == expected_pieces_in_hand
-  raise "Wrong games_turn" unless result[:games_turn] == %w[GAME game]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[GAME game]
 end
 
 run_test("Empty board with pieces in hand") do
@@ -90,7 +90,7 @@ run_test("Empty board with pieces in hand") do
 
   raise "Wrong piece_placement" unless result[:piece_placement] == ["", "", "", ""]
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == %w[K k]
-  raise "Wrong games_turn" unless result[:games_turn] == %w[TEST test]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[TEST test]
 end
 
 run_test("Promoted pieces on board") do
@@ -101,7 +101,27 @@ run_test("Promoted pieces on board") do
   raise "Promoted pawn not found" unless result[:piece_placement][4][4] == "+P"
   raise "Promoted bishop not found" unless result[:piece_placement][6][5] == "+B"
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == []
-  raise "Wrong games_turn" unless result[:games_turn] == %w[SHOGI shogi]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[SHOGI shogi]
+end
+
+run_test("Pieces in hand with modifiers") do
+  feen_string = "k/K 2+B5BK3-P-P'3+P'9PR2SS'/bp GAME/game"
+  result = Feen::Parser.parse(feen_string)
+
+  expected_pieces_in_hand = ["+B", "+B", "B", "B", "B", "B", "B", "K", "-P", "-P", "-P", "-P'", "+P'", "+P'", "+P'",
+                             "P", "P", "P", "P", "P", "P", "P", "P", "P", "R", "S", "S", "S'", "b", "p"]
+
+  raise "Wrong piece_placement" unless result[:piece_placement] == [["k"], ["K"]]
+  raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == expected_pieces_in_hand
+  raise "Wrong style_turn" unless result[:style_turn] == %w[GAME game]
+end
+
+run_test("Style identifiers with numbers") do
+  feen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS960/makruk"
+  result = Feen::Parser.parse(feen_string)
+
+  raise "Wrong style_turn" unless result[:style_turn] == %w[CHESS960 makruk]
+  raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == []
 end
 
 # Return value structure validation
@@ -110,7 +130,7 @@ run_test("Returns hash with correct keys") do
 
   raise "Missing :piece_placement key" unless result.key?(:piece_placement)
   raise "Missing :pieces_in_hand key" unless result.key?(:pieces_in_hand)
-  raise "Missing :games_turn key" unless result.key?(:games_turn)
+  raise "Missing :style_turn key" unless result.key?(:style_turn)
   raise "Too many keys" unless result.keys.size == 3
 end
 
@@ -121,7 +141,7 @@ run_test("safe_parse returns hash for valid input") do
   raise "Should return hash" unless result.is_a?(Hash)
   raise "Wrong piece_placement" unless result[:piece_placement] == ["K"]
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == []
-  raise "Wrong games_turn" unless result[:games_turn] == %w[TEST test]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[TEST test]
 end
 
 run_test("safe_parse returns nil for invalid input") do
@@ -186,17 +206,21 @@ rescue ArgumentError => e
 end
 
 run_test("Propagates pieces in hand errors") do
-  Feen::Parser.parse("K +P/ TEST/test") # Modifiers not allowed in hand
-  raise "Expected ArgumentError"
-rescue ArgumentError => e
-  raise "Should propagate pieces in hand error" unless e.message.eql?('Pieces in hand cannot contain modifiers: "+P"')
-end
-
-run_test("Propagates games turn errors") do
   Feen::Parser.parse("K / INVALID@FORMAT")
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Should propagate games turn error" unless e.message.include?("Invalid games turn format")
+  unless e.message.eql?("Invalid style turn format. Expected format: UPPERCASE/lowercase or lowercase/UPPERCASE")
+    raise "Should propagate pieces in hand error"
+  end
+end
+
+run_test("Propagates style turn errors") do
+  Feen::Parser.parse("K / / INVALID@FORMAT")
+  raise "Expected ArgumentError"
+rescue ArgumentError => e
+  unless e.message.eql?("Invalid FEEN format: expected exactly 3 fields separated by single spaces")
+    raise "Should propagate style turn error"
+  end
 end
 
 # String conversion
@@ -218,7 +242,7 @@ run_test("Handles minimal valid FEEN") do
 
   raise "Wrong piece_placement" unless result[:piece_placement] == ["K"]
   raise "Wrong pieces_in_hand" unless result[:pieces_in_hand] == []
-  raise "Wrong games_turn" unless result[:games_turn] == %w[A b]
+  raise "Wrong style_turn" unless result[:style_turn] == %w[A b]
 end
 
 run_test("Handles complex valid FEEN") do

@@ -6,7 +6,7 @@
 # It validates input types and combines the three main components:
 # - Piece placement (board state)
 # - Pieces in hand (captured/available pieces)
-# - Games turn (active/inactive players)
+# - Style turn (active/inactive players)
 #
 # This test assumes the existence of the following files:
 # - lib/feen/dumper.rb
@@ -44,7 +44,7 @@ run_test("Chess initial position") do
   result = Feen::Dumper.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  [],
-    games_turn:      %w[CHESS chess]
+    style_turn:      %w[CHESS chess]
   )
 
   expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
@@ -67,7 +67,7 @@ run_test("Shogi position with pieces in hand") do
   result = Feen::Dumper.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  %w[B b],
-    games_turn:      %w[SHOGI shogi]
+    style_turn:      %w[SHOGI shogi]
   )
 
   expected = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL B/b SHOGI/shogi"
@@ -83,7 +83,7 @@ run_test("3D board example") do
   result = Feen::Dumper.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  [],
-    games_turn:      %w[FOO bar]
+    style_turn:      %w[FOO bar]
   )
 
   expected = "rn/pp//RN/PP / FOO/bar"
@@ -96,7 +96,7 @@ run_test("Complex pieces in hand") do
   result = Feen::Dumper.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  %w[P P P B B p],
-    games_turn:      %w[GAME game]
+    style_turn:      %w[GAME game]
   )
 
   expected = "k/K 3P2B/p GAME/game"
@@ -109,10 +109,46 @@ run_test("Empty board with pieces in hand") do
   result = Feen::Dumper.dump(
     piece_placement: piece_placement,
     pieces_in_hand:  %w[K k],
-    games_turn:      %w[TEST test]
+    style_turn:      %w[TEST test]
   )
 
   expected = "4 K/k TEST/test"
+  raise "Expected '#{expected}', got '#{result}'" unless result == expected
+end
+
+run_test("Pieces in hand with modifiers") do
+  piece_placement = [["k"], ["K"]]
+
+  result = Feen::Dumper.dump(
+    piece_placement: piece_placement,
+    pieces_in_hand:  ["+B", "+B", "B", "B", "B", "B", "B", "K", "-P", "-P", "-P", "-P'", "+P'", "+P'", "+P'", "P", "P",
+                      "P", "P", "P", "P", "P", "P", "P", "R", "S", "S", "S'", "b", "p"],
+    style_turn:      %w[GAME game]
+  )
+
+  expected = "k/K 9P5B3-P3+P'2+B2SK-P'RS'/bp GAME/game"
+  raise "Expected '#{expected}', got '#{result}'" unless result == expected
+end
+
+run_test("Style identifiers with numbers") do
+  piece_placement = [
+    ["r", "n", "b", "q", "k", "b", "n", "r"],
+    ["p", "p", "p", "p", "p", "p", "p", "p"],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["P", "P", "P", "P", "P", "P", "P", "P"],
+    ["R", "N", "B", "Q", "K", "B", "N", "R"]
+  ]
+
+  result = Feen::Dumper.dump(
+    piece_placement: piece_placement,
+    pieces_in_hand:  [],
+    style_turn:      %w[CHESS960 makruk]
+  )
+
+  expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS960/makruk"
   raise "Expected '#{expected}', got '#{result}'" unless result == expected
 end
 
@@ -121,7 +157,7 @@ run_test("Raises error for non-array piece_placement") do
   Feen::Dumper.dump(
     piece_placement: "not an array",
     pieces_in_hand:  [],
-    games_turn:      %w[CHESS chess]
+    style_turn:      %w[CHESS chess]
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
@@ -132,46 +168,46 @@ run_test("Raises error for non-array pieces_in_hand") do
   Feen::Dumper.dump(
     piece_placement: [["K"]],
     pieces_in_hand:  "not an array",
-    games_turn:      %w[CHESS chess]
+    style_turn:      %w[CHESS chess]
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
   raise "Wrong error message: #{e.message}" unless e.message.include?("Pieces in hand must be an Array")
 end
 
-run_test("Raises error for non-array games_turn") do
+run_test("Raises error for non-array style_turn") do
   Feen::Dumper.dump(
     piece_placement: [["K"]],
     pieces_in_hand:  [],
-    games_turn:      "not an array"
+    style_turn:      "not an array"
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("Games turn must be an Array")
+  raise "Wrong error message: #{e.message}" unless e.message.include?("Style turn must be an Array")
 end
 
-run_test("Raises error for games_turn with wrong size") do
+run_test("Raises error for style_turn with wrong size") do
   Feen::Dumper.dump(
     piece_placement: [["K"]],
     pieces_in_hand:  [],
-    games_turn:      ["CHESS"] # Missing second element
+    style_turn:      ["CHESS"] # Missing second element
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Games turn must be an Array with exactly two elements")
+  unless e.message.include?("Style turn must be an Array with exactly two elements")
     raise "Wrong error message: #{e.message}"
   end
 end
 
-run_test("Raises error for games_turn with too many elements") do
+run_test("Raises error for style_turn with too many elements") do
   Feen::Dumper.dump(
     piece_placement: [["K"]],
     pieces_in_hand:  [],
-    games_turn:      %w[CHESS chess extra]
+    style_turn:      %w[CHESS chess extra]
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("Games turn must be an Array with exactly two elements")
+  unless e.message.include?("Style turn must be an Array with exactly two elements")
     raise "Wrong error message: #{e.message}"
   end
 end
@@ -181,7 +217,7 @@ run_test("Propagates piece placement errors") do
   Feen::Dumper.dump(
     piece_placement: [[123]], # Invalid cell content
     pieces_in_hand:  [],
-    games_turn:      %w[CHESS chess]
+    style_turn:      %w[CHESS chess]
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
@@ -191,23 +227,23 @@ end
 run_test("Propagates pieces in hand errors") do
   Feen::Dumper.dump(
     piece_placement: [["K"]],
-    pieces_in_hand:  ["+P"], # Modifiers not allowed in hand
-    games_turn:      %w[CHESS chess]
+    pieces_in_hand:  ["invalid_piece_format@#"], # Invalid PNN format
+    style_turn:      %w[CHESS chess]
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  raise "Wrong error message: #{e.message}" unless e.message.include?("cannot contain modifiers")
+  raise "Wrong error message: #{e.message}" unless e.message.include?("must be valid PNN notation")
 end
 
-run_test("Propagates games turn errors") do
+run_test("Propagates style turn errors") do
   Feen::Dumper.dump(
     piece_placement: [["K"]],
     pieces_in_hand:  [],
-    games_turn:      %w[CHESS CHESS] # Same casing
+    style_turn:      %w[CHESS CHESS] # Same casing
   )
   raise "Expected ArgumentError"
 rescue ArgumentError => e
-  unless e.message.include?("One variant must be uppercase and the other lowercase")
+  unless e.message.include?("One style must be uppercase and the other lowercase")
     raise "Wrong error message: #{e.message}"
   end
 end
@@ -217,7 +253,7 @@ run_test("Uses correct field separators") do
   result = Feen::Dumper.dump(
     piece_placement: [["K"]],
     pieces_in_hand:  ["P"],
-    games_turn:      %w[TEST test]
+    style_turn:      %w[TEST test]
   )
 
   # Should have exactly 2 single spaces as field separators

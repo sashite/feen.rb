@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative File.join("parser", "games_turn")
+require_relative File.join("parser", "style_turn")
 require_relative File.join("parser", "piece_placement")
 require_relative File.join("parser", "pieces_in_hand")
 
@@ -21,8 +21,8 @@ module Feen
     # @param feen_string [String] Complete FEEN notation string
     # @return [Hash] Hash containing the parsed position data with the following keys:
     #   - :piece_placement [Array] - Hierarchical array structure representing the board
-    #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board (base form only)
-    #   - :games_turn [Array<String>] - A two-element array with [active_variant, inactive_variant]
+    #   - :pieces_in_hand [Array<String>] - Pieces available for dropping onto the board (may include modifiers)
+    #   - :style_turn [Array<String>] - A two-element array with [active_style, inactive_style]
     # @raise [ArgumentError] If the FEEN string is invalid
     #
     # @example Parsing a standard chess initial position
@@ -40,7 +40,7 @@ module Feen
     #   #        ["R", "N", "B", "Q", "K", "B", "N", "R"]
     #   #      ],
     #   #      pieces_in_hand: [],
-    #   #      games_turn: ["CHESS", "chess"]
+    #   #      style_turn: ["CHESS", "chess"]
     #   #    }
     def self.parse(feen_string)
       feen_string = String(feen_string)
@@ -52,18 +52,18 @@ module Feen
       raise ::ArgumentError, INVALID_FORMAT_ERROR unless match
 
       # Capture the three distinct parts
-      piece_placement_string, pieces_in_hand_string, games_turn_string = match.captures
+      piece_placement_string, pieces_in_hand_string, style_turn_string = match.captures
 
       # Parse each field using the appropriate submodule
       piece_placement = PiecePlacement.parse(piece_placement_string)
       pieces_in_hand = PiecesInHand.parse(pieces_in_hand_string)
-      games_turn = GamesTurn.parse(games_turn_string)
+      style_turn = StyleTurn.parse(style_turn_string)
 
       # Create a structured representation of the position
       {
         piece_placement:,
         pieces_in_hand:,
-        games_turn:
+        style_turn:
       }
     end
 
@@ -78,7 +78,7 @@ module Feen
     # @example Parsing a valid FEEN string
     #   feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / CHESS/chess"
     #   result = Feen::Parser.safe_parse(feen)
-    #   # => {piece_placement: [...], pieces_in_hand: [...], games_turn: [...]}
+    #   # => {piece_placement: [...], pieces_in_hand: [...], style_turn: [...]}
     #
     # @example Parsing an invalid FEEN string
     #   feen = "invalid feen string"

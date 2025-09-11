@@ -1,7 +1,3 @@
-Here you go — a lean, easy-to-read README that reflects the new “API / parser / dumper” design without drowning the reader in details.
-
----
-
 # Feen.rb
 
 > **FEEN** — Forsyth–Edwards Enhanced Notation for rule-agnostic board positions (Chess, Shōgi-like, Xiangqi-like, variants).

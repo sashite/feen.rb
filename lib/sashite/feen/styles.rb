@@ -1,74 +1,71 @@
 # frozen_string_literal: true
 
-require "sashite/sin"
-
 module Sashite
   module Feen
-    # Immutable styles descriptor for FEEN style/turn field:
-    # - first_family  : one-letter SIN family (Symbol, :A..:Z)
-    # - second_family : one-letter SIN family (Symbol, :A..:Z)
-    # - turn          : :first or :second (uppercase on dumper for the side to move)
+    # Immutable representation of game styles and active player.
+    #
+    # Stores the style identifiers (SIN) for both players, with the active
+    # player's style indicating whose turn it is to move. The case of each
+    # style identifier indicates which player uses it (uppercase = first player,
+    # lowercase = second player).
+    #
+    # @see https://sashite.dev/specs/feen/1.0.0/
+    # @see https://sashite.dev/specs/sin/1.0.0/
     class Styles
-      attr_reader :first_family, :second_family, :turn
+      # @return [Object] Style identifier of the active player (to move)
+      attr_reader :active
 
-      VALID_TURNS = %i[first second].freeze
+      # @return [Object] Style identifier of the inactive player (waiting)
+      attr_reader :inactive
 
-      # @param first_family  [Symbol, String, Sashite::Sin::Identifier]
-      # @param second_family [Symbol, String, Sashite::Sin::Identifier]
-      # @param turn          [:first, :second]
-      def initialize(first_family, second_family, turn)
-        @first_family  = _coerce_family(first_family)
-        @second_family = _coerce_family(second_family)
-        @turn = _coerce_turn(turn)
+      # Create a new immutable Styles object.
+      #
+      # @param active [Object] SIN identifier for active player's style
+      # @param inactive [Object] SIN identifier for inactive player's style
+      #
+      # @example Chess game, white to move
+      #   styles = Styles.new(sin_C, sin_c)
+      #
+      # @example Chess game, black to move
+      #   styles = Styles.new(sin_c, sin_C)
+      #
+      # @example Cross-style game, first player to move
+      #   styles = Styles.new(sin_C, sin_m)
+      def initialize(active, inactive)
+        @active = active
+        @inactive = inactive
+
         freeze
       end
 
-      # Helpers for dumper -----------------------------------------------------
-
-      # Return single-letter uppercase string for first/second family
-      def first_letter_uc
-        _family_letter_uc(@first_family)
+      # Convert styles to their FEEN string representation.
+      #
+      # @return [String] FEEN style-turn field
+      #
+      # @example
+      #   styles.to_s
+      #   # => "C/c"
+      def to_s
+        Dumper::StyleTurn.dump(self)
       end
 
-      def second_letter_uc
-        _family_letter_uc(@second_family)
+      # Compare two styles for equality.
+      #
+      # @param other [Styles] Another styles object
+      # @return [Boolean] True if active and inactive styles are equal
+      def ==(other)
+        other.is_a?(Styles) &&
+          active == other.active &&
+          inactive == other.inactive
       end
 
-      private
+      alias eql? ==
 
-      def _coerce_turn(t)
-        raise ArgumentError, "turn must be :first or :second, got #{t.inspect}" unless VALID_TURNS.include?(t)
-
-        t
-      end
-
-      # Accepts SIN Identifier, Symbol, or String
-      # Canonical storage is a Symbol in :A..:Z (uppercase)
-      def _coerce_family(x)
-        family_sym =
-          case x
-          when ::Sashite::Sin::Identifier
-            x.family
-          when Symbol
-            x
-          else
-            s = String(x)
-            raise ArgumentError, "invalid SIN family #{x.inspect}" unless s.match?(/\A[A-Za-z]\z/)
-
-            s.upcase.to_sym
-          end
-
-        raise ArgumentError, "Family must be :A..:Z, got #{family_sym.inspect}" unless (:A..:Z).cover?(family_sym)
-
-        # Validate via SIN once (ensures family is recognized by sashite-sin)
-        raise Error::Style, "Unknown SIN family #{family_sym.inspect}" unless ::Sashite::Sin.valid?(family_sym.to_s)
-
-        family_sym
-      end
-
-      def _family_letter_uc(family_sym)
-        # Build a canonical SIN identifier to get the letter; side doesn't matter for uc
-        ::Sashite::Sin.identifier(family_sym, :first).to_s # uppercase
+      # Generate hash code for styles.
+      #
+      # @return [Integer] Hash code based on active and inactive styles
+      def hash
+        [active, inactive].hash
       end
     end
   end

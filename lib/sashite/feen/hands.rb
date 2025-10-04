@@ -2,36 +2,78 @@
 
 module Sashite
   module Feen
-    # Immutable multiset of pieces-in-hand, keyed by EPIN value (as returned by Sashite::Epin.parse)
+    # Immutable representation of pieces held in hand by each player.
+    #
+    # Stores captured pieces that players hold in reserve, available for
+    # placement back onto the board in games that support drop mechanics
+    # (such as shogi, crazyhouse, etc.).
+    #
+    # @see https://sashite.dev/specs/feen/1.0.0/
     class Hands
-      attr_reader :map
+      # @return [Array] Array of pieces held by first player
+      attr_reader :first_player
 
-      # @param map [Hash<any, Integer>] counts per EPIN value
-      def initialize(map)
-        raise TypeError, "hands map must be a Hash, got #{map.class}" unless map.is_a?(Hash)
+      # @return [Array] Array of pieces held by second player
+      attr_reader :second_player
 
-        # Coerce counts to Integer and validate
-        coerced = {}
-        map.each do |k, v|
-          c = Integer(v)
-          raise Error::Count, "hand count must be >= 0, got #{c}" if c.negative?
-          next if c.zero? # normalize: skip zeros
+      # Create a new immutable Hands object.
+      #
+      # @param first_player [Array] Pieces in first player's hand
+      # @param second_player [Array] Pieces in second player's hand
+      #
+      # @example Empty hands
+      #   hands = Hands.new([], [])
+      #
+      # @example First player has captured pieces
+      #   hands = Hands.new([pawn1, pawn2], [])
+      #
+      # @example Both players have captured pieces
+      #   hands = Hands.new([rook, bishop], [pawn1, pawn2, knight])
+      def initialize(first_player, second_player)
+        @first_player = first_player.freeze
+        @second_player = second_player.freeze
 
-          coerced[k] = c
-        end
-
-        # Freeze shallowly (keys may already be complex frozen EPIN values)
-        @map = coerced.each_with_object({}) { |(k, v), h| h[k] = v }.freeze
         freeze
       end
 
-      # Convenience
+      # Check if both hands are empty.
+      #
+      # @return [Boolean] True if neither player has pieces in hand
+      #
+      # @example
+      #   hands.empty?  # => true
       def empty?
-        @map.empty?
+        first_player.empty? && second_player.empty?
       end
 
-      def each(&)
-        @map.each(&)
+      # Convert hands to their FEEN string representation.
+      #
+      # @return [String] FEEN pieces-in-hand field
+      #
+      # @example
+      #   hands.to_s
+      #   # => "2P/p"
+      def to_s
+        Dumper::PiecesInHand.dump(self)
+      end
+
+      # Compare two hands for equality.
+      #
+      # @param other [Hands] Another hands object
+      # @return [Boolean] True if both players' pieces are equal
+      def ==(other)
+        other.is_a?(Hands) &&
+          first_player == other.first_player &&
+          second_player == other.second_player
+      end
+
+      alias eql? ==
+
+      # Generate hash code for hands.
+      #
+      # @return [Integer] Hash code based on both players' pieces
+      def hash
+        [first_player, second_player].hash
       end
     end
   end

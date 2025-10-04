@@ -1,232 +1,117 @@
 # Feen.rb
 
-> **FEEN** — Forsyth–Edwards Enhanced Notation for rule-agnostic board positions (Chess, Shōgi-like, Xiangqi-like, variants).
+[![Version](https://img.shields.io/github/v/tag/sashite/feen.rb?label=Version&logo=github)](https://github.com/sashite/feen.rb/tags)
+[![Yard documentation](https://img.shields.io/badge/Yard-documentation-blue.svg?logo=github)](https://rubydoc.info/github/sashite/feen.rb/main)
+![Ruby](https://github.com/sashite/feen.rb/actions/workflows/main.yml/badge.svg?branch=main)
+[![License](https://img.shields.io/github/license/sashite/feen.rb?label=License&logo=github)](https://github.com/sashite/feen.rb/raw/main/LICENSE.md)
 
-Purely functional, immutable Ruby implementation built on top of **EPIN** (piece identifiers) and **SIN** (style identifiers).
+> **FEEN** (Forsyth–Edwards Enhanced Notation) implementation for the Ruby language.
 
----
+## What is FEEN?
 
-## Why FEEN?
+FEEN (Forsyth–Edwards Enhanced Notation) is a universal, rule-agnostic notation for representing board game positions. It extends traditional FEN to support multiple game systems, cross-style games, multi-dimensional boards, and captured pieces.
 
-* **Rule-agnostic**: expresses a board **position** without baking in game rules.
-* **Portable & canonical**: a single, deterministic string per position.
-* **Composable**: works nicely alongside other Sashité specs (e.g., STN for transitions).
-
-FEEN strings have **three space-separated fields**:
-
-```
-<piece_placement> <pieces_in_hand> <style_turn>
-```
-
----
+This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/) as a pure functional library with immutable data structures.
 
 ## Installation
 
-Add to your `Gemfile`:
-
 ```ruby
 gem "sashite-feen"
-````
-
-Then:
-
-```sh
-bundle install
 ```
 
-This gem depends on:
+## API
 
-```ruby
-gem "sashite-epin"
-gem "sashite-sin"
-```
-
-Bundler will install them automatically when you use `sashite-feen`.
-
----
-
-## Quick start
+The library provides two methods for converting between FEEN strings and position objects:
 
 ```ruby
 require "sashite/feen"
 
-# Parse
-pos = Sashite::Feen.parse("<placement> <hands> <style1>/<style2>")
+# Parse a FEEN string into a position object
+position = Sashite::Feen.parse("+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c")
 
-# Validate
-Sashite::Feen.valid?("<your FEEN>") # => true/false
-
-# Normalize (parse → canonical dump)
-Sashite::Feen.normalize("<your FEEN>") # => canonical FEEN string
-
-# Build from fields (strings)
-pos = Sashite::Feen.build(
-  piece_placement: "<placement>",
-  pieces_in_hand:  "<bagFirst>/<bagSecond>", # empty bags allowed: "/"
-  style_turn:      "<activeSIN>/<inactiveSIN>"
-)
-
-# Dump a Position (canonical)
-Sashite::Feen.dump(pos) # => "<placement> <hands> <style1>/<style2>"
+# Dump a position object into a canonical FEEN string
+feen_string = Sashite::Feen.dump(position)
 ```
 
-> **Tip:** FEEN itself does not do JSON; keep it minimal and functional. Serialize externally if needed.
+### Methods
 
----
+#### `Sashite::Feen.parse(string)`
 
-## Public API
+Parses a FEEN string and returns an immutable `Position` object.
+
+- **Input**: FEEN string with three space-separated fields
+- **Returns**: `Sashite::Feen::Position` instance
+- **Raises**: `Sashite::Feen::Error` subclasses on invalid input
+
+#### `Sashite::Feen.dump(position)`
+
+Converts a position object into its canonical FEEN string representation.
+
+- **Input**: `Sashite::Feen::Position` instance
+- **Returns**: Canonical FEEN string
+- **Guarantees**: Deterministic output (same position always produces same string)
+
+### Position Object
+
+The `Position` object returned by `parse` is immutable and provides read-only access to the three FEEN components:
 
 ```ruby
-Sashite::Feen.parse(str)      # => Position (or raises Sashite::Feen::Error)
-Sashite::Feen.valid?(str)     # => Boolean
-Sashite::Feen.dump(position)  # => String (canonical)
-Sashite::Feen.normalize(str)  # => String (dump(parse(str)))
-Sashite::Feen.build(
-  piece_placement:, pieces_in_hand:, style_turn:
-)                             # => Position
+position.placement  # => Placement object (board arrangement)
+position.hands      # => Hands object (pieces in hand)
+position.styles     # => Styles object (style-turn information)
+position.to_s       # => Canonical FEEN string (equivalent to dump)
 ```
 
-Position value-objects are immutable:
+## Format
 
-```ruby
-pos.placement  # => Sashite::Feen::Placement
-pos.hands      # => Sashite::Feen::Hands
-pos.styles     # => Sashite::Feen::Styles
-pos.to_s       # => canonical FEEN string (same as dump(pos))
-```
-
----
-
-## Canonicalization (short rules)
-
-* **Piece placement (field 1)**
-
-  * Consecutive empties compress to digits `1..9`; runs `>9` are split into `"9"` + remainder.
-  * Digit `0` in empties is invalid.
-  * EPIN tokens are validated via `sashite-epin` and re-emitted canonically.
-
-* **Pieces in hand (field 2)**
-
-  * Two concatenated bags separated by `/` (either side may be empty).
-  * Counts are aggregated; `1` is omitted in output.
-  * Deterministic sort per EPIN: quantity ↓, letter ↑ (case-insensitive), uppercase before lowercase, prefix `-` < `+` < none, suffix none < `'`.
-
-* **Style-turn (field 3)**
-
-  * Exactly two SIN tokens separated by `/`.
-  * Exactly **one uppercase** style (first player) and **one lowercase** style (second).
-  * The **first token is the active** player’s style.
-
----
-
-## Design overview
-
-The gem is small, layered, and testable:
-
-* **API**: `Sashite::Feen` (parse / valid? / dump / normalize / build)
-* **Value objects**: `Position`, `Placement`, `Hands`, `Styles` (immutable, canonical)
-* **Parser**: `Feen::Parser` orchestrates field parsers (`Parser::PiecePlacement`, `Parser::PiecesInHand`, `Parser::StyleTurn`)
-* **Dumper**: `Feen::Dumper` orchestrates field dumpers (`Dumper::PiecePlacement`, `Dumper::PiecesInHand`, `Dumper::StyleTurn`)
-* **Ordering**: `Feen::Ordering` — single comparator used by the hands dumper
-* **Errors**: `Feen::Error` (see below)
-
-### Project layout
+A FEEN string consists of three space-separated fields:
 
 ```
-lib/
-├─ sashite-feen.rb
-└─ sashite/
-   ├─ feen.rb                 # Public API
-   └─ feen/
-      ├─ error.rb
-      ├─ position.rb
-      ├─ placement.rb
-      ├─ hands.rb
-      ├─ styles.rb
-      ├─ ordering.rb
-      ├─ parser.rb
-      ├─ parser/
-      │  ├─ piece_placement.rb
-      │  ├─ pieces_in_hand.rb
-      │  └─ style_turn.rb
-      ├─ dumper.rb
-      └─ dumper/
-         ├─ piece_placement.rb
-         ├─ pieces_in_hand.rb
-         └─ style_turn.rb
+<piece-placement> <pieces-in-hand> <style-turn>
 ```
 
-> Version is defined outside of `lib/sashite/feen/version.rb` (e.g., `VERSION.semver`).
+1. **Piece placement**: Board configuration using EPIN notation
+2. **Pieces in hand**: Captured pieces held by each player
+3. **Style-turn**: Game styles and active player
 
----
+For complete format details, see the [FEEN Specification](https://sashite.dev/specs/feen/1.0.0/).
 
-## Errors
+## Error Handling
 
-Rescue at the granularity you need:
+The library defines specific error classes for different validation failures:
 
-* `Sashite::Feen::Error::Syntax` – tokenization/field arity
-* `Sashite::Feen::Error::Piece`  – EPIN validation failures
-* `Sashite::Feen::Error::Style`  – SIN validation/case issues
-* `Sashite::Feen::Error::Count`  – invalid counts in hands
-* `Sashite::Feen::Error::Bounds` – internal dimension constraints (when relevant)
-* `Sashite::Feen::Error::Validation` – generic structural/semantic errors
-
-Example:
-
-```ruby
-begin
-  pos = Sashite::Feen.parse(str)
-rescue Sashite::Feen::Error::Style => e
-  warn "Bad style-turn: #{e.message}"
-end
+```txt
+Sashite::Feen::Error  # Base error class
+├── Error::Syntax     # Malformed FEEN structure
+├── Error::Piece      # Invalid EPIN notation
+├── Error::Style      # Invalid SIN notation
+├── Error::Count      # Invalid piece counts
+└── Error::Validation # Other semantic violations
 ```
 
----
+## Properties
 
-## Dependencies & compatibility
+- **Purely functional**: Immutable data structures, no side effects
+- **Canonical output**: Deterministic string generation
+- **Specification compliant**: Strict adherence to FEEN v1.0.0
+- **Minimal API**: Two methods for complete functionality
+- **Composable**: Built on EPIN and SIN specifications
 
-* Runtime: `sashite-epin`, `sashite-sin`
-* Purely functional; all objects are frozen; methods return new values.
-* No JSON serialization in this gem.
+## Dependencies
 
----
+- [sashite-epin](https://github.com/sashite/epin.rb) – Extended Piece Identifier Notation
+- [sashite-sin](https://github.com/sashite/sin.rb) – Style Identifier Notation
 
-## Development
+## Documentation
 
-```sh
-# Clone
-git clone https://github.com/sashite/feen.rb.git
-cd feen.rb
-
-# Install
-bundle install
-
-# Run smoke tests
-ruby test.rb
-
-# Generate YARD docs
-yard doc
-```
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/my-change`
-3. Add tests covering your changes
-4. Ensure everything is green (lint, tests, docs)
-5. Commit with a conventional message
-6. Push and open a Pull Request
-
----
+- [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/)
+- [FEEN Examples](https://sashite.dev/specs/feen/1.0.0/examples/)
+- [API Documentation](https://rubydoc.info/github/sashite/feen.rb/main)
 
 ## License
 
-Open source under the [MIT License](https://opensource.org/licenses/MIT).
-
----
+Available as open source under the [MIT License](https://opensource.org/licenses/MIT).
 
 ## About
 
-Maintained by **Sashité** — promoting chess variants and sharing the beauty of board-game cultures.
+Maintained by [Sashité](https://sashite.com/) – promoting chess variants and sharing the beauty of board game cultures.

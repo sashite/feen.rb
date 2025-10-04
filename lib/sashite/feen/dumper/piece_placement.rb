@@ -3,83 +3,106 @@
 module Sashite
   module Feen
     module Dumper
+      # Dumper for the piece placement field (first field of FEEN).
+      #
+      # Converts a Placement object into its FEEN string representation,
+      # encoding board configuration using EPIN notation with empty square
+      # compression and multi-dimensional separator support.
+      #
+      # @see https://sashite.dev/specs/feen/1.0.0/
       module PiecePlacement
-        # Separator between ranks
+        # Rank separator for 2D boards.
         RANK_SEPARATOR = "/"
 
-        module_function
-
-        # Dump a Placement grid to FEEN ranks (e.g., "rnbqkbnr/pppppppp/8/...")
+        # Dump a Placement object into its FEEN piece placement string.
         #
-        # @param placement [Sashite::Feen::Placement]
-        # @return [String]
-        def dump(placement)
-          pl = _coerce_placement(placement)
-
-          grid = pl.grid
-          raise Error::Bounds, "empty grid" if grid.empty?
-          raise Error::Bounds, "grid must be an Array of rows" unless grid.is_a?(Array)
-
-          width = nil
-          dumped_rows = grid.each_with_index.map do |row, r_idx|
-            raise Error::Bounds, "row #{r_idx + 1} must be an Array, got #{row.class}" unless row.is_a?(Array)
-
-            width ||= row.length
-            raise Error::Bounds, "row #{r_idx + 1} has zero width" if width.zero?
-
-            if row.length != width
-              raise Error::Bounds,
-                    "inconsistent row width at row #{r_idx + 1} (expected #{width}, got #{row.length})"
-            end
-
-            _dump_row(row, r_idx)
-          end
-
-          dumped_rows.join(RANK_SEPARATOR)
+        # Converts the board configuration into FEEN notation by processing
+        # each rank, compressing consecutive empty squares into digits, and
+        # joining ranks with appropriate separators for multi-dimensional boards.
+        #
+        # @param placement [Placement] The board placement object
+        # @return [String] FEEN piece placement field string
+        #
+        # @example Chess starting position
+        #   dump(placement)
+        #   # => "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R"
+        #
+        # @example Empty 8x8 board
+        #   dump(placement)
+        #   # => "8/8/8/8/8/8/8/8"
+        def self.dump(placement)
+          ranks = placement.ranks.map { |rank| dump_rank(rank) }
+          join_ranks(ranks, placement.dimension, placement.sections)
         end
 
-        # -- internals ---------------------------------------------------------
+        # Dump a single rank into its FEEN representation.
+        #
+        # Converts a rank (array of pieces and nils) into FEEN notation by:
+        # 1. Converting pieces to EPIN strings
+        # 2. Compressing consecutive nils into digit counts
+        #
+        # @param rank [Array] Array of piece objects and nils
+        # @return [String] FEEN rank string
+        #
+        # @example Rank with pieces and empty squares
+        #   dump_rank([piece1, nil, nil, piece2])
+        #   # => "K2Q"
+        private_class_method def self.dump_rank(rank)
+          result = []
+          empty_count = 0
 
-        # Accept nil (and legacy "") as empty cells
-        def _empty_cell?(cell)
-          cell.nil? || cell == ""
-        end
-        private_class_method :_empty_cell?
-
-        def _dump_row(row, r_idx)
-          out = +""
-          empty_run = 0
-
-          row.each_with_index do |cell, c_idx|
-            if _empty_cell?(cell)
-              empty_run += 1
-              next
-            end
-
-            if empty_run.positive?
-              out << empty_run.to_s
-              empty_run = 0
-            end
-
-            begin
-              out << ::Sashite::Epin.dump(cell)
-            rescue StandardError => e
-              raise Error::Piece,
-                    "invalid EPIN value at (row #{r_idx + 1}, col #{c_idx + 1}): #{e.message}"
+          rank.each do |square|
+            if square.nil?
+              empty_count += 1
+            else
+              result << empty_count.to_s if empty_count > 0
+              result << square.to_s
+              empty_count = 0
             end
           end
 
-          out << empty_run.to_s if empty_run.positive?
-          out
+          result << empty_count.to_s if empty_count > 0
+          result.join
         end
-        private_class_method :_dump_row
 
-        def _coerce_placement(obj)
-          return obj if obj.is_a?(Placement)
+        # Join ranks with appropriate separators for multi-dimensional boards.
+        #
+        # Uses section information if available, otherwise treats all ranks equally.
+        #
+        # @param ranks [Array<String>] Array of rank strings
+        # @param dimension [Integer] Board dimensionality (default 2)
+        # @param sections [Array<Integer>, nil] Section sizes for grouping
+        # @return [String] Complete piece placement string
+        #
+        # @example 2D board
+        #   join_ranks(["8", "8"], 2, nil)
+        #   # => "8/8"
+        #
+        # @example 3D board with sections
+        #   join_ranks(["5", "5", "5", "5"], 3, [2, 2])
+        #   # => "5/5//5/5"
+        private_class_method def self.join_ranks(ranks, dimension = 2, sections = nil)
+          if dimension == 2 || sections.nil?
+            # Simple 2D case or no section info
+            separator = RANK_SEPARATOR * (dimension - 1)
+            ranks.join(separator)
+          else
+            # Multi-dimensional with section info
+            rank_separator = RANK_SEPARATOR
+            section_separator = RANK_SEPARATOR * (dimension - 1)
 
-          raise TypeError, "expected Sashite::Feen::Placement, got #{obj.class}"
+            # Group ranks by sections
+            result = []
+            offset = 0
+            sections.each do |section_size|
+              section_ranks = ranks[offset, section_size]
+              result << section_ranks.join(rank_separator)
+              offset += section_size
+            end
+
+            result.join(section_separator)
+          end
         end
-        private_class_method :_coerce_placement
       end
     end
   end

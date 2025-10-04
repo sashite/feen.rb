@@ -1,62 +1,102 @@
 # frozen_string_literal: true
 
+require_relative "../error"
+require_relative "../styles"
+
+require "sashite/sin"
+
 module Sashite
   module Feen
     module Parser
+      # Parser for the style-turn field (third field of FEEN).
+      #
+      # Converts a FEEN style-turn string into a Styles object,
+      # decoding game style identifiers and the active player indicator.
+      #
+      # @see https://sashite.dev/specs/feen/1.0.0/
+      # @see https://sashite.dev/specs/sin/1.0.0/
       module StyleTurn
-        module_function
+        # Style separator in style-turn field.
+        STYLE_SEPARATOR = "/"
 
-        # Strict FEEN + SIN:
-        #   style_turn := LETTER "/" LETTER              # no whitespace
-        #   semantics :
-        #     - Uppercase marks the side to move.
-        #     - Exactly one uppercase among the two.
-        #     - Each letter is a SIN style code (validated via Sashite::Sin.parse).
+        # Parse a FEEN style-turn string into a Styles object.
         #
-        # Examples (valid):
-        #   "C/c"  -> first to move,  first_style="C", second_style="C" (Chess vs Chess)
-        #   "c/C"  -> second to move
-        #   "S/o"  -> first to move,  first_style="S" (Shogi), second_style="O" (Ōgi)
+        # @param string [String] FEEN style-turn field string
+        # @return [Styles] Parsed styles object
+        # @raise [Error::Syntax] If style-turn format is invalid
+        # @raise [Error::Style] If SIN notation is invalid
         #
-        # Examples (invalid):
-        #   "w" , "C / c", "Cc", "c/c", "C/C", "x/y "  (wrong pattern or spaces)
+        # @example Chess game, white to move
+        #   parse("C/c")  # => Styles.new(sin_C, sin_c)
         #
-        # @param field [String]
-        # @return [Sashite::Feen::Styles] with signature Styles.new(first_style, second_style, turn)
-        def parse(field)
-          s = String(field)
-          raise Error::Syntax, "empty style/turn field" if s.empty?
-          raise Error::Syntax, "whitespace not allowed in style/turn" if s.match?(/\s/)
+        # @example Chess game, black to move
+        #   parse("c/C")  # => Styles.new(sin_c, sin_C)
+        #
+        # @example Cross-style game, first player to move
+        #   parse("C/m")  # => Styles.new(sin_C, sin_m)
+        def self.parse(string)
+          active_str, inactive_str = split_styles(string)
 
-          m = %r{\A([A-Za-z])/([A-Za-z])\z}.match(s)
-          raise Error::Syntax, "invalid style/turn format" unless m
+          active = parse_style(active_str)
+          inactive = parse_style(inactive_str)
 
-          a_raw = m[1]
-          b_raw = m[2]
-          a_is_up = a_raw.between?("A", "Z")
-          b_is_up = b_raw.between?("A", "Z")
+          Styles.new(active, inactive)
+        end
 
-          # Exactly one uppercase marks side to move
-          raise Error::Style, "ambiguous side-to-move: exactly one letter must be uppercase" unless a_is_up ^ b_is_up
+        # Split style-turn string into active and inactive parts.
+        #
+        # @param string [String] Style-turn field string
+        # @return [Array(String, String)] Active and inactive style strings
+        # @raise [Error::Syntax] If separator is missing or format is invalid
+        #
+        # @example
+        #   split_styles("C/c")  # => ["C", "c"]
+        #   split_styles("S/m")  # => ["S", "m"]
+        private_class_method def self.split_styles(string)
+          parts = string.split(STYLE_SEPARATOR, 2)
 
-          # Canonical SIN tokens are uppercase (style identity is case-insensitive in FEEN)
-          a_tok = a_raw.upcase
-          b_tok = b_raw.upcase
+          raise Error::Syntax, "style-turn must contain '#{STYLE_SEPARATOR}' separator" unless parts.size == 2
 
-          first_style = begin
-            ::Sashite::Sin.parse(a_tok)
-          rescue StandardError => e
-            raise Error::Style, "invalid SIN token for first side #{a_tok.inspect}: #{e.message}"
+          raise Error::Syntax, "active style cannot be empty" if parts[0].empty?
+          raise Error::Syntax, "inactive style cannot be empty" if parts[1].empty?
+
+          parts
+        end
+
+        # Parse a SIN string into a style identifier object.
+        #
+        # @param sin_str [String] SIN notation string (single letter)
+        # @return [Object] Style identifier object
+        # @raise [Error::Style] If SIN is invalid
+        #
+        # @example
+        #   parse_style("C")  # => Sin::Identifier (Chess, first player)
+        #   parse_style("c")  # => Sin::Identifier (Chess, second player)
+        #   parse_style("S")  # => Sin::Identifier (Shogi, first player)
+        private_class_method def self.parse_style(sin_str)
+          unless valid_sin_format?(sin_str)
+            raise Error::Style, "invalid SIN notation: '#{sin_str}' (must be a single letter A-Z or a-z)"
           end
 
-          second_style = begin
-            ::Sashite::Sin.parse(b_tok)
-          rescue StandardError => e
-            raise Error::Style, "invalid SIN token for second side #{b_tok.inspect}: #{e.message}"
-          end
+          Sashite::Sin.parse(sin_str)
+        rescue ::StandardError => e
+          raise Error::Style, "failed to parse SIN '#{sin_str}': #{e.message}"
+        end
 
-          turn = a_is_up ? :first : :second
-          Styles.new(first_style, second_style, turn)
+        # Check if string is a valid SIN format.
+        #
+        # @param string [String] String to validate
+        # @return [Boolean] True if string is a single ASCII letter
+        private_class_method def self.valid_sin_format?(string)
+          string.length == 1 && letter?(string[0])
+        end
+
+        # Check if character is a letter.
+        #
+        # @param char [String] Single character
+        # @return [Boolean] True if character is A-Z or a-z
+        private_class_method def self.letter?(char)
+          (char >= "A" && char <= "Z") || (char >= "a" && char <= "z")
         end
       end
     end

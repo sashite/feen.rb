@@ -3,56 +3,40 @@
 module Sashite
   module Feen
     module Dumper
+      # Dumper for the style-turn field (third field of FEEN).
+      #
+      # Converts a Styles object into its FEEN string representation,
+      # encoding game styles and indicating the active player.
+      #
+      # @see https://sashite.dev/specs/feen/1.0.0/
       module StyleTurn
-        # Separator between turn and styles
-        TURN_STYLES_SEPARATOR = ";"
-        # Separator between multiple style tokens
-        STYLES_SEPARATOR = ","
+        # Style separator in style-turn field.
+        STYLE_SEPARATOR = "/"
 
-        module_function
-
-        # Dump the style/turn field (e.g., "w", "b;rule1,variantX")
+        # Dump a Styles object into its FEEN style-turn string.
         #
-        # Canonicalization:
-        #   - styles sorted lexicographically by SIN token
+        # Formats the active and inactive player styles with the active
+        # player's style appearing first. The case of each style identifier
+        # indicates which player uses it (uppercase = first player,
+        # lowercase = second player).
         #
-        # @param styles [Sashite::Feen::Styles]
-        # @return [String]
-        def dump(styles)
-          st = _coerce_styles(styles)
-
-          turn_str = _dump_turn(st.turn)
-
-          return turn_str if st.list.nil? || st.list.empty?
-
-          tokens = st.list.map do |sin_value|
-            ::Sashite::Sin.dump(sin_value)
-          rescue StandardError => e
-            raise Error::Style, "invalid SIN value in styles: #{e.message}"
-          end
-
-          tokens.sort!
-          "#{turn_str}#{TURN_STYLES_SEPARATOR}#{tokens.join(STYLES_SEPARATOR)}"
+        # @param styles [Styles] The styles object with active and inactive styles
+        # @return [String] FEEN style-turn field string
+        #
+        # @example Chess game, white to move
+        #   dump(styles)
+        #   # => "C/c"
+        #
+        # @example Chess game, black to move
+        #   dump(styles)
+        #   # => "c/C"
+        #
+        # @example Cross-style game, first player to move
+        #   dump(styles)
+        #   # => "C/m"
+        def self.dump(styles)
+          "#{styles.active}#{STYLE_SEPARATOR}#{styles.inactive}"
         end
-
-        # -- internals ---------------------------------------------------------
-
-        def _dump_turn(turn)
-          case turn
-          when :first  then "w"
-          when :second then "b"
-          else
-            raise Error::Style, "invalid turn symbol #{turn.inspect}"
-          end
-        end
-        private_class_method :_dump_turn
-
-        def _coerce_styles(obj)
-          return obj if obj.is_a?(Styles)
-
-          raise TypeError, "expected Sashite::Feen::Styles, got #{obj.class}"
-        end
-        private_class_method :_coerce_styles
       end
     end
   end

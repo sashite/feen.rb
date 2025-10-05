@@ -9,7 +9,13 @@
 
 ## What is FEEN?
 
-FEEN (Forsyth–Edwards Enhanced Notation) is a universal, rule-agnostic notation for representing board game positions. It extends traditional FEN to support multiple game systems, cross-style games, multi-dimensional boards, and captured pieces.
+FEEN (Forsyth–Edwards Enhanced Notation) is a universal, rule-agnostic notation for representing board game positions. It extends traditional FEN to support:
+
+- **Multiple game systems** (Chess, Shōgi, Xiangqi, and more)
+- **Cross-style games** where players use different piece sets
+- **Multi-dimensional boards** (2D, 3D, and beyond)
+- **Captured pieces** (pieces-in-hand for drop mechanics)
+- **Arbitrarily large boards** with efficient empty square encoding
 
 This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/) as a pure functional library with immutable data structures.
 
@@ -19,50 +25,30 @@ This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/specs/fe
 gem "sashite-feen"
 ```
 
-## API
+Or install manually:
 
-The library provides two methods for converting between FEEN strings and position objects:
+```sh
+gem install sashite-feen
+```
+
+## Quick Start
 
 ```ruby
 require "sashite/feen"
 
-# Parse a FEEN string into a position object
+# Parse a FEEN string into an immutable position object
 position = Sashite::Feen.parse("+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c")
 
-# Dump a position object into a canonical FEEN string
-feen_string = Sashite::Feen.dump(position)
+# Access position components
+position.placement  # Board configuration
+position.hands      # Captured pieces
+position.styles     # Game styles and active player
+
+# Convert back to canonical FEEN string
+feen_string = Sashite::Feen.dump(position)  # or position.to_s
 ```
 
-### Methods
-
-#### `Sashite::Feen.parse(string)`
-
-Parses a FEEN string and returns an immutable `Position` object.
-
-- **Input**: FEEN string with three space-separated fields
-- **Returns**: `Sashite::Feen::Position` instance
-- **Raises**: `Sashite::Feen::Error` subclasses on invalid input
-
-#### `Sashite::Feen.dump(position)`
-
-Converts a position object into its canonical FEEN string representation.
-
-- **Input**: `Sashite::Feen::Position` instance
-- **Returns**: Canonical FEEN string
-- **Guarantees**: Deterministic output (same position always produces same string)
-
-### Position Object
-
-The `Position` object returned by `parse` is immutable and provides read-only access to the three FEEN components:
-
-```ruby
-position.placement  # => Placement object (board arrangement)
-position.hands      # => Hands object (pieces in hand)
-position.styles     # => Styles object (style-turn information)
-position.to_s       # => Canonical FEEN string (equivalent to dump)
-```
-
-## Format
+## FEEN Format
 
 A FEEN string consists of three space-separated fields:
 
@@ -70,32 +56,287 @@ A FEEN string consists of three space-separated fields:
 <piece-placement> <pieces-in-hand> <style-turn>
 ```
 
-1. **Piece placement**: Board configuration using EPIN notation
-2. **Pieces in hand**: Captured pieces held by each player
-3. **Style-turn**: Game styles and active player
+**Example:**
+```
++rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c
+```
 
-For complete format details, see the [FEEN Specification](https://sashite.dev/specs/feen/1.0.0/).
+1. **Piece placement**: Board configuration using EPIN notation with `/` separators
+2. **Pieces in hand**: Captured pieces for each player (format: `first/second`)
+3. **Style-turn**: Game styles and active player (format: `active/inactive`)
+
+See the [FEEN Specification](https://sashite.dev/specs/feen/1.0.0/) for complete format details.
+
+## API Reference
+
+### Module Methods
+
+#### `Sashite::Feen.parse(string)`
+
+Parses a FEEN string into an immutable `Position` object.
+
+- **Parameter**: `string` (String) - FEEN notation string
+- **Returns**: `Position` - Immutable position object
+- **Raises**: `Sashite::Feen::Error` subclasses on invalid input
+
+```ruby
+position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+```
+
+#### `Sashite::Feen.dump(position)`
+
+Converts a position object into its canonical FEEN string.
+
+- **Parameter**: `position` (Position) - Position object
+- **Returns**: `String` - Canonical FEEN string
+- **Guarantees**: Deterministic output (same position always produces same string)
+
+```ruby
+feen_string = Sashite::Feen.dump(position)
+```
+
+### Position Object
+
+The `Position` object is immutable and provides read-only access to three components:
+
+```ruby
+position.placement  # => Placement (board configuration)
+position.hands      # => Hands (pieces in hand)
+position.styles     # => Styles (style-turn information)
+position.to_s       # => String (canonical FEEN)
+```
+
+**Equality and hashing:**
+```ruby
+position1 == position2  # Component-wise equality
+position1.hash          # Consistent hash for same positions
+```
+
+### Placement Object
+
+Represents the board configuration.
+
+```ruby
+placement.ranks      # => Array<Array> - Array of ranks, each containing pieces/nils
+placement.dimension  # => Integer - Board dimensionality (2 for 2D, 3 for 3D, etc.)
+placement.sections   # => Array<Integer> or nil - Section sizes for multi-D boards
+placement.to_s       # => String - Piece placement field
+```
+
+**Example:**
+```ruby
+# Access specific positions
+first_rank = placement.ranks[0]
+piece_at_a1 = first_rank[0]  # Piece object or nil
+
+# Check dimensionality
+placement.dimension  # => 2 (2D board)
+```
+
+### Hands Object
+
+Represents captured pieces held by each player.
+
+```ruby
+hands.first_player   # => Array - Pieces held by first player
+hands.second_player  # => Array - Pieces held by second player
+hands.empty?         # => Boolean - True if both hands are empty
+hands.to_s           # => String - Pieces-in-hand field
+```
+
+**Example:**
+```ruby
+# Count pieces in hand
+first_player_pawns = hands.first_player.count { |p| p.to_s == "P" }
+
+# Check if any captures
+hands.empty?  # => false
+```
+
+### Styles Object
+
+Represents game styles and indicates the active player.
+
+```ruby
+styles.active    # => SIN identifier - Active player's style
+styles.inactive  # => SIN identifier - Inactive player's style
+styles.to_s      # => String - Style-turn field
+```
+
+**Example:**
+```ruby
+# Determine active player
+styles.active.to_s    # => "C" (first player Chess)
+styles.inactive.to_s  # => "c" (second player Chess)
+
+# Check if cross-style
+styles.active.to_s.upcase != styles.inactive.to_s.upcase
+```
+
+## Examples
+
+### Chess Positions
+
+```ruby
+# Starting position
+chess_start = Sashite::Feen.parse(
+  "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+)
+
+# After 1.e4
+after_e4 = Sashite::Feen.parse(
+  "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/4P3/8/+P+P+P+P1+P+P+P/+RNBQ+KBN+R / c/C"
+)
+
+# Ruy Lopez opening
+ruy_lopez = Sashite::Feen.parse(
+  "r1bqkbnr/+p+p+p+p1+p+p+p/2n5/1B2p3/4P3/5N2/+P+P+P+P1+P+P+P/RNBQK2R / c/C"
+)
+```
+
+### Shōgi with Captured Pieces
+
+```ruby
+# Starting position
+shogi_start = Sashite::Feen.parse(
+  "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
+)
+
+# Position with pieces in hand
+shogi_midgame = Sashite::Feen.parse(
+  "lnsgkgsnl/1r5b1/pppp1pppp/9/4p4/9/PPPP1PPPP/1B5R1/LNSGKGSNL P/p s/S"
+)
+
+# Access captured pieces
+position = shogi_midgame
+position.hands.first_player.map(&:to_s)   # => ["P"]
+position.hands.second_player.map(&:to_s)  # => ["p"]
+```
+
+### Cross-Style Games
+
+```ruby
+# Chess vs Makruk
+chess_vs_makruk = Sashite::Feen.parse(
+  "rnsmksnr/8/pppppppp/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/m"
+)
+
+# Chess vs Shōgi
+chess_vs_shogi = Sashite::Feen.parse(
+  "lnsgkgsnl/1r5b1/pppppppp/9/9/9/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/s"
+)
+
+# Check styles
+position = chess_vs_makruk
+position.styles.active.to_s    # => "C" (Chess, first player)
+position.styles.inactive.to_s  # => "m" (Makruk, second player)
+```
+
+### Multi-Dimensional Boards
+
+```ruby
+# 3D Chess (Raumschach)
+raumschach = Sashite::Feen.parse(
+  "rnknr/+p+p+p+p+p/5/5/5//buqbu/+p+p+p+p+p/5/5/5//5/5/5/5/5//5/5/5/+P+P+P+P+P/BUQBU//5/5/5/+P+P+P+P+P/RNKNR / R/r"
+)
+
+# Check dimensionality
+raumschach.placement.dimension  # => 3
+raumschach.placement.ranks.size # => 25 (5x5x5)
+```
+
+### Working with Positions
+
+```ruby
+# Compare positions
+position1 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+position2 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+position1 == position2  # => true
+
+# Round-trip parsing
+original = "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+position = Sashite::Feen.parse(original)
+Sashite::Feen.dump(position) == original  # => true
+
+# Extract specific information
+position.placement.ranks[0]  # First rank (array of pieces/nils)
+position.hands.first_player.size  # Number of captured pieces
+```
+
+### Irregular Boards
+
+```ruby
+# Diamond-shaped board
+diamond = Sashite::Feen.parse("3/4/5/4/3 / G/g")
+
+# Very large board
+large_board = Sashite::Feen.parse("100/100/100 / G/g")
+
+# Single square
+single = Sashite::Feen.parse("K / C/c")
+```
+
+### State Modifiers and Derivation
+
+```ruby
+# Enhanced pieces (promoted, with special rights)
+enhanced = Sashite::Feen.parse("+K+Q+R+B/8/8/8/8/8/8/8 / C/c")
+
+# Diminished pieces (weakened, vulnerable)
+diminished = Sashite::Feen.parse("-K-Q-R-B/8/8/8/8/8/8/8 / C/c")
+
+# Foreign pieces (using opponent's style)
+foreign = Sashite::Feen.parse("K'Q'R'B'/k'q'r'b'/8/8/8/8/8/8 / C/s")
+```
 
 ## Error Handling
 
-The library defines specific error classes for different validation failures:
+FEEN defines specific error classes for different validation failures:
+
+```ruby
+begin
+  position = Sashite::Feen.parse("invalid feen")
+rescue Sashite::Feen::Error => e
+  # Base error class catches all FEEN errors
+  warn "FEEN error: #{e.message}"
+end
+```
+
+### Error Hierarchy
 
 ```txt
-Sashite::Feen::Error  # Base error class
-├── Error::Syntax     # Malformed FEEN structure
-├── Error::Piece      # Invalid EPIN notation
-├── Error::Style      # Invalid SIN notation
-├── Error::Count      # Invalid piece counts
-└── Error::Validation # Other semantic violations
+Sashite::Feen::Error             # Base error class
+├── Error::Syntax                # Malformed FEEN structure
+├── Error::Piece                 # Invalid EPIN notation
+├── Error::Style                 # Invalid SIN notation
+├── Error::Count                 # Invalid piece counts
+└── Error::Validation            # Other semantic violations
+```
+
+### Common Errors
+
+```ruby
+# Syntax error - wrong field count
+Sashite::Feen.parse("8/8/8/8/8/8/8/8 /")
+# => Error::Syntax: "FEEN must have exactly 3 space-separated fields, got 2"
+
+# Style error - invalid SIN
+Sashite::Feen.parse("8/8/8/8/8/8/8/8 / 1/2")
+# => Error::Style: "invalid SIN notation: '1' (must be a single letter A-Z or a-z)"
+
+# Count error - invalid quantity
+Sashite::Feen.parse("8/8/8/8/8/8/8/8 0P/ C/c")
+# => Error::Count: "piece count must be at least 1, got 0"
 ```
 
 ## Properties
 
 - **Purely functional**: Immutable data structures, no side effects
-- **Canonical output**: Deterministic string generation
-- **Specification compliant**: Strict adherence to FEEN v1.0.0
-- **Minimal API**: Two methods for complete functionality
-- **Composable**: Built on EPIN and SIN specifications
+- **Canonical output**: Deterministic string generation (same position → same string)
+- **Specification compliant**: Strict adherence to [FEEN v1.0.0](https://sashite.dev/specs/feen/1.0.0/)
+- **Minimal API**: Two methods (`parse` and `dump`) for complete functionality
+- **Universal**: Supports any abstract strategy board game
+- **Composable**: Built on [EPIN](https://github.com/sashite/epin.rb) and [SIN](https://github.com/sashite/sin.rb) specifications
 
 ## Dependencies
 
@@ -104,9 +345,37 @@ Sashite::Feen::Error  # Base error class
 
 ## Documentation
 
-- [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/)
-- [FEEN Examples](https://sashite.dev/specs/feen/1.0.0/examples/)
-- [API Documentation](https://rubydoc.info/github/sashite/feen.rb/main)
+- **[FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/)** – Complete technical specification
+- **[FEEN Examples](https://sashite.dev/specs/feen/1.0.0/examples/)** – Comprehensive examples
+- **[API Documentation](https://rubydoc.info/github/sashite/feen.rb/main)** – Full API reference
+- **[GitHub Wiki](https://github.com/sashite/feen.rb/wiki)** – Advanced usage and patterns
+
+## Development
+
+```sh
+# Clone the repository
+git clone https://github.com/sashite/feen.rb.git
+cd feen.rb
+
+# Install dependencies
+bundle install
+
+# Run tests
+ruby test.rb
+
+# Generate documentation
+yard doc
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Add tests for your changes
+4. Ensure all tests pass (`ruby test.rb`)
+5. Commit your changes (`git commit -am 'Add new feature'`)
+6. Push to the branch (`git push origin feature/new-feature`)
+7. Create a Pull Request
 
 ## License
 

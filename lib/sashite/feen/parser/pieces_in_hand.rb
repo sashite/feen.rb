@@ -139,9 +139,7 @@ module Sashite
                   end
 
           # Extract EPIN piece
-          if i >= chars.size
-            raise Error::Syntax, "expected piece after count at position #{start_index}"
-          end
+          raise Error::Syntax, "expected piece after count at position #{start_index}" if i >= chars.size
 
           epin_str, epin_consumed = extract_epin(chars, i)
           i += epin_consumed
@@ -169,7 +167,7 @@ module Sashite
           piece_chars = []
 
           # Optional state prefix
-          if i < chars.size && (chars[i] == "+" || chars[i] == "-")
+          if i < chars.size && ["+", "-"].include?(chars[i])
             piece_chars << chars[i]
             i += 1
           end
@@ -216,13 +214,11 @@ module Sashite
         # @param count_str [String] Original count string for error messages
         # @raise [Error::Count] If count is invalid
         private_class_method def self.validate_count(count, count_str)
-          if count < 1
-            raise Error::Count, "piece count must be at least 1, got #{count_str}"
-          end
+          raise Error::Count, "piece count must be at least 1, got #{count_str}" if count < 1
 
-          if count > 999
-            raise Error::Count, "piece count too large: #{count_str}"
-          end
+          return unless count > 999
+
+          raise Error::Count, "piece count too large: #{count_str}"
         end
 
         # Parse EPIN string into a piece object.
@@ -235,9 +231,7 @@ module Sashite
         #   parse_piece("K")    # => Epin::Identifier
         #   parse_piece("+R'")  # => Epin::Identifier
         private_class_method def self.parse_piece(epin_str)
-          unless EPIN_PATTERN.match?(epin_str)
-            raise Error::Piece, "invalid EPIN notation: #{epin_str}"
-          end
+          raise Error::Piece, "invalid EPIN notation: #{epin_str}" unless EPIN_PATTERN.match?(epin_str)
 
           Sashite::Epin.parse(epin_str)
         rescue StandardError => e

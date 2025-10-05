@@ -16,6 +16,8 @@ FEEN (Forsyth–Edwards Enhanced Notation) is a universal, rule-agnostic notatio
 - **Multi-dimensional boards** (2D, 3D, and beyond)
 - **Captured pieces** (pieces-in-hand for drop mechanics)
 - **Arbitrarily large boards** with efficient empty square encoding
+- **Completely irregular structures** (any valid combination of ranks and separators)
+- **Board-less positions** (positions without piece placement, useful for pure style/turn tracking)
 
 This gem implements the [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/) as a pure functional library with immutable data structures.
 
@@ -44,8 +46,11 @@ position.placement  # Board configuration
 position.hands      # Captured pieces
 position.styles     # Game styles and active player
 
+# Convert placement to array based on dimensionality
+position.placement.to_a # => [[pieces...], [pieces...], ...] for 2D boards
+
 # Convert back to canonical FEEN string
-feen_string = Sashite::Feen.dump(position)  # or position.to_s
+feen_string = Sashite::Feen.dump(position) # or position.to_s
 ```
 
 ## FEEN Format
@@ -57,11 +62,11 @@ A FEEN string consists of three space-separated fields:
 ```
 
 **Example:**
-```
+```txt
 +rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c
 ```
 
-1. **Piece placement**: Board configuration using EPIN notation with `/` separators
+1. **Piece placement**: Board configuration using EPIN notation with `/` separators (can be empty for board-less positions)
 2. **Pieces in hand**: Captured pieces for each player (format: `first/second`)
 3. **Style-turn**: Game styles and active player (format: `active/inactive`)
 
@@ -81,6 +86,9 @@ Parses a FEEN string into an immutable `Position` object.
 
 ```ruby
 position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+
+# Board-less position (empty piece placement)
+position = Sashite::Feen.parse(" / C/c")
 ```
 
 #### `Sashite::Feen.dump(position)`
@@ -114,23 +122,64 @@ position1.hash          # Consistent hash for same positions
 
 ### Placement Object
 
-Represents the board configuration.
+Represents the board configuration as a flat array of ranks with explicit separators.
 
 ```ruby
-placement.ranks      # => Array<Array> - Array of ranks, each containing pieces/nils
-placement.dimension  # => Integer - Board dimensionality (2 for 2D, 3 for 3D, etc.)
-placement.sections   # => Array<Integer> or nil - Section sizes for multi-D boards
-placement.to_s       # => String - Piece placement field
+placement.ranks         # => Array<Array> - Flat array of all ranks
+placement.separators    # => Array<String> - Separators between ranks (e.g., ["/", "//"])
+placement.dimension     # => Integer - Board dimensionality (1 + max consecutive slashes)
+placement.rank_count    # => Integer - Total number of ranks
+placement.one_dimensional? # => Boolean - True if dimension is 1
+placement.all_pieces    # => Array - All pieces (nils excluded)
+placement.total_squares # => Integer - Total square count
+placement.to_s          # => String - Piece placement field
+placement.to_a          # => Array - Array representation (dimension-aware)
 ```
 
-**Example:**
+#### `to_a` - Dimension-Aware Array Conversion
+
+The `to_a` method returns an array representation that adapts to the board's dimensionality:
+
+- **1D boards**: Returns a single rank array (or empty array if no ranks)
+- **2D+ boards**: Returns array of ranks
+
+```ruby
+# 1D board - Returns flat array
+feen = "K2P3k / C/c"
+position = Sashite::Feen.parse(feen)
+position.placement.to_a
+# => [K, nil, nil, P, nil, nil, nil, k]
+
+# 2D board - Returns array of arrays
+feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
+position = Sashite::Feen.parse(feen)
+position.placement.to_a
+# => [[r,n,b,q,k,b,n,r], [p,p,p,p,p,p,p,p], [nil×8], ...]
+
+# 3D board - Returns array of ranks (to be structured by application)
+feen = "5/5//5/5 / R/r"
+position = Sashite::Feen.parse(feen)
+position.placement.to_a
+# => [[nil×5], [nil×5], [nil×5], [nil×5]]
+
+# Empty board
+placement = Sashite::Feen::Placement.new([], [], 1)
+placement.to_a
+# => []
+```
+
+**Other methods:**
+
 ```ruby
 # Access specific positions
 first_rank = placement.ranks[0]
-piece_at_a1 = first_rank[0]  # Piece object or nil
+piece_at_a1 = first_rank[0] # Piece object or nil
 
 # Check dimensionality
-placement.dimension  # => 2 (2D board)
+placement.dimension # => 2 (2D board)
+
+# Inspect separator structure
+placement.separators # => ["/", "/", "/", "/", "/", "/", "/"]
 ```
 
 ### Hands Object
@@ -150,7 +199,7 @@ hands.to_s           # => String - Pieces-in-hand field
 first_player_pawns = hands.first_player.count { |p| p.to_s == "P" }
 
 # Check if any captures
-hands.empty?  # => false
+hands.empty? # => false
 ```
 
 ### Styles Object
@@ -209,8 +258,11 @@ shogi_midgame = Sashite::Feen.parse(
 
 # Access captured pieces
 position = shogi_midgame
-position.hands.first_player.map(&:to_s)   # => ["P"]
-position.hands.second_player.map(&:to_s)  # => ["p"]
+position.hands.first_player   # => [P] (one pawn)
+position.hands.second_player  # => [p] (one pawn)
+
+# Count specific pieces in hand
+position.hands.first_player.count { |p| p.to_s == "P" } # => 1
 ```
 
 ### Cross-Style Games
@@ -241,26 +293,14 @@ raumschach = Sashite::Feen.parse(
 )
 
 # Check dimensionality
-raumschach.placement.dimension  # => 3
-raumschach.placement.ranks.size # => 25 (5x5x5)
-```
+raumschach.placement.dimension  # => 3 (3D board)
+raumschach.placement.ranks.size # => 25 (total ranks)
 
-### Working with Positions
-
-```ruby
-# Compare positions
-position1 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
-position2 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
-position1 == position2  # => true
-
-# Round-trip parsing
-original = "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
-position = Sashite::Feen.parse(original)
-Sashite::Feen.dump(position) == original  # => true
-
-# Extract specific information
-position.placement.ranks[0]  # First rank (array of pieces/nils)
-position.hands.first_player.size  # Number of captured pieces
+# Inspect separator structure
+level_seps = raumschach.placement.separators.count { |s| s == "//" }
+rank_seps = raumschach.placement.separators.count { |s| s == "/" }
+# level_seps => 4 (separates 5 levels)
+# rank_seps => 20 (separates ranks within levels)
 ```
 
 ### Irregular Boards
@@ -269,11 +309,93 @@ position.hands.first_player.size  # Number of captured pieces
 # Diamond-shaped board
 diamond = Sashite::Feen.parse("3/4/5/4/3 / G/g")
 
+# Check structure
+diamond.placement.ranks.map(&:size) # => [3, 4, 5, 4, 3]
+
 # Very large board
 large_board = Sashite::Feen.parse("100/100/100 / G/g")
+large_board.placement.total_squares # => 300
 
 # Single square
 single = Sashite::Feen.parse("K / C/c")
+single.placement.rank_count # => 1
+```
+
+### Completely Irregular Structures
+
+FEEN supports any valid combination of ranks and separators:
+
+```ruby
+# Extreme irregularity with variable separators
+feen = "99999/3///K/k//r / G/g"
+position = Sashite::Feen.parse(feen)
+
+# Access the structure
+position.placement.ranks.size      # => 5 ranks
+position.placement.separators      # => ["/", "///", "/", "//"]
+position.placement.dimension       # => 4 (max separator is "///")
+
+# Each rank can have different sizes
+position.placement.ranks[0].size   # => 99999
+position.placement.ranks[1].size   # => 3
+position.placement.ranks[2].size   # => 1
+position.placement.ranks[3].size   # => 1
+position.placement.ranks[4].size   # => 1
+
+# Round-trip preservation
+Sashite::Feen.dump(position) == feen # => true
+```
+
+### Empty Ranks
+
+FEEN supports empty ranks (ranks with no pieces):
+
+```ruby
+# Trailing separator creates empty rank
+feen = "K/// / C/c"
+position = Sashite::Feen.parse(feen)
+
+position.placement.ranks.size  # => 2
+position.placement.ranks[0]    # => [K]
+position.placement.ranks[1]    # => [] (empty rank)
+position.placement.separators  # => ["///"]
+
+# Round-trip preserves structure
+Sashite::Feen.dump(position) == feen # => true
+```
+
+### Board-less Positions
+
+FEEN supports positions without piece placement, useful for tracking only style and turn information:
+
+```ruby
+# Position with empty board (no piece placement)
+board_less = Sashite::Feen.parse(" / C/c")
+
+board_less.placement.ranks.size     # => 1
+board_less.placement.dimension      # => 1
+board_less.placement.to_a           # => []
+
+# Convert back to FEEN
+Sashite::Feen.dump(board_less) # => " / C/c"
+```
+
+### Working with Positions
+
+```ruby
+# Compare positions
+position1 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+position2 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+position1 == position2 # => true
+
+# Round-trip parsing
+original = "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+position = Sashite::Feen.parse(original)
+Sashite::Feen.dump(position) == original # => true
+
+# Extract specific information
+position.placement.ranks[0] # First rank (array of pieces/nils)
+position.hands.first_player.size # Number of captured pieces
 ```
 
 ### State Modifiers and Derivation
@@ -322,7 +444,7 @@ Sashite::Feen.parse("8/8/8/8/8/8/8/8 /")
 
 # Style error - invalid SIN
 Sashite::Feen.parse("8/8/8/8/8/8/8/8 / 1/2")
-# => Error::Style: "invalid SIN notation: '1' (must be a single letter A-Z or a-z)"
+# => Error::Style: "failed to parse SIN '1': invalid SIN notation: '1' (must be a single letter A-Z or a-z)"
 
 # Count error - invalid quantity
 Sashite::Feen.parse("8/8/8/8/8/8/8/8 0P/ C/c")
@@ -336,19 +458,22 @@ Sashite::Feen.parse("8/8/8/8/8/8/8/8 0P/ C/c")
 - **Specification compliant**: Strict adherence to [FEEN v1.0.0](https://sashite.dev/specs/feen/1.0.0/)
 - **Minimal API**: Two methods (`parse` and `dump`) for complete functionality
 - **Universal**: Supports any abstract strategy board game
+- **Completely flexible**: Accepts any valid combination of ranks and separators
+- **Perfect round-trip**: `parse(dump(position)) == position` guaranteed
+- **Dimension-aware**: Intelligent array conversion based on board structure
 - **Composable**: Built on [EPIN](https://github.com/sashite/epin.rb) and [SIN](https://github.com/sashite/sin.rb) specifications
 
 ## Dependencies
 
-- [sashite-epin](https://github.com/sashite/epin.rb) – Extended Piece Identifier Notation
-- [sashite-sin](https://github.com/sashite/sin.rb) – Style Identifier Notation
+- [sashite-epin](https://github.com/sashite/epin.rb) — Extended Piece Identifier Notation
+- [sashite-sin](https://github.com/sashite/sin.rb) — Style Identifier Notation
 
 ## Documentation
 
-- **[FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/)** – Complete technical specification
-- **[FEEN Examples](https://sashite.dev/specs/feen/1.0.0/examples/)** – Comprehensive examples
-- **[API Documentation](https://rubydoc.info/github/sashite/feen.rb/main)** – Full API reference
-- **[GitHub Wiki](https://github.com/sashite/feen.rb/wiki)** – Advanced usage and patterns
+- [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/) — Complete technical specification
+- [FEEN Examples](https://sashite.dev/specs/feen/1.0.0/examples/) — Comprehensive examples
+- [API Documentation](https://rubydoc.info/github/sashite/feen.rb/main) — Full API reference
+- [GitHub Wiki](https://github.com/sashite/feen.rb/wiki) — Advanced usage and patterns
 
 ## Development
 
@@ -383,4 +508,4 @@ Available as open source under the [MIT License](https://opensource.org/licenses
 
 ## About
 
-Maintained by [Sashité](https://sashite.com/) – promoting chess variants and sharing the beauty of board game cultures.
+Maintained by [Sashité](https://sashite.com/) — promoting chess variants and sharing the beauty of board game cultures.

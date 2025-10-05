@@ -126,6 +126,7 @@ module Sashite
         private_class_method def self.prefix_order(piece_str)
           return 0 if piece_str.start_with?("-")
           return 1 if piece_str.start_with?("+")
+
           2
         end
 

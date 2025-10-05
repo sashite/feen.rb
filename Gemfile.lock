@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sashite-feen (0.2.0)
+    sashite-feen (0.3.0)
       sashite-epin (~> 1.1)
       sashite-sin (~> 2.1)
 

@@ -30,8 +30,8 @@ module Sashite
       # @example Both players have captured pieces
       #   hands = Hands.new([rook, bishop], [pawn1, pawn2, knight])
       def initialize(first_player, second_player)
-        @first_player = first_player.freeze
-        @second_player = second_player.freeze
+        @first_player = first_player.sort_by(&:to_s).freeze
+        @second_player = second_player.sort_by(&:to_s).freeze
 
         freeze
       end

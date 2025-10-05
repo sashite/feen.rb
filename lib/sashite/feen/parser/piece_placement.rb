@@ -11,18 +11,29 @@ module Sashite
       # Parser for the piece placement field (first field of FEEN).
       #
       # Converts a FEEN piece placement string into a Placement object,
-      # decoding board configuration from EPIN notation with empty square
-      # compression and multi-dimensional separator support.
+      # decoding board configuration from EPIN notation with:
+      # - Empty square compression (numbers → consecutive nils)
+      # - Multi-dimensional separator preservation (exact "/" counts)
+      # - Support for any irregular board structure
+      #
+      # The parser preserves the exact separator structure, enabling
+      # perfect round-trip conversion (parse → dump → parse).
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       module PiecePlacement
-        # Rank separator for 2D boards.
+        # Rank separator character.
         RANK_SEPARATOR = "/"
 
-        # Pattern to match EPIN pieces (optional state prefix, letter, optional derivation suffix).
+        # Pattern to match EPIN pieces (optional state, letter, optional derivation).
         EPIN_PATTERN = /\A[-+]?[A-Za-z]'?\z/
 
         # Parse a FEEN piece placement string into a Placement object.
+        #
+        # Supports any valid FEEN structure:
+        # - 1D: Single rank, no separators (e.g., "K2P")
+        # - 2D: Ranks separated by "/" (e.g., "8/8/8")
+        # - 3D+: Ranks separated by multiple "/" (e.g., "5/5//5/5")
+        # - Irregular: Any combination of rank sizes and separators
         #
         # @param string [String] FEEN piece placement field string
         # @return [Placement] Parsed placement object
@@ -34,88 +45,140 @@ module Sashite
         #
         # @example Empty 8x8 board
         #   parse("8/8/8/8/8/8/8/8")
+        #
+        # @example 1D board
+        #   parse("K2P3k")
+        #
+        # @example Irregular structure
+        #   parse("99999/3///K/k//r")
         def self.parse(string)
+          # Detect dimension before parsing
           dimension = detect_dimension(string)
-          rank_strings, section_sizes = split_ranks(string, dimension)
-          ranks = rank_strings.map { |rank_str| parse_rank(rank_str) }
 
-          Placement.new(ranks, dimension, section_sizes)
+          # Handle 1D case (no separators)
+          if dimension == 1
+            rank = parse_rank(string)
+            return Placement.new([rank], [], 1)
+          end
+
+          # Parse multi-dimensional structure with separators
+          ranks, separators = parse_with_separators(string)
+
+          Placement.new(ranks, separators, dimension)
         end
 
         # Detect board dimensionality from separator patterns.
         #
-        # Counts consecutive separators to determine dimension:
-        # - "/" = 2D
-        # - "//" = 3D
-        # - "///" = 4D
+        # Scans for consecutive "/" characters and returns:
+        #   1 + (maximum consecutive "/" count)
         #
         # @param string [String] Piece placement string
-        # @return [Integer] Board dimension (minimum 2)
+        # @return [Integer] Board dimension (minimum 1)
         #
-        # @example 2D board
+        # @example 1D board (no separators)
+        #   detect_dimension("K2P")  # => 1
+        #
+        # @example 2D board (single "/")
         #   detect_dimension("8/8")  # => 2
         #
-        # @example 3D board
+        # @example 3D board (contains "//")
         #   detect_dimension("5/5/5//5/5/5")  # => 3
+        #
+        # @example 4D board (contains "///")
+        #   detect_dimension("2/2///2/2")  # => 4
         private_class_method def self.detect_dimension(string)
-          max_consecutive = string.scan(/\/+/).map(&:length).max || 0
+          return 1 unless string.include?(RANK_SEPARATOR)
+
+          max_consecutive = string.scan(%r{/+}).map(&:length).max || 0
           max_consecutive + 1
         end
 
-        # Split placement string into rank strings based on dimension.
+        # Parse string while preserving exact separators.
+        #
+        # Uses split with capture group to preserve both ranks and separators.
+        # The regex /(\/+)/ captures one or more consecutive "/" characters.
+        #
+        # Result pattern: [rank, separator, rank, separator, ..., rank]
+        # - Even indices (0, 2, 4, ...) are ranks
+        # - Odd indices (1, 3, 5, ...) are separators
+        #
+        # Empty strings are parsed as empty ranks (valid in FEEN).
         #
         # @param string [String] Piece placement string
-        # @param dimension [Integer] Board dimensionality
-        # @return [Array<String>, Array<Integer>] Array of rank strings and section sizes
+        # @return [Array<Array<Array>, Array<String>>] [ranks, separators]
         #
-        # @example 1D board
-        #   split_ranks("k+p4+PK", 1)  # => [["k+p4+PK"], nil]
+        # @example Simple split
+        #   parse_with_separators("K/Q/R")
+        #   # => [[[K], [Q], [R]], ["/", "/"]]
         #
-        # @example 2D board
-        #   split_ranks("8/8/8", 2)  # => [["8", "8", "8"], nil]
+        # @example Multi-dimensional split
+        #   parse_with_separators("K//Q/R")
+        #   # => [[[K], [Q], [R]], ["//", "/"]]
         #
-        # @example 3D board
-        #   split_ranks("5/5//5/5", 3)  # => [["5", "5", "5", "5"], [2, 2]]
-        private_class_method def self.split_ranks(string, dimension)
-          if dimension == 1
-            # 1D board: single rank, no separators
-            [[string], nil]
-          elsif dimension == 2
-            # 2D board: split by single separator
-            [string.split(RANK_SEPARATOR), nil]
-          else
-            # Multi-dimensional: split by dimension separator, track section sizes
-            dimension_separator = RANK_SEPARATOR * (dimension - 1)
-            sections = string.split(dimension_separator)
+        # @example Trailing separator (empty rank at end)
+        #   parse_with_separators("K///")
+        #   # => [[[K], []], ["///"]]
+        #
+        # @example Leading separator (empty rank at start)
+        #   parse_with_separators("///K")
+        #   # => [[[], [K]], ["///"]]
+        private_class_method def self.parse_with_separators(string)
+          ranks = []
+          separators = []
 
-            # Each section contains ranks separated by single "/"
-            section_sizes = []
-            all_ranks = sections.flat_map do |section|
-              ranks = section.split(RANK_SEPARATOR)
-              section_sizes << ranks.size
-              ranks
+          # Split with capture group to preserve separators
+          # Use limit=-1 to include trailing empty substrings
+          parts = string.split(%r{(/+)}, -1)
+
+          parts.each_with_index do |part, idx|
+            if idx.even?
+              # Even index = rank content (can be empty string)
+              ranks << parse_rank(part)
+            else
+              # Odd index = separator
+              separators << part
             end
-
-            [all_ranks, section_sizes]
           end
+
+          [ranks, separators]
         end
 
         # Parse a single rank string into an array of pieces and nils.
         #
-        # @param rank_str [String] Single rank string (e.g., "rnbqkbnr" or "4p3")
-        # @return [Array] Array containing piece objects and nils
+        # Processes rank content character by character:
+        # - Empty string → empty rank (empty array)
+        # - Digits (1-9) start a number → count of empty squares (nils)
+        # - Letters (A-Z, a-z) start EPIN → piece object
+        # - Numbers are parsed greedily (123 = one hundred twenty-three)
+        #
+        # @param rank_str [String] Single rank string (e.g., "rnbqkbnr" or "4p3" or "")
+        # @return [Array] Array containing piece objects and nils (empty if rank_str is empty)
         # @raise [Error::Syntax] If rank format is invalid
         # @raise [Error::Piece] If EPIN notation is invalid
         #
-        # @example Rank with pieces
-        #   parse_rank("rnbqkbnr")  # => [piece, piece, ..., piece]
+        # @example Empty rank
+        #   parse_rank("")
+        #   # => []
+        #
+        # @example Rank with only pieces
+        #   parse_rank("rnbqkbnr")
+        #   # => [r, n, b, q, k, b, n, r]
         #
         # @example Rank with empty squares
-        #   parse_rank("4p3")  # => [nil, nil, nil, nil, piece, nil, nil, nil]
+        #   parse_rank("4p3")
+        #   # => [nil, nil, nil, nil, p, nil, nil, nil]
         #
         # @example Rank with large empty count
-        #   parse_rank("100")  # => [nil, nil, ..., nil] (100 times)
+        #   parse_rank("100")
+        #   # => [nil, nil, ..., nil] (100 nils)
+        #
+        # @example Mixed rank
+        #   parse_rank("+K2+Q")
+        #   # => [+K, nil, nil, +Q]
         private_class_method def self.parse_rank(rank_str)
+          # Handle empty rank (valid in FEEN)
+          return [] if rank_str.empty?
+
           result = []
           chars = rank_str.chars
           i = 0
@@ -123,144 +186,126 @@ module Sashite
           while i < chars.size
             char = chars[i]
 
-            # Skip whitespace and separators (commas)
-            if char =~ /\s/ || char == ","
-              i += 1
-              next
-            end
+            if digit?(char)
+              # Parse complete number (greedy)
+              num_str, consumed = extract_number(chars, i)
+              count = num_str.to_i
 
-            # Dot represents single empty square (legacy support)
-            if char == "."
-              result << nil
-              i += 1
-              next
-            end
+              validate_empty_count!(count, num_str)
 
-            if first_digit?(char)
-              # Empty squares - extract all consecutive digits
-              count_str, consumed = extract_number(chars, i)
-              count = count_str.to_i
-
-              raise ::Sashite::Feen::Error::Syntax, "invalid empty square count: #{count_str}" if count < 1
-
+              # Add empty squares
               count.times { result << nil }
               i += consumed
-            elsif char == "[" || letter?(char) || char == "+" || char == "-"
-              # EPIN piece notation (bare or bracketed)
+            else
+              # Parse EPIN piece notation
               piece_str, consumed = extract_epin(chars, i)
               piece = parse_piece(piece_str)
               result << piece
               i += consumed
-            else
-              # Invalid character
-              raise ::Sashite::Feen::Error::Syntax,
-                    "unexpected character #{char.inspect} at position #{i} in rank"
             end
           end
 
           result
         end
 
-        # Extract a complete number (all consecutive digits) from character array.
+        # Check if character is a digit (1-9 for starting digit).
         #
-        # Implements greedy parsing: reads all consecutive digits until a non-digit
-        # character is encountered.
+        # Note: Leading zero not allowed in FEEN numbers.
+        #
+        # @param char [String] Single character
+        # @return [Boolean] True if character is 1-9
+        private_class_method def self.digit?(char)
+          char >= "1" && char <= "9"
+        end
+
+        # Extract a complete number from character array (greedy parsing).
+        #
+        # Reads all consecutive digits starting from start_index.
+        # First digit must be 1-9, subsequent digits can be 0-9.
         #
         # @param chars [Array<String>] Array of characters
         # @param start_index [Integer] Starting index
-        # @return [Array(String, Integer)] Number string and number of characters consumed
+        # @return [Array(String, Integer)] Number string and characters consumed
         #
         # @example Single digit
         #   extract_number(['8', 'K'], 0)  # => ["8", 1]
         #
-        # @example Multi-digit number
+        # @example Multi-digit
         #   extract_number(['1', '2', '3', 'K'], 0)  # => ["123", 3]
         #
         # @example Large number
-        #   extract_number(['1', '0', '0', '/'], 0)  # => ["100", 3]
+        #   extract_number(['9', '9', '9', '9', '9'], 0)  # => ["99999", 5]
         private_class_method def self.extract_number(chars, start_index)
-          i = start_index
-          digits = []
+          num_str = chars[start_index]
+          i = start_index + 1
 
-          # First digit must be 1-9 (non-zero)
-          if i < chars.size && first_digit?(chars[i])
-            digits << chars[i]
+          # Continue reading digits (including 0)
+          while i < chars.size && chars[i] >= "0" && chars[i] <= "9"
+            num_str += chars[i]
             i += 1
           end
 
-          # Subsequent digits can be 0-9
-          while i < chars.size && any_digit?(chars[i])
-            digits << chars[i]
-            i += 1
-          end
-
-          number_str = digits.join
           consumed = i - start_index
-
-          [number_str, consumed]
+          [num_str, consumed]
         end
 
-        # Check if character is a non-zero digit (1-9).
-        # Used for the first digit of a number.
+        # Validate empty square count.
         #
-        # @param char [String] Single character
-        # @return [Boolean] True if character is 1-9
-        private_class_method def self.first_digit?(char)
-          char >= "1" && char <= "9"
-        end
+        # Count must be at least 1 (FEEN doesn't allow "0" for zero squares).
+        #
+        # @param count [Integer] Parsed count value
+        # @param count_str [String] Original string for error message
+        # @raise [Error::Syntax] If count is less than 1
+        private_class_method def self.validate_empty_count!(count, count_str)
+          return if count >= 1
 
-        # Check if character is any digit (0-9).
-        # Used for subsequent digits after the first.
-        #
-        # @param char [String] Single character
-        # @return [Boolean] True if character is 0-9
-        private_class_method def self.any_digit?(char)
-          char >= "0" && char <= "9"
+          raise ::Sashite::Feen::Error::Syntax,
+                "Empty square count must be at least 1, got #{count_str}"
         end
 
         # Extract EPIN notation from character array.
         #
-        # Handles state prefixes (+/-), base letter, and derivation suffix (').
-        # Also supports bracketed EPIN notation for legacy compatibility.
+        # EPIN format: [state][letter][derivation]
+        # - state: optional "+" or "-" prefix
+        # - letter: required A-Z or a-z
+        # - derivation: optional "'" suffix
         #
         # @param chars [Array<String>] Array of characters
         # @param start_index [Integer] Starting index
-        # @return [Array(String, Integer)] EPIN string and number of characters consumed
-        # @raise [Error::Syntax] If EPIN format is incomplete
+        # @return [Array(String, Integer)] EPIN string and characters consumed
+        # @raise [Error::Syntax] If EPIN format is incomplete or invalid
         #
         # @example Simple piece
         #   extract_epin(['K', 'Q'], 0)  # => ["K", 1]
         #
-        # @example Enhanced piece with derivation
-        #   extract_epin(['+', 'R', "'", 'B'], 0)  # => ["+R'", 3]
+        # @example Enhanced piece
+        #   extract_epin(['+', 'R', 'B'], 0)  # => ["+R", 2]
         #
-        # @example Bracketed piece (legacy)
-        #   extract_epin(['[', 'K', ']', 'Q'], 0)  # => ["K", 3]
+        # @example Foreign piece
+        #   extract_epin(['K', "'", 'Q'], 0)  # => ["K'", 2]
+        #
+        # @example Complex piece
+        #   extract_epin(['-', 'p', "'", 'K'], 0)  # => ["-p'", 3]
         private_class_method def self.extract_epin(chars, start_index)
           i = start_index
-
-          # Check for bracketed EPIN (legacy support)
-          if chars[i] == "["
-            return extract_bracketed_epin(chars, start_index)
-          end
-
           piece_chars = []
 
-          # Optional state prefix
-          if chars[i] == "+" || chars[i] == "-"
+          # Optional state prefix (+ or -)
+          if i < chars.size && ["+", "-"].include?(chars[i])
             piece_chars << chars[i]
             i += 1
           end
 
           # Base letter (required)
           if i >= chars.size || !letter?(chars[i])
-            raise ::Sashite::Feen::Error::Syntax, "expected letter in EPIN notation at position #{start_index}"
+            raise ::Sashite::Feen::Error::Syntax,
+                  "Expected letter in EPIN notation at position #{start_index}"
           end
 
           piece_chars << chars[i]
           i += 1
 
-          # Optional derivation suffix
+          # Optional derivation suffix (')
           if i < chars.size && chars[i] == "'"
             piece_chars << chars[i]
             i += 1
@@ -272,47 +317,6 @@ module Sashite
           [piece_str, consumed]
         end
 
-        # Extract bracketed EPIN notation (legacy support).
-        #
-        # Supports balanced brackets for complex piece identifiers.
-        #
-        # @param chars [Array<String>] Array of characters
-        # @param start_index [Integer] Starting index (should point to '[')
-        # @return [Array(String, Integer)] EPIN string (without brackets) and chars consumed
-        # @raise [Error::Syntax] If brackets are unbalanced
-        #
-        # @example
-        #   extract_bracketed_epin(['[', 'K', 'i', 'n', 'g', ']'], 0)  # => ["King", 6]
-        private_class_method def self.extract_bracketed_epin(chars, start_index)
-          i = start_index + 1  # Skip opening '['
-          depth = 1
-          content_chars = []
-
-          while i < chars.size && depth.positive?
-            case chars[i]
-            when "["
-              depth += 1
-              content_chars << chars[i] if depth > 1
-            when "]"
-              depth -= 1
-              content_chars << chars[i] if depth.positive?
-            else
-              content_chars << chars[i]
-            end
-            i += 1
-          end
-
-          if depth.positive?
-            raise ::Sashite::Feen::Error::Syntax,
-                  "unterminated bracket at position #{start_index}"
-          end
-
-          content = content_chars.join
-          consumed = i - start_index
-
-          [content, consumed]
-        end
-
         # Check if character is a letter.
         #
         # @param char [String] Single character
@@ -321,23 +325,33 @@ module Sashite
           (char >= "A" && char <= "Z") || (char >= "a" && char <= "z")
         end
 
-        # Parse EPIN string into a piece object.
+        # Parse EPIN string into a piece identifier object.
+        #
+        # Delegates to Sashite::Epin for actual parsing and validation.
         #
         # @param epin_str [String] EPIN notation string
-        # @return [Object] Piece identifier object
-        # @raise [Error::Piece] If EPIN is invalid
+        # @return [Object] Piece identifier object (Epin::Identifier)
+        # @raise [Error::Piece] If EPIN is invalid or parsing fails
         #
-        # @example
-        #   parse_piece("K")    # => Epin::Identifier
-        #   parse_piece("+R'")  # => Epin::Identifier
+        # @example Valid pieces
+        #   parse_piece("K")     # => Epin::Identifier (King)
+        #   parse_piece("+R")    # => Epin::Identifier (Enhanced Rook)
+        #   parse_piece("-p'")   # => Epin::Identifier (Diminished foreign pawn)
+        #
+        # @example Invalid piece
+        #   parse_piece("X#")    # => raises Error::Piece
         private_class_method def self.parse_piece(epin_str)
+          # Pre-validate format
           unless EPIN_PATTERN.match?(epin_str)
-            raise ::Sashite::Feen::Error::Piece, "invalid EPIN notation: #{epin_str}"
+            raise ::Sashite::Feen::Error::Piece,
+                  "Invalid EPIN notation: #{epin_str}"
           end
 
+          # Parse using EPIN library
           ::Sashite::Epin.parse(epin_str)
         rescue ::StandardError => e
-          raise ::Sashite::Feen::Error::Piece, "failed to parse EPIN '#{epin_str}': #{e.message}"
+          raise ::Sashite::Feen::Error::Piece,
+                "Failed to parse EPIN '#{epin_str}': #{e.message}"
         end
       end
     end

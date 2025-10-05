@@ -47,6 +47,7 @@ module Sashite
       # Split a FEEN string into its three constituent fields.
       #
       # Validates that exactly three space-separated fields are present.
+      # Supports empty piece placement field (board-less positions).
       #
       # @param string [String] A FEEN notation string
       # @return [Array<String>] Array of three field strings
@@ -56,13 +57,21 @@ module Sashite
       #   split_fields("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
       #   # => ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "/", "C/c"]
       #
+      # @example Empty piece placement field
+      #   split_fields(" / C/c")
+      #   # => ["", "/", "C/c"]
+      #
       # @example Invalid FEEN string (too few fields)
       #   split_fields("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR /")
       #   # raises Error::Syntax
       private_class_method def self.split_fields(string)
-        fields = string.split(FIELD_SEPARATOR, FIELD_COUNT)
+        # Use regex separator to preserve empty leading fields
+        # String#split with " " treats leading spaces specially and discards them
+        fields = string.split(/ /, FIELD_COUNT)
 
-        raise Error::Syntax, "FEEN must have exactly #{FIELD_COUNT} space-separated fields, got #{fields.size}" unless fields.size == FIELD_COUNT
+        unless fields.size == FIELD_COUNT
+          raise Error::Syntax, "FEEN must have exactly #{FIELD_COUNT} space-separated fields, got #{fields.size}"
+        end
 
         fields
       end

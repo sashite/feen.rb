@@ -6,7 +6,7 @@ require_relative "dumper/style_turn"
 
 module Sashite
   module Feen
-    # Dumper for FEEN (Forsyth–Edwards Enhanced Notation) positions.
+    # Dumper for FEEN (Field Expression Encoding Notation) positions.
     #
     # Converts a Position object into its canonical FEEN string representation
     # by delegating serialization to specialized dumpers for each component.
@@ -29,7 +29,7 @@ module Sashite
       #
       # @example Dump a position to FEEN
       #   feen_string = Dumper.dump(position)
-      #   # => "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+      #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
       def self.dump(position)
         fields = [
           Dumper::PiecePlacement.dump(position.placement),
@@ -49,8 +49,8 @@ module Sashite
       # @return [String] Complete FEEN string
       #
       # @example Join three fields
-      #   join_fields(["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "/", "C/c"])
-      #   # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
+      #   join_fields(["+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R", "/", "C/c"])
+      #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
       private_class_method def self.join_fields(fields)
         fields.join(FIELD_SEPARATOR)
       end

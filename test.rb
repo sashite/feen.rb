@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 require "simplecov"
@@ -5,7 +6,7 @@ require "simplecov"
 SimpleCov.command_name "Unit Tests"
 SimpleCov.start
 
-# Tests for Sashite::Feen (Forsyth–Edwards Enhanced Notation)
+# Tests for Sashite::Feen (Field Expression Encoding Notation)
 #
 # Tests the FEEN implementation for Ruby, focusing on the functional API
 # with immutable Position, Placement, Hands, and Styles objects.
@@ -24,7 +25,7 @@ rescue StandardError => e
 end
 
 puts
-puts "Tests for Sashite::Feen (Forsyth–Edwards Enhanced Notation) v1.0.0"
+puts "Tests for Sashite::Feen (Field Expression Encoding Notation) v1.0.0"
 puts
 
 # ============================================================================
@@ -599,6 +600,17 @@ run_test("Diminished pieces (- prefix)") do
   raise "Should round-trip" unless Sashite::Feen.dump(position) == feen
 end
 
+run_test("Terminal pieces (^ suffix)") do
+  feen = "K^Q^R^B^/k^q^r^b^/8/8/8/8/8/8 / C/s"
+  position = Sashite::Feen.parse(feen)
+  first_rank = position.placement.ranks[0]
+  second_rank = position.placement.ranks[1]
+
+  raise "First rank all foreign" unless first_rank.all? { |p| p.to_s.end_with?("^") }
+  raise "Second rank all foreign" unless second_rank.all? { |p| p.to_s.end_with?("^") }
+  raise "Should round-trip" unless Sashite::Feen.dump(position) == feen
+end
+
 run_test("Foreign pieces (' suffix)") do
   feen = "K'Q'R'B'/k'q'r'b'/8/8/8/8/8/8 / C/s"
   position = Sashite::Feen.parse(feen)
@@ -610,13 +622,13 @@ run_test("Foreign pieces (' suffix)") do
   raise "Should round-trip" unless Sashite::Feen.dump(position) == feen
 end
 
-run_test("Combined modifiers (+/- and ')") do
-  feen = "+K'-R'+P-p'/8/8/8/8/8/8/8 / C/s"
+run_test("Combined modifiers (+/-, ^ and ')") do
+  feen = "+K^'-R'+P-p'/8/8/8/8/8/8/8 / C/s"
   position = Sashite::Feen.parse(feen)
   first_rank = position.placement.ranks[0]
 
   pieces = first_rank.compact.map(&:to_s)
-  raise "Should have +K'" unless pieces.include?("+K'")
+  raise "Should have +K^'" unless pieces.include?("+K^'")
   raise "Should have -R'" unless pieces.include?("-R'")
   raise "Should have +P" unless pieces.include?("+P")
   raise "Should have -p'" unless pieces.include?("-p'")

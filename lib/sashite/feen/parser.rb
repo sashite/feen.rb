@@ -9,7 +9,7 @@ require_relative "position"
 
 module Sashite
   module Feen
-    # Parser for FEEN (Forsyth–Edwards Enhanced Notation) strings.
+    # Parser for FEEN (Field Expression Encoding Notation) strings.
     #
     # Parses a complete FEEN string by splitting it into three space-separated
     # fields and delegating parsing to specialized parsers for each component.

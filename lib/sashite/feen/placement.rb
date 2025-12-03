@@ -32,7 +32,7 @@ module Sashite
     #   placement = Placement.new(ranks, separators)
     #
     # @example Highly irregular structure
-    #   # "99999/3///K/k//r"
+    #   # "99999/3///K^/k^//r"
     #   ranks = [[nil]*99999, [nil]*3, [king], [king_b], [rook]]
     #   separators = ["/", "///", "/", "//"]
     #   placement = Placement.new(ranks, separators)
@@ -169,7 +169,7 @@ module Sashite
       #
       # @example
       #   placement.to_s
-      #   # => "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R"
+      #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R"
       def to_s
         Dumper::PiecePlacement.dump(self)
       end

@@ -5,11 +5,11 @@
 ![Ruby](https://github.com/sashite/feen.rb/actions/workflows/main.yml/badge.svg?branch=main)
 [![License](https://img.shields.io/github/license/sashite/feen.rb?label=License&logo=github)](https://github.com/sashite/feen.rb/raw/main/LICENSE.md)
 
-> **FEEN** (Forsyth–Edwards Enhanced Notation) implementation for the Ruby language.
+> **FEEN** (Field Expression Encoding Notation) implementation for the Ruby language.
 
 ## What is FEEN?
 
-FEEN (Forsyth–Edwards Enhanced Notation) is a universal, rule-agnostic notation for representing board game positions. It extends traditional FEN to support:
+FEEN (Field Expression Encoding Notation) is a universal, rule-agnostic notation for representing board game positions. It extends traditional FEN to support:
 
 - **Multiple game systems** (Chess, Shōgi, Xiangqi, and more)
 - **Cross-style games** where players use different piece sets
@@ -39,7 +39,7 @@ gem install sashite-feen
 require "sashite/feen"
 
 # Parse a FEEN string into an immutable position object
-position = Sashite::Feen.parse("+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c")
+position = Sashite::Feen.parse("+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c")
 
 # Access position components
 position.placement  # Board configuration
@@ -63,7 +63,7 @@ A FEEN string consists of three space-separated fields:
 
 **Example:**
 ```txt
-+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c
++rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c
 ```
 
 1. **Piece placement**: Board configuration using EPIN notation with `/` separators (can be empty for board-less positions)
@@ -145,16 +145,16 @@ The `to_a` method returns an array representation that adapts to the board's dim
 
 ```ruby
 # 1D board - Returns flat array
-feen = "K2P3k / C/c"
+feen = "K^2P3k^ / C/c"
 position = Sashite::Feen.parse(feen)
 position.placement.to_a
 # => [K, nil, nil, P, nil, nil, nil, k]
 
 # 2D board - Returns array of arrays
-feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
+feen = "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
 position = Sashite::Feen.parse(feen)
 position.placement.to_a
-# => [[r,n,b,q,k,b,n,r], [p,p,p,p,p,p,p,p], [nil×8], ...]
+# => [[+r,n,b,q,+k^,b,n,+r], [+p,+p,+p,+p,+p,+p,+p,+p], [nil×8], ...]
 
 # 3D board - Returns array of ranks (to be structured by application)
 feen = "5/5//5/5 / R/r"
@@ -229,17 +229,17 @@ styles.active.to_s.upcase != styles.inactive.to_s.upcase
 ```ruby
 # Starting position
 chess_start = Sashite::Feen.parse(
-  "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+  "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
 )
 
 # After 1.e4
 after_e4 = Sashite::Feen.parse(
-  "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/4P3/8/+P+P+P+P1+P+P+P/+RNBQ+KBN+R / c/C"
+  "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/4P3/8/+P+P+P+P1+P+P+P/+RNBQ+K^BN+R / c/C"
 )
 
 # Ruy Lopez opening
 ruy_lopez = Sashite::Feen.parse(
-  "r1bqkbnr/+p+p+p+p1+p+p+p/2n5/1B2p3/4P3/5N2/+P+P+P+P1+P+P+P/RNBQK2R / c/C"
+  "+r1bq+k^bn+r/+p+p+p+p1+p+p+p/2n5/1B2p3/4P3/5N2/+P+P+P+P1+P+P+P/+RNBQ+K^2+R / c/C"
 )
 ```
 
@@ -248,12 +248,12 @@ ruy_lopez = Sashite::Feen.parse(
 ```ruby
 # Starting position
 shogi_start = Sashite::Feen.parse(
-  "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
+  "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s"
 )
 
 # Position with pieces in hand
 shogi_midgame = Sashite::Feen.parse(
-  "lnsgkgsnl/1r5b1/pppp1pppp/9/4p4/9/PPPP1PPPP/1B5R1/LNSGKGSNL P/p s/S"
+  "lnsgk^gsnl/1r5b1/pppp1pppp/9/4p4/9/PPPP1PPPP/1B5R1/LNSGK^GSNL P/p s/S"
 )
 
 # Access captured pieces
@@ -270,12 +270,12 @@ position.hands.first_player.count { |p| p.to_s == "P" } # => 1
 ```ruby
 # Chess vs Makruk
 chess_vs_makruk = Sashite::Feen.parse(
-  "rnsmksnr/8/pppppppp/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/m"
+  "rnsmk^snr/8/pppppppp/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/m"
 )
 
 # Chess vs Shōgi
 chess_vs_shogi = Sashite::Feen.parse(
-  "lnsgkgsnl/1r5b1/pppppppp/9/9/9/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/s"
+  "lnsgk^gsnl/1r5b1/pppppppp/9/9/9/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/s"
 )
 
 # Check styles
@@ -289,7 +289,7 @@ position.styles.inactive.to_s  # => "m" (Makruk, second player)
 ```ruby
 # 3D Chess (Raumschach)
 raumschach = Sashite::Feen.parse(
-  "rnknr/+p+p+p+p+p/5/5/5//buqbu/+p+p+p+p+p/5/5/5//5/5/5/5/5//5/5/5/+P+P+P+P+P/BUQBU//5/5/5/+P+P+P+P+P/RNKNR / R/r"
+  "+rn+k^n+r/+p+p+p+p+p/5/5/5//buqbu/+p+p+p+p+p/5/5/5//5/5/5/5/5//5/5/5/+P+P+P+P+P/BUQBU//5/5/5/+P+P+P+P+P/+RN+K^N+R / R/r"
 )
 
 # Check dimensionality
@@ -317,7 +317,7 @@ large_board = Sashite::Feen.parse("100/100/100 / G/g")
 large_board.placement.total_squares # => 300
 
 # Single square
-single = Sashite::Feen.parse("K / C/c")
+single = Sashite::Feen.parse("K^ / C/c")
 single.placement.rank_count # => 1
 ```
 
@@ -327,7 +327,7 @@ FEEN supports any valid combination of ranks and separators:
 
 ```ruby
 # Extreme irregularity with variable separators
-feen = "99999/3///K/k//r / G/g"
+feen = "99999/3///K^/k^//r / G/g"
 position = Sashite::Feen.parse(feen)
 
 # Access the structure
@@ -352,11 +352,11 @@ FEEN supports empty ranks (ranks with no pieces):
 
 ```ruby
 # Trailing separator creates empty rank
-feen = "K/// / C/c"
+feen = "K^/// / C/c"
 position = Sashite::Feen.parse(feen)
 
 position.placement.ranks.size  # => 2
-position.placement.ranks[0]    # => [K]
+position.placement.ranks[0]    # => [K^]
 position.placement.ranks[1]    # => [] (empty rank)
 position.placement.separators  # => ["///"]
 
@@ -389,7 +389,7 @@ position2 = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
 position1 == position2 # => true
 
 # Round-trip parsing
-original = "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+original = "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
 position = Sashite::Feen.parse(original)
 Sashite::Feen.dump(position) == original # => true
 
@@ -402,13 +402,13 @@ position.hands.first_player.size # Number of captured pieces
 
 ```ruby
 # Enhanced pieces (promoted, with special rights)
-enhanced = Sashite::Feen.parse("+K+Q+R+B/8/8/8/8/8/8/8 / C/c")
+enhanced = Sashite::Feen.parse("+K^+Q+R+B/8/8/8/8/8/8/8 / C/c")
 
 # Diminished pieces (weakened, vulnerable)
-diminished = Sashite::Feen.parse("-K-Q-R-B/8/8/8/8/8/8/8 / C/c")
+diminished = Sashite::Feen.parse("-K^-Q-R-B/8/8/8/8/8/8/8 / C/c")
 
 # Foreign pieces (using opponent's style)
-foreign = Sashite::Feen.parse("K'Q'R'B'/k'q'r'b'/8/8/8/8/8/8 / C/s")
+foreign = Sashite::Feen.parse("K^'Q'R'B'/k^'q'r'b'/8/8/8/8/8/8 / C/s")
 ```
 
 ## Error Handling

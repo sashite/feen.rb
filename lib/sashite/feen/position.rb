@@ -29,7 +29,7 @@ module Sashite
       #   position = Position.new(placement, hands, styles)
       #
       # @example Parse from FEEN string
-      #   position = Sashite::Feen.parse("+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c")
+      #   position = Sashite::Feen.parse("+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c")
       def initialize(placement, hands, styles)
         @placement = placement
         @hands = hands
@@ -48,7 +48,7 @@ module Sashite
       #
       # @example
       #   position.to_s
-      #   # => "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+      #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
       def to_s
         Dumper.dump(self)
       end

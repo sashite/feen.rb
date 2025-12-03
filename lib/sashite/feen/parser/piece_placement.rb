@@ -24,9 +24,6 @@ module Sashite
         # Rank separator character.
         RANK_SEPARATOR = "/"
 
-        # Pattern to match EPIN pieces (optional state, letter, optional derivation).
-        EPIN_PATTERN = /\A[-+]?[A-Za-z]'?\z/
-
         # Parse a FEEN piece placement string into a Placement object.
         #
         # Supports any valid FEEN structure:
@@ -265,10 +262,11 @@ module Sashite
 
         # Extract EPIN notation from character array.
         #
-        # EPIN format: [state][letter][derivation]
+        # EPIN format: [state][letter][terminal][derivation]
         # - state: optional "+" or "-" prefix
         # - letter: required A-Z or a-z
-        # - derivation: optional "'" suffix
+        # - terminal: optional "^" suffix
+        # - derivation: optional "'" suffix (comes after "^" if both are present)
         #
         # @param chars [Array<String>] Array of characters
         # @param start_index [Integer] Starting index
@@ -283,6 +281,12 @@ module Sashite
         #
         # @example Foreign piece
         #   extract_epin(['K', "'", 'Q'], 0)  # => ["K'", 2]
+        #
+        # @example Terminal piece
+        #   extract_epin(['K', '^', 'Q'], 0)  # => ["K^", 2]
+        #
+        # @example Foreign terminal piece
+        #   extract_epin(['K', '^', "'", 'Q'], 0)  # => ["K^'", 3]
         #
         # @example Complex piece
         #   extract_epin(['-', 'p', "'", 'K'], 0)  # => ["-p'", 3]
@@ -305,6 +309,12 @@ module Sashite
           piece_chars << chars[i]
           i += 1
 
+          # Optional terminal suffix (^)
+          if i < chars.size && chars[i] == "^"
+            piece_chars << chars[i]
+            i += 1
+          end
+
           # Optional derivation suffix (')
           if i < chars.size && chars[i] == "'"
             piece_chars << chars[i]
@@ -312,7 +322,7 @@ module Sashite
           end
 
           piece_str = piece_chars.join
-          consumed = i - start_index
+          consumed  = i - start_index
 
           [piece_str, consumed]
         end
@@ -342,7 +352,7 @@ module Sashite
         #   parse_piece("X#")    # => raises Error::Piece
         private_class_method def self.parse_piece(epin_str)
           # Pre-validate format
-          unless EPIN_PATTERN.match?(epin_str)
+          unless ::Sashite::Epin.valid?(epin_str)
             raise ::Sashite::Feen::Error::Piece,
                   "Invalid EPIN notation: #{epin_str}"
           end

@@ -29,7 +29,7 @@ module Sashite
         #
         # @example Chess starting position
         #   dump(placement)
-        #   # => "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R"
+        #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R"
         #
         # @example Empty 8x8 board
         #   dump(placement)
@@ -37,7 +37,7 @@ module Sashite
         #
         # @example 1D board
         #   dump(placement)
-        #   # => "K2P3k"
+        #   # => "K^2P3k^"
         #
         # @example Irregular 3D board
         #   dump(placement)

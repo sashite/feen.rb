@@ -4,7 +4,7 @@ require_relative "feen/dumper"
 require_relative "feen/parser"
 
 module Sashite
-  # FEEN (Forsyth–Edwards Enhanced Notation) module provides parsing and dumping
+  # FEEN (Field Expression Encoding Notation) module provides parsing and dumping
   # functionality for board game positions.
   #
   # FEEN is a universal, rule-agnostic notation for representing board game positions.
@@ -29,10 +29,10 @@ module Sashite
     #
     # @example Dump a position to FEEN
     #   feen_string = Sashite::Feen.dump(position)
-    #   # => "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+    #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
     #
     # @example Round-trip parsing and dumping
-    #   original = "+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c"
+    #   original = "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
     #   position = Sashite::Feen.parse(original)
     #   Sashite::Feen.dump(position) == original  # => true
     def self.dump(position)
@@ -53,13 +53,13 @@ module Sashite
     # @raise [Error::Validation] For other semantic violations
     #
     # @example Parse a chess starting position
-    #   position = Sashite::Feen.parse("+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c")
+    #   position = Sashite::Feen.parse("+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c")
     #   position.placement  # => Placement object (board configuration)
     #   position.hands      # => Hands object (pieces in hand)
     #   position.styles     # => Styles object (style-turn information)
     #
     # @example Parse a shogi position with captured pieces
-    #   position = Sashite::Feen.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL P/p S/s")
+    #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL P/p S/s")
     def self.parse(string)
       Parser.parse(string)
     end

@@ -5,18 +5,12 @@ Gem::Specification.new do |spec|
   spec.version = ::File.read("VERSION.semver").chomp
   spec.author  = "Cyril Kato"
   spec.email   = "contact@cyril.email"
-  spec.summary = "FEEN (Field Expression Encoding Notation) implementation for Ruby with universal position representation"
+  spec.summary = "FEEN (Field Expression Encoding Notation) implementation for Ruby providing rule-agnostic board position encoding."
 
   spec.description = <<~DESC
-    FEEN (Field Expression Encoding Notation) provides a universal, rule-agnostic format for
-    representing board game positions. This gem implements the FEEN Specification v1.0.0 with
-    a modern Ruby interface featuring immutable position objects and functional programming
-    principles. FEEN extends traditional FEN notation to support multiple game systems (chess,
-    shōgi, xiangqi, makruk), cross-style games, multi-dimensional boards, and captured pieces
-    held in reserve. Built on EPIN (piece notation) and SIN (style notation) foundations,
-    FEEN enables canonical position representation across diverse abstract strategy board games.
-    Perfect for game engines, position analysis tools, and hybrid gaming systems requiring
-    comprehensive board state representation.
+    FEEN (Field Expression Encoding Notation) implementation for Ruby.
+    Encodes board game positions with piece placement, hands, and style-turn fields
+    for abstract strategy board games with a canonical, rule-agnostic format.
   DESC
 
   spec.homepage               = "https://github.com/sashite/feen.rb"
@@ -24,8 +18,8 @@ Gem::Specification.new do |spec|
   spec.files                  = ::Dir["LICENSE.md", "README.md", "lib/**/*"]
   spec.required_ruby_version  = ">= 3.2.0"
 
-  spec.add_dependency "sashite-epin", "~> 2.0.0"
-  spec.add_dependency "sashite-sin", "~> 2.1.0"
+  spec.add_dependency "sashite-epin", "~> 2.2.1"
+  spec.add_dependency "sashite-sin", "~> 3.1.0"
 
   spec.metadata = {
     "bug_tracker_uri"       => "https://github.com/sashite/feen.rb/issues",

@@ -1,67 +1,72 @@
 # frozen_string_literal: true
 
-require_relative "feen/dumper"
+require "sashite/epin"
+require "sashite/sin"
+
+require_relative "feen/constants"
+require_relative "feen/errors"
 require_relative "feen/parser"
+require_relative "feen/position"
 
 module Sashite
-  # FEEN (Field Expression Encoding Notation) module provides parsing and dumping
-  # functionality for board game positions.
+  # FEEN (Field Expression Encoding Notation) implementation for Ruby.
   #
-  # FEEN is a universal, rule-agnostic notation for representing board game positions.
-  # It extends traditional FEN to support multiple game systems, cross-style games,
-  # multi-dimensional boards, and captured pieces.
+  # FEEN is a rule-agnostic format for encoding board game positions
+  # with three space-separated fields:
   #
-  # A FEEN string consists of three space-separated fields:
-  # 1. Piece placement: Board configuration using EPIN notation
-  # 2. Pieces in hand: Captured pieces held by each player
-  # 3. Style-turn: Game styles and active player
+  # - Piece Placement: Board occupancy
+  # - Hands: Off-board pieces held by each player
+  # - Style-Turn: Player styles and active player
+  #
+  # == Format
+  #
+  #   <PIECE-PLACEMENT> <HANDS> <STYLE-TURN>
+  #
+  # == Examples
+  #
+  #   # Parse a FEEN string
+  #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
+  #   position.piece_placement  # => PiecePlacement object
+  #   position.hands            # => Hands object
+  #   position.style_turn       # => StyleTurn object
+  #
+  #   # Serialize back to FEEN
+  #   position.to_s  # => "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s"
+  #
+  #   # Validate a FEEN string
+  #   Sashite::Feen.valid?("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")  # => true
+  #   Sashite::Feen.valid?("invalid")  # => false
   #
   # @see https://sashite.dev/specs/feen/1.0.0/
   module Feen
-    # Dump a Position object into its canonical FEEN string representation.
+    # Parses a FEEN string into a Position.
     #
-    # Generates a deterministic FEEN string from a position object. The same
-    # position will always produce the same canonical string, ensuring
-    # position equality can be tested via string comparison.
+    # @param string [String] The FEEN string to parse
+    # @return [Position] A new Position instance
+    # @raise [Errors::Argument] If the string is not a valid FEEN
     #
-    # @param position [Position] A position object with placement, hands, and styles
-    # @return [String] Canonical FEEN notation string
+    # @example
+    #   Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
+    #   # => #<Sashite::Feen::Position lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s>
     #
-    # @example Dump a position to FEEN
-    #   feen_string = Sashite::Feen.dump(position)
-    #   # => "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
-    #
-    # @example Round-trip parsing and dumping
-    #   original = "+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c"
-    #   position = Sashite::Feen.parse(original)
-    #   Sashite::Feen.dump(position) == original  # => true
-    def self.dump(position)
-      Dumper.dump(position)
+    #   Sashite::Feen.parse("invalid")
+    #   # => raises Errors::Argument
+    def self.parse(string)
+      components = Parser.parse(string)
+      Position.new(**components)
     end
 
-    # Parse a FEEN string into an immutable Position object.
+    # Checks if a string is a valid FEEN notation.
     #
-    # This method parses the three FEEN fields and constructs an immutable position
-    # object with placement, hands, and styles components.
+    # @param string [String] The string to validate
+    # @return [Boolean] true if valid, false otherwise
     #
-    # @param string [String] A FEEN notation string with three space-separated fields
-    # @return [Position] Immutable position object
-    # @raise [Error::Syntax] If the FEEN structure is malformed
-    # @raise [Error::Piece] If EPIN notation is invalid
-    # @raise [Error::Style] If SIN notation is invalid
-    # @raise [Error::Count] If piece counts are invalid
-    # @raise [Error::Validation] For other semantic violations
-    #
-    # @example Parse a chess starting position
-    #   position = Sashite::Feen.parse("+rnbq+k^bn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+K^BN+R / C/c")
-    #   position.placement  # => Placement object (board configuration)
-    #   position.hands      # => Hands object (pieces in hand)
-    #   position.styles     # => Styles object (style-turn information)
-    #
-    # @example Parse a shogi position with captured pieces
-    #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL P/p S/s")
-    def self.parse(string)
-      Parser.parse(string)
+    # @example
+    #   Sashite::Feen.valid?("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")  # => true
+    #   Sashite::Feen.valid?("k^+p4+PK^ / C/c")  # => true
+    #   Sashite::Feen.valid?("invalid")  # => false
+    def self.valid?(string)
+      Parser.valid?(string)
     end
   end
 end

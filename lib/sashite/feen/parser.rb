@@ -1,79 +1,85 @@
 # frozen_string_literal: true
 
+require_relative "constants"
+require_relative "errors"
+require_relative "parser/hands"
 require_relative "parser/piece_placement"
-require_relative "parser/pieces_in_hand"
 require_relative "parser/style_turn"
-
-require_relative "error"
-require_relative "position"
 
 module Sashite
   module Feen
     # Parser for FEEN (Field Expression Encoding Notation) strings.
     #
-    # Parses a complete FEEN string by splitting it into three space-separated
-    # fields and delegating parsing to specialized parsers for each component.
+    # A FEEN string consists of three fields separated by single ASCII spaces:
+    #
+    #   <PIECE-PLACEMENT> <HANDS> <STYLE-TURN>
+    #
+    # This parser validates the overall structure and delegates field-specific
+    # parsing to specialized sub-parsers.
+    #
+    # @example
+    #   Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
+    #   # => { piece_placement: {...}, hands: {...}, style_turn: {...} }
     #
     # @see https://sashite.dev/specs/feen/1.0.0/
     module Parser
-      # Field separator in FEEN notation.
-      FIELD_SEPARATOR = " "
-
-      # Number of required fields in a valid FEEN string.
-      FIELD_COUNT = 3
-
-      # Parse a FEEN string into an immutable Position object.
+      # Parses a FEEN string into its components.
       #
-      # Validates the overall FEEN structure, splits the string into three
-      # space-separated fields, and delegates parsing of each field to the
-      # appropriate specialized parser.
-      #
-      # @param string [String] A FEEN notation string
-      # @return [Position] Immutable position object
-      # @raise [Error::Syntax] If the FEEN structure is malformed
-      #
-      # @example Parse a complete FEEN string
-      #   position = Parser.parse("+rnbq+kbn+r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/+RNBQ+KBN+R / C/c")
-      def self.parse(string)
-        fields = split_fields(string)
+      # @param input [String] The FEEN string to parse
+      # @return [Hash] A hash with :piece_placement, :hands, and :style_turn keys
+      # @raise [Errors::Argument] If the input is not a valid FEEN string
+      def self.parse(input)
+        validate_input!(input)
 
-        placement = Parser::PiecePlacement.parse(fields[0])
-        hands     = Parser::PiecesInHand.parse(fields[1])
-        styles    = Parser::StyleTurn.parse(fields[2])
+        fields = input.split(Constants::FIELD_SEPARATOR, -1)
+        validate_field_count!(fields)
 
-        Position.new(placement, hands, styles)
+        piece_placement_str, hands_str, style_turn_str = fields
+
+        {
+          piece_placement: PiecePlacement.parse(piece_placement_str),
+          hands:           Hands.parse(hands_str),
+          style_turn:      StyleTurn.parse(style_turn_str)
+        }
       end
 
-      # Split a FEEN string into its three constituent fields.
+      # Validates a FEEN string without raising an exception.
       #
-      # Validates that exactly three space-separated fields are present.
-      # Supports empty piece placement field (board-less positions).
-      #
-      # @param string [String] A FEEN notation string
-      # @return [Array<String>] Array of three field strings
-      # @raise [Error::Syntax] If field count is not exactly 3
-      #
-      # @example Valid FEEN string
-      #   split_fields("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-      #   # => ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "/", "C/c"]
-      #
-      # @example Empty piece placement field
-      #   split_fields(" / C/c")
-      #   # => ["", "/", "C/c"]
-      #
-      # @example Invalid FEEN string (too few fields)
-      #   split_fields("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR /")
-      #   # raises Error::Syntax
-      private_class_method def self.split_fields(string)
-        # Use regex separator to preserve empty leading fields
-        # String#split with " " treats leading spaces specially and discards them
-        fields = string.split(/ /, FIELD_COUNT)
+      # @param input [String] The FEEN string to validate
+      # @return [Boolean] true if valid, false otherwise
+      def self.valid?(input)
+        return false unless ::String === input
 
-        unless fields.size == FIELD_COUNT
-          raise Error::Syntax, "FEEN must have exactly #{FIELD_COUNT} space-separated fields, got #{fields.size}"
+        parse(input)
+        true
+      rescue ::ArgumentError
+        false
+      end
+
+      class << self
+        private
+
+        # Validates the input string.
+        #
+        # @param input [Object] The input to validate
+        # @raise [Errors::Argument] If input is invalid
+        def validate_input!(input)
+          raise Errors::Argument, Errors::Argument::Messages::EMPTY_INPUT if input.empty?
+
+          return unless input.bytesize > Constants::MAX_STRING_LENGTH
+
+          raise Errors::Argument, Errors::Argument::Messages::INPUT_TOO_LONG
         end
 
-        fields
+        # Validates that there are exactly 3 fields.
+        #
+        # @param fields [Array<String>] The split fields
+        # @raise [Errors::Argument] If field count is not 3
+        def validate_field_count!(fields)
+          return if fields.size == 3
+
+          raise Errors::Argument, Errors::Argument::Messages::INVALID_FIELD_COUNT
+        end
       end
     end
   end

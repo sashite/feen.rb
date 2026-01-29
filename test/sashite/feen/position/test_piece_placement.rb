@@ -399,6 +399,18 @@ end
 puts
 puts "Equality:"
 
+run_test("returns false when comparing PiecePlacement with different type") do
+  k = Sashite::Epin.parse("K")
+  pp = Sashite::Feen::Position::PiecePlacement.new(
+    segments: [[k]],
+    separators: []
+  )
+
+  raise "should not equal nil" if pp == nil
+  raise "should not equal string" if pp == "K"
+  raise "should not equal array" if pp == [[k]]
+end
+
 run_test("equal PiecePlacements are ==") do
   k = Sashite::Epin.parse("K")
   pp1 = Sashite::Feen::Position::PiecePlacement.new(

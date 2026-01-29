@@ -157,6 +157,14 @@ end
 puts
 puts "Hands equality:"
 
+run_test("returns false when comparing Hands with different type") do
+  hands = Sashite::Feen::Position::Hands.new(first: [], second: [])
+
+  raise "should not equal nil" if hands == nil
+  raise "should not equal string" if hands == "/"
+  raise "should not equal hash" if hands == {}
+end
+
 run_test("equal Hands are ==") do
   piece = Sashite::Epin.parse("P")
   hands1 = Sashite::Feen::Position::Hands.new(
@@ -548,6 +556,14 @@ end
 
 puts
 puts "Hand equality:"
+
+run_test("returns false when comparing Hand with different type") do
+  hand = Sashite::Feen::Position::Hand.new([])
+
+  raise "should not equal nil" if hand == nil
+  raise "should not equal string" if hand == ""
+  raise "should not equal array" if hand == []
+end
 
 run_test("equal Hands are ==") do
   piece = Sashite::Epin.parse("P")

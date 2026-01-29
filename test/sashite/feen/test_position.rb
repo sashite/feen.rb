@@ -367,6 +367,22 @@ end
 puts
 puts "Equality:"
 
+run_test("returns false when comparing with different type") do
+  k = Sashite::Epin.parse("K")
+  active = Sashite::Sin.parse("C")
+  inactive = Sashite::Sin.parse("c")
+
+  position = Sashite::Feen::Position.new(
+    piece_placement: { segments: [[k]], separators: [] },
+    hands: { first: [], second: [] },
+    style_turn: { active: active, inactive: inactive }
+  )
+
+  raise "should not equal nil" if position == nil
+  raise "should not equal string" if position == "K / C/c"
+  raise "should not equal hash" if position == {}
+end
+
 run_test("equal Positions are ==") do
   k = Sashite::Epin.parse("K")
   active = Sashite::Sin.parse("C")

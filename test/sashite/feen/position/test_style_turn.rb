@@ -211,6 +211,16 @@ end
 puts
 puts "Equality:"
 
+run_test("returns false when comparing StyleTurn with different type") do
+  active = Sashite::Sin.parse("C")
+  inactive = Sashite::Sin.parse("c")
+  st = Sashite::Feen::Position::StyleTurn.new(active: active, inactive: inactive)
+
+  raise "should not equal nil" if st == nil
+  raise "should not equal string" if st == "C/c"
+  raise "should not equal hash" if st == {}
+end
+
 run_test("equal StyleTurns are ==") do
   active1 = Sashite::Sin.parse("C")
   inactive1 = Sashite::Sin.parse("c")

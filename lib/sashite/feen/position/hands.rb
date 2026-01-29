@@ -9,6 +9,8 @@ module Sashite
       #
       # Encapsulates off-board pieces held by each player.
       #
+      # @api public
+      #
       # @example
       #   hands = Hands.new(
       #     first: [{ piece: <Epin P>, count: 2 }],
@@ -64,6 +66,8 @@ module Sashite
       #
       # Contains a collection of hand items (piece + count pairs).
       #
+      # @api public
+      #
       # @example
       #   hand = Hand.new([{ piece: <Epin P>, count: 2 }, { piece: <Epin N>, count: 1 }])
       #   hand.to_s  # => "2PN"
@@ -107,9 +111,17 @@ module Sashite
 
         # Returns the canonical string representation.
         #
-        # @return [String] The hand string
+        # Items are sorted according to canonical ordering:
+        # 1. By multiplicity — descending (larger counts first)
+        # 2. By base letter — case-insensitive alphabetical order
+        # 3. By letter case — uppercase before lowercase
+        # 4. By state modifier — `-` before `+` before none
+        # 5. By terminal marker — absent before present
+        # 6. By derivation marker — absent before present
+        #
+        # @return [String] The hand string in canonical order
         def to_s
-          items.map { |item| hand_item_to_s(item) }.join
+          canonical_items.map { |item| hand_item_to_s(item) }.join
         end
 
         # Checks equality with another Hand.
@@ -132,6 +144,84 @@ module Sashite
         end
 
         private
+
+        # Returns items sorted in canonical order.
+        #
+        # @return [Array<Hash>] Items in canonical order
+        def canonical_items
+          items.sort { |a, b| compare_hand_items(a, b) }
+        end
+
+        # Compares two hand items according to canonical ordering rules.
+        #
+        # @param item_a [Hash] First hand item
+        # @param item_b [Hash] Second hand item
+        # @return [Integer] Comparison result (-1, 0, or 1)
+        def compare_hand_items(item_a, item_b)
+          # 1. By multiplicity — descending
+          cmp = item_b[:count] <=> item_a[:count]
+          return cmp unless cmp == 0
+
+          piece_a = item_a[:piece]
+          piece_b = item_b[:piece]
+          pin_a = piece_a.pin
+          pin_b = piece_b.pin
+
+          # 2. By base letter — case-insensitive alphabetical
+          cmp = pin_a.abbr.to_s <=> pin_b.abbr.to_s
+          return cmp unless cmp == 0
+
+          # 3. By letter case — uppercase before lowercase (first before second)
+          cmp = side_order(pin_a.side) <=> side_order(pin_b.side)
+          return cmp unless cmp == 0
+
+          # 4. By state modifier — `-` before `+` before none
+          cmp = state_order(pin_a.state) <=> state_order(pin_b.state)
+          return cmp unless cmp == 0
+
+          # 5. By terminal marker — absent before present
+          cmp = terminal_order(pin_a.terminal?) <=> terminal_order(pin_b.terminal?)
+          return cmp unless cmp == 0
+
+          # 6. By derivation marker — absent before present
+          derived_order(piece_a.derived?) <=> derived_order(piece_b.derived?)
+        end
+
+        # Returns sort order for side.
+        #
+        # @param side [Symbol] :first or :second
+        # @return [Integer] 0 for first (uppercase), 1 for second (lowercase)
+        def side_order(side)
+          side == :first ? 0 : 1
+        end
+
+        # Returns sort order for state modifier.
+        #
+        # @param state [Symbol] :diminished, :enhanced, or :normal
+        # @return [Integer] 0 for diminished, 1 for enhanced, 2 for normal
+        def state_order(state)
+          case state
+          when :diminished then 0
+          when :enhanced then 1
+          else 2
+          end
+        end
+
+        # Returns sort order for terminal marker.
+        #
+        # @param terminal [Boolean] Terminal status
+        # @return [Integer] 0 for absent, 1 for present
+        def terminal_order(terminal)
+          terminal ? 1 : 0
+        end
+
+        # Returns sort order for derivation marker.
+        #
+        # @param derived [Boolean] Derived status
+        # @return [Integer] 0 for absent, 1 for present
+        def derived_order(derived)
+          derived ? 1 : 0
+        end
 
         # Converts a hand item to its string representation.
         #

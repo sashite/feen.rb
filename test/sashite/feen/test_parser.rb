@@ -164,8 +164,9 @@ end
 puts
 puts "Valid inputs - complex hands:"
 
-run_test("parses position with multiple piece types in hands") do
-  input = "8/8/8/8/8/8/8/8 2P3BRN/2pq C/c"
+run_test("parses position with multiple piece types in hands (canonical order)") do
+  # Canonical order: 3B (count 3) before 2P (count 2) before N and R (count 1, alpha order)
+  input = "8/8/8/8/8/8/8/8 3B2PNR/2pq C/c"
   result = Sashite::Feen::Parser.parse(input)
   raise "first hand wrong size" unless result[:hands][:first].size == 4
   raise "second hand wrong size" unless result[:hands][:second].size == 2
@@ -193,7 +194,7 @@ run_test("returns true for valid FEEN strings") do
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c",
     "K P/ C/c",
     "K /p C/c",
-    "K 2P3B/n C/c"
+    "K 3B2PN/n C/c"  # canonical order: 3B, 2P, N
   ]
   valid_inputs.each do |input|
     raise "#{input} should be valid" unless Sashite::Feen::Parser.valid?(input)
@@ -252,6 +253,69 @@ run_test("raises on input exceeding max length") do
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
   raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::INPUT_TOO_LONG
+end
+
+# ============================================================================
+# ERROR CASES - LINE BREAKS (EXPLICIT VALIDATION)
+# ============================================================================
+
+puts
+puts "Error cases - line breaks:"
+
+run_test("raises CONTAINS_LINE_BREAKS on newline at end") do
+  Sashite::Feen::Parser.parse("K / C/c\n")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on newline at start") do
+  Sashite::Feen::Parser.parse("\nK / C/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on newline in piece placement") do
+  Sashite::Feen::Parser.parse("K\n8 / C/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on newline in hands") do
+  Sashite::Feen::Parser.parse("K P\n/ C/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on newline in style-turn") do
+  Sashite::Feen::Parser.parse("K / C\n/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on carriage return") do
+  Sashite::Feen::Parser.parse("K / C/c\r")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on CRLF") do
+  Sashite::Feen::Parser.parse("K / C/c\r\n")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+end
+
+run_test("raises CONTAINS_LINE_BREAKS on multiple newlines") do
+  Sashite::Feen::Parser.parse("K\n/\n8 / C/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message: #{e.message}" unless e.message == Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS
 end
 
 # ============================================================================
@@ -353,31 +417,17 @@ rescue Sashite::Feen::Errors::Argument => e
 end
 
 # ============================================================================
-# SECURITY TESTS - CONTROL CHARACTERS
+# SECURITY TESTS - CONTROL CHARACTERS (OTHER THAN LINE BREAKS)
 # ============================================================================
 
 puts
-puts "Security - control characters:"
-
-run_test("rejects newline in input") do
-  Sashite::Feen::Parser.parse("K / C/c\n")
-  raise "should have raised"
-rescue StandardError
-  # Expected
-end
-
-run_test("rejects carriage return") do
-  Sashite::Feen::Parser.parse("K\r / C/c")
-  raise "should have raised"
-rescue StandardError
-  # Expected
-end
+puts "Security - control characters (other than line breaks):"
 
 run_test("rejects tab") do
   Sashite::Feen::Parser.parse("K\t/ C/c")
   raise "should have raised"
 rescue StandardError
-  # Expected
+  # Expected - tab is not a valid character
 end
 
 run_test("rejects null byte") do

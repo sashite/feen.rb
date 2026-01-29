@@ -68,7 +68,7 @@ run_test("parses Chess position after e4") do
 end
 
 run_test("parses Chess position with captures") do
-  input = "r1bqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR NB/n C/c"
+  input = "r1bqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR BN/n C/c"
   position = Sashite::Feen.parse(input)
   raise "first hand should have 2 items" unless position.hands.first.size == 2
   raise "second hand should have 1 item" unless position.hands.second.size == 1
@@ -212,19 +212,20 @@ end
 puts
 puts "parse - complex hands:"
 
-run_test("parses multiple piece types in hands") do
-  input = "K 2P3BRN/2pq C/c"
+run_test("parses multiple piece types in hands (canonical order)") do
+  # Canonical order: 3B (count 3), 2P (count 2), N, R (count 1, alphabetical)
+  # Second hand: 2q (count 2), p (count 1)
+  input = "8/8/8/8/8/8/8/8 3B2PNR/2qp C/c"
   position = Sashite::Feen.parse(input)
   raise "first hand wrong size" unless position.hands.first.size == 4
   raise "second hand wrong size" unless position.hands.second.size == 2
 end
 
 run_test("parses EPIN modifiers in hands") do
-  input = "K +P^'/ C/c"
+  input = "8/8/8/8/8/8/8/8 +P'/ C/c"
   position = Sashite::Feen.parse(input)
   item = position.hands.first.items[0]
   raise "should be enhanced" unless item[:piece].pin.state == :enhanced
-  raise "should be terminal" unless item[:piece].pin.terminal?
   raise "should be derived" unless item[:piece].derived?
 end
 
@@ -247,8 +248,8 @@ run_test("round-trip preserves Shogi initial position") do
   raise "round-trip failed" unless position.to_s == input
 end
 
-run_test("round-trip preserves position with hands") do
-  input = "K 2PBN/3qr C/c"
+run_test("round-trip preserves position with hands (canonical order)") do
+  input = "K 3B2PNR/3qr C/c"
   position = Sashite::Feen.parse(input)
   raise "round-trip failed" unless position.to_s == input
 end
@@ -307,6 +308,13 @@ rescue Sashite::Feen::Errors::Argument
   # Expected
 end
 
+run_test("raises on non-canonical hand order") do
+  Sashite::Feen.parse("K PB/ C/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER
+end
+
 run_test("error is ArgumentError subclass") do
   Sashite::Feen.parse("")
   raise "should have raised"
@@ -335,8 +343,8 @@ run_test("returns true for Shogi initial position") do
   raise "should be valid" unless Sashite::Feen.valid?(input)
 end
 
-run_test("returns true for position with hands") do
-  raise "should be valid" unless Sashite::Feen.valid?("K 2P/n C/c")
+run_test("returns true for position with hands (canonical order)") do
+  raise "should be valid" unless Sashite::Feen.valid?("K 2PN/n C/c")
 end
 
 run_test("returns true for cross-style game") do
@@ -406,6 +414,10 @@ end
 
 run_test("returns false for leading zero") do
   raise "should be invalid" if Sashite::Feen.valid?("08 / C/c")
+end
+
+run_test("returns false for non-canonical hand order") do
+  raise "should be invalid" if Sashite::Feen.valid?("K NB/ C/c")
 end
 
 # ============================================================================

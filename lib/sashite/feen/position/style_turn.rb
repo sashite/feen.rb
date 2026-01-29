@@ -9,6 +9,8 @@ module Sashite
       #
       # Encapsulates player styles and active player information.
       #
+      # @api public
+      #
       # @example
       #   st = StyleTurn.new(active: <Sin C>, inactive: <Sin c>)
       #   st.first_to_move?  # => true

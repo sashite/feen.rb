@@ -38,9 +38,11 @@ module Sashite
   #   Sashite::Feen.valid?("invalid")  # => false
   #
   # @see https://sashite.dev/specs/feen/1.0.0/
+  # @api public
   module Feen
     # Parses a FEEN string into a Position.
     #
+    # @api public
     # @param string [String] The FEEN string to parse
     # @return [Position] A new Position instance
     # @raise [Errors::Argument] If the string is not a valid FEEN
@@ -58,6 +60,7 @@ module Sashite
 
     # Checks if a string is a valid FEEN notation.
     #
+    # @api public
     # @param string [String] The string to validate
     # @return [Boolean] true if valid, false otherwise
     #

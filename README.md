@@ -161,20 +161,27 @@ position = Sashite::Feen.parse(feen_1d)
 
 ## API Reference
 
-### Types
+### Module Methods
+```ruby
+# Parses a FEEN string into a Position.
+# Raises ArgumentError if the string is not valid.
+#
+# @param string [String] FEEN string
+# @return [Position]
+# @raise [ArgumentError] if invalid
+def Sashite::Feen.parse(string)
 
+# Reports whether string is a valid FEEN position.
+#
+# @param string [String] FEEN string
+# @return [Boolean]
+def Sashite::Feen.valid?(string)
+```
+
+### Position
 ```ruby
 # Position represents a complete FEEN position with all three fields.
 class Sashite::Feen::Position
-  # Creates a Position from its three components.
-  # Raises ArgumentError if any component is invalid.
-  #
-  # @param piece_placement [PiecePlacement] Board occupancy
-  # @param hands [Hands] Off-board pieces
-  # @param style_turn [StyleTurn] Styles and active player
-  # @return [Position]
-  def initialize(piece_placement:, hands:, style_turn:)
-
   # Returns the piece placement component.
   #
   # @return [PiecePlacement]
@@ -197,26 +204,122 @@ class Sashite::Feen::Position
 end
 ```
 
-### Parsing
-
+### PiecePlacement
 ```ruby
-# Parses a FEEN string into a Position.
-# Raises ArgumentError if the string is not valid.
-#
-# @param string [String] FEEN string
-# @return [Position]
-# @raise [ArgumentError] if invalid
-def Sashite::Feen.parse(string)
+# PiecePlacement represents board occupancy (Field 1).
+class Sashite::Feen::Position::PiecePlacement
+  # Returns the segments (ranks/layers).
+  # Each segment is an Array of Integer (empty count) or Epin::Identifier (piece).
+  #
+  # @return [Array<Array>]
+  def segments
+
+  # Returns the separator strings between segments.
+  #
+  # @return [Array<String>]
+  def separators
+
+  # Iterates over each segment.
+  #
+  # @yieldparam segment [Array] A segment of placement tokens
+  # @return [Enumerator, self]
+  def each_segment
+
+  # Returns all tokens as a flat array.
+  #
+  # @return [Array]
+  def to_a
+
+  # Returns the canonical string representation.
+  #
+  # @return [String]
+  def to_s
+end
 ```
 
-### Validation
-
+### Hands
 ```ruby
-# Reports whether string is a valid FEEN position.
-#
-# @param string [String] FEEN string
-# @return [Boolean]
-def Sashite::Feen.valid?(string)
+# Hands represents off-board pieces (Field 2).
+class Sashite::Feen::Position::Hands
+  # Returns the first player's hand.
+  #
+  # @return [Hand]
+  def first
+
+  # Returns the second player's hand.
+  #
+  # @return [Hand]
+  def second
+
+  # Returns the canonical string representation.
+  #
+  # @return [String]
+  def to_s
+end
+```
+
+### Hand
+```ruby
+# Hand represents a single player's hand.
+class Sashite::Feen::Position::Hand
+  # Returns the hand items.
+  # Each item is a Hash with :piece (Epin::Identifier) and :count (Integer).
+  #
+  # @return [Array<Hash>]
+  def items
+
+  # Returns true if the hand is empty.
+  #
+  # @return [Boolean]
+  def empty?
+
+  # Returns the number of distinct piece types.
+  #
+  # @return [Integer]
+  def size
+
+  # Iterates over each hand item.
+  #
+  # @yieldparam item [Hash] A hand item with :piece and :count
+  # @return [Enumerator, self]
+  def each
+
+  # Returns the canonical string representation.
+  #
+  # @return [String]
+  def to_s
+end
+```
+
+### StyleTurn
+```ruby
+# StyleTurn represents player styles and active player (Field 3).
+class Sashite::Feen::Position::StyleTurn
+  # Returns the active player's style.
+  #
+  # @return [Sashite::Sin::Identifier]
+  def active_style
+
+  # Returns the inactive player's style.
+  #
+  # @return [Sashite::Sin::Identifier]
+  def inactive_style
+
+  # Returns true if first player is to move.
+  #
+  # @return [Boolean]
+  def first_to_move?
+
+  # Returns true if second player is to move.
+  #
+  # @return [Boolean]
+  def second_to_move?
+
+  # Returns the canonical string representation.
+  #
+  # @return [String]
+  def to_s
+end
 ```
 
 ### Errors
@@ -227,14 +330,15 @@ All parsing and validation errors raise `ArgumentError` with descriptive message
 |---------|-------|
 | `"empty input"` | String length is 0 |
 | `"input too long"` | String exceeds 4096 characters |
+| `"input contains line breaks"` | Input contains `\r` or `\n` |
 | `"invalid field count"` | Not exactly 3 space-separated fields |
 | `"piece placement starts with separator"` | Field 1 starts with `/` |
 | `"piece placement ends with separator"` | Field 1 ends with `/` |
 | `"invalid empty count"` | Zero or leading zeros in empty count |
-| `"invalid EPIN token"` | Piece token failed EPIN validation |
 | `"invalid hands delimiter"` | Field 2 missing `/` delimiter |
 | `"invalid hand count"` | Count is 0, 1, or has leading zeros |
-| `"invalid SIN token"` | Style token failed SIN validation |
+| `"hand items are not in canonical order"` | Hand items not in canonical order |
+| `"invalid style-turn delimiter"` | Field 3 missing `/` delimiter |
 | `"style tokens must have opposite case"` | Both styles same case |
 
 ## Design Principles

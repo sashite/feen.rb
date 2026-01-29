@@ -36,6 +36,10 @@ run_test("INVALID_FIELD_COUNT is defined") do
   raise "wrong value" unless Sashite::Feen::Errors::Argument::Messages::INVALID_FIELD_COUNT == "invalid field count"
 end
 
+run_test("CONTAINS_LINE_BREAKS is defined") do
+  raise "wrong value" unless Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS == "input contains line breaks"
+end
+
 # ============================================================================
 # PIECE PLACEMENT ERROR MESSAGES (FIELD 1)
 # ============================================================================
@@ -68,6 +72,10 @@ end
 
 run_test("INVALID_HAND_COUNT is defined") do
   raise "wrong value" unless Sashite::Feen::Errors::Argument::Messages::INVALID_HAND_COUNT == "invalid hand count"
+end
+
+run_test("NON_CANONICAL_HAND_ORDER is defined") do
+  raise "wrong value" unless Sashite::Feen::Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER == "hand items are not in canonical order"
 end
 
 # ============================================================================
@@ -127,6 +135,10 @@ run_test("INVALID_FIELD_COUNT is frozen") do
   raise "should be frozen" unless Sashite::Feen::Errors::Argument::Messages::INVALID_FIELD_COUNT.frozen?
 end
 
+run_test("CONTAINS_LINE_BREAKS is frozen") do
+  raise "should be frozen" unless Sashite::Feen::Errors::Argument::Messages::CONTAINS_LINE_BREAKS.frozen?
+end
+
 run_test("PIECE_PLACEMENT_STARTS_WITH_SEPARATOR is frozen") do
   raise "should be frozen" unless Sashite::Feen::Errors::Argument::Messages::PIECE_PLACEMENT_STARTS_WITH_SEPARATOR.frozen?
 end
@@ -145,6 +157,10 @@ end
 
 run_test("INVALID_HAND_COUNT is frozen") do
   raise "should be frozen" unless Sashite::Feen::Errors::Argument::Messages::INVALID_HAND_COUNT.frozen?
+end
+
+run_test("NON_CANONICAL_HAND_ORDER is frozen") do
+  raise "should be frozen" unless Sashite::Feen::Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER.frozen?
 end
 
 run_test("INVALID_STYLE_TURN_DELIMITER is frozen") do

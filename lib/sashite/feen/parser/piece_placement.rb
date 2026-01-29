@@ -17,6 +17,8 @@ module Sashite
       # - Empty-count token: a base-10 integer (≥ 1, no leading zeros)
       # - Piece token: a valid EPIN token
       #
+      # @api private
+      #
       # @example
       #   PiecePlacement.parse("8")
       #   # => { segments: [[8]], separators: [] }

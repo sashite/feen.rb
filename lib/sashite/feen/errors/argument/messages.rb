@@ -9,6 +9,8 @@ module Sashite
         # EPIN-related errors (invalid piece tokens) and SIN-related errors
         # (invalid style tokens) are propagated from their respective dependencies.
         #
+        # @api private
+        #
         # @example
         #   raise Errors::Argument, Messages::EMPTY_INPUT
         module Messages
@@ -19,6 +21,7 @@ module Sashite
           EMPTY_INPUT = "empty input"
           INPUT_TOO_LONG = "input too long"
           INVALID_FIELD_COUNT = "invalid field count"
+          CONTAINS_LINE_BREAKS = "input contains line breaks"
 
           # =================================================================
           # Piece Placement errors (Field 1)
@@ -34,6 +37,7 @@ module Sashite
 
           INVALID_HANDS_DELIMITER = "invalid hands delimiter"
           INVALID_HAND_COUNT = "invalid hand count"
+          NON_CANONICAL_HAND_ORDER = "hand items are not in canonical order"
 
           # =================================================================
           # Style-Turn errors (Field 3)

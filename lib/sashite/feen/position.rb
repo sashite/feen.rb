@@ -17,6 +17,8 @@ module Sashite
     #
     # Instances are immutable (frozen after creation).
     #
+    # @api public
+    #
     # @example Creating a position
     #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
     #   position.to_s  # => "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s"

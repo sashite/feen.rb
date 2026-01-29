@@ -7,6 +7,8 @@ module Sashite
     module Errors
       # Error raised when FEEN parsing or validation fails.
       #
+      # @api private
+      #
       # @example
       #   raise Argument, Argument::Messages::EMPTY_INPUT
       class Argument < ::ArgumentError

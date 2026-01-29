@@ -6,9 +6,11 @@ module Sashite
     #
     # FEEN encodes board positions using three space-separated fields:
     # Piece Placement, Hands, and Style-Turn.
+    #
+    # @api private
     module Constants
       # Maximum allowed string length for a FEEN string.
-      MAX_STRING_LENGTH = 4096
+      MAX_STRING_LENGTH = 4_096
 
       # Maximum number of board dimensions supported.
       MAX_DIMENSIONS = 3

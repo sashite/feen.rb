@@ -28,6 +28,8 @@ module Sashite
       # - Left of `/`: Active Player
       # - Right of `/`: Inactive Player
       #
+      # @api private
+      #
       # @example
       #   StyleTurn.parse("C/c")
       #   # => { active: <Sin::Identifier C>, inactive: <Sin::Identifier c> }

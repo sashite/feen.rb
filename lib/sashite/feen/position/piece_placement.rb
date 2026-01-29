@@ -8,6 +8,8 @@ module Sashite
       # Encapsulates board occupancy as segments of placement tokens
       # with preserved separator groups for multi-dimensional boards.
       #
+      # @api public
+      #
       # @example
       #   pp = PiecePlacement.new(
       #     segments: [[<Epin r>, 2, <Epin k>], [8]],

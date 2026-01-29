@@ -17,12 +17,18 @@ module Sashite
     # This parser validates the overall structure and delegates field-specific
     # parsing to specialized sub-parsers.
     #
+    # @api private
+    #
     # @example
     #   Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
     #   # => { piece_placement: {...}, hands: {...}, style_turn: {...} }
     #
     # @see https://sashite.dev/specs/feen/1.0.0/
     module Parser
+      # ASCII byte values for line break characters.
+      LINE_FEED = 0x0A
+      CARRIAGE_RETURN = 0x0D
+
       # Parses a FEEN string into its components.
       #
       # @param input [String] The FEEN string to parse
@@ -66,9 +72,23 @@ module Sashite
         def validate_input!(input)
           raise Errors::Argument, Errors::Argument::Messages::EMPTY_INPUT if input.empty?
 
-          return unless input.bytesize > Constants::MAX_STRING_LENGTH
+          if input.bytesize > Constants::MAX_STRING_LENGTH
+            raise Errors::Argument, Errors::Argument::Messages::INPUT_TOO_LONG
+          end
 
-          raise Errors::Argument, Errors::Argument::Messages::INPUT_TOO_LONG
+          validate_no_line_breaks!(input)
+        end
+
+        # Validates that the input contains no line break characters.
+        #
+        # @param input [String] The input to validate
+        # @raise [Errors::Argument] If input contains line breaks
+        def validate_no_line_breaks!(input)
+          input.each_byte do |byte|
+            if byte == LINE_FEED || byte == CARRIAGE_RETURN
+              raise Errors::Argument, Errors::Argument::Messages::CONTAINS_LINE_BREAKS
+            end
+          end
         end
 
         # Validates that there are exactly 3 fields.

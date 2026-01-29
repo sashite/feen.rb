@@ -22,6 +22,16 @@ module Sashite
       # - <piece> is a valid EPIN token
       # - <count> is an optional multiplicity (≥ 2 if present, absent = 1)
       #
+      # Hand items MUST be in canonical order:
+      # 1. By multiplicity — descending (larger counts first)
+      # 2. By base letter — case-insensitive alphabetical order
+      # 3. By letter case — uppercase before lowercase
+      # 4. By state modifier — `-` before `+` before none
+      # 5. By terminal marker — absent before present
+      # 6. By derivation marker — absent before present
+      #
+      # @api private
+      #
       # @example
       #   Hands.parse("/")
       #   # => { first: [], second: [] }
@@ -36,15 +46,21 @@ module Sashite
         #
         # @param input [String] The Hands field string
         # @return [Hash] A hash with :first and :second keys, each containing an array of hand items
-        # @raise [Errors::Argument] If the input is not valid
+        # @raise [Errors::Argument] If the input is not valid or not in canonical order
         def self.parse(input)
           validate_delimiter!(input)
 
           first_str, second_str = input.split(Constants::SEGMENT_SEPARATOR, -1)
 
+          first_items = parse_hand(first_str)
+          second_items = parse_hand(second_str)
+
+          validate_canonical_order!(first_items)
+          validate_canonical_order!(second_items)
+
           {
-            first:  parse_hand(first_str),
-            second: parse_hand(second_str)
+            first:  first_items,
+            second: second_items
           }
         end
 
@@ -157,6 +173,111 @@ module Sashite
             piece = ::Sashite::Epin.parse(epin_str)
 
             [piece, pos]
+          end
+
+          # Validates that hand items are in canonical order.
+          #
+          # @param items [Array<Hash>] The hand items to validate
+          # @raise [Errors::Argument] If items are not in canonical order
+          def validate_canonical_order!(items)
+            return if items.size <= 1
+
+            items.each_cons(2) do |item_a, item_b|
+              comparison = compare_hand_items(item_a, item_b)
+
+              if comparison > 0
+                raise Errors::Argument, Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER
+              end
+
+              # Identical items should have been aggregated
+              if comparison == 0
+                raise Errors::Argument, Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER
+              end
+            end
+          end
+
+          # Compares two hand items according to canonical ordering rules.
+          #
+          # Returns negative if a < b, zero if a == b, positive if a > b.
+          #
+          # Ordering rules:
+          # 1. By multiplicity — descending (larger counts first)
+          # 2. By base letter — case-insensitive alphabetical order
+          # 3. By letter case — uppercase before lowercase
+          # 4. By state modifier — `-` before `+` before none
+          # 5. By terminal marker — absent before present
+          # 6. By derivation marker — absent before present
+          #
+          # @param item_a [Hash] First hand item
+          # @param item_b [Hash] Second hand item
+          # @return [Integer] Comparison result
+          def compare_hand_items(item_a, item_b)
+            # 1. By multiplicity — descending
+            cmp = item_b[:count] <=> item_a[:count]
+            return cmp unless cmp == 0
+
+            piece_a = item_a[:piece]
+            piece_b = item_b[:piece]
+            pin_a = piece_a.pin
+            pin_b = piece_b.pin
+
+            # 2. By base letter — case-insensitive alphabetical
+            cmp = pin_a.abbr.to_s <=> pin_b.abbr.to_s
+            return cmp unless cmp == 0
+
+            # 3. By letter case — uppercase before lowercase (first before second)
+            cmp = side_order(pin_a.side) <=> side_order(pin_b.side)
+            return cmp unless cmp == 0
+
+            # 4. By state modifier — `-` before `+` before none
+            cmp = state_order(pin_a.state) <=> state_order(pin_b.state)
+            return cmp unless cmp == 0
+
+            # 5. By terminal marker — absent before present
+            cmp = terminal_order(pin_a.terminal?) <=> terminal_order(pin_b.terminal?)
+            return cmp unless cmp == 0
+
+            # 6. By derivation marker — absent before present
+            derived_order(piece_a.derived?) <=> derived_order(piece_b.derived?)
+          end
+
+          # Returns sort order for side (uppercase/first = 0, lowercase/second = 1).
+          #
+          # @param side [Symbol] :first or :second
+          # @return [Integer] Sort order value
+          def side_order(side)
+            side == :first ? 0 : 1
+          end
+
+          # Returns sort order for state modifier.
+          # Order: diminished (-) = 0, enhanced (+) = 1, normal = 2
+          #
+          # @param state [Symbol] :diminished, :enhanced, or :normal
+          # @return [Integer] Sort order value
+          def state_order(state)
+            case state
+            when :diminished then 0
+            when :enhanced then 1
+            else 2
+            end
+          end
+
+          # Returns sort order for terminal marker.
+          # Order: absent = 0, present = 1
+          #
+          # @param terminal [Boolean] Terminal status
+          # @return [Integer] Sort order value
+          def terminal_order(terminal)
+            terminal ? 1 : 0
+          end
+
+          # Returns sort order for derivation marker.
+          # Order: absent = 0, present = 1
+          #
+          # @param derived [Boolean] Derived status
+          # @return [Integer] Sort order value
+          def derived_order(derived)
+            derived ? 1 : 0
           end
 
           # Checks if byte is an ASCII digit (0-9).

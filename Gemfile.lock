@@ -8,8 +8,6 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    byebug (13.0.0)
-      reline (>= 0.6.0)
     date (3.5.1)
     docile (1.4.1)
     erb (6.0.1)
@@ -18,7 +16,6 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    openssl (4.0.0)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -51,12 +48,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bundler
-  byebug
   irb
-  openssl
   rake
-  rdoc
   sashite-feen!
   simplecov
   yard

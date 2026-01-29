@@ -1,20 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require_relative "../../helper"
 require_relative "../../../lib/sashite/feen/position"
+
 require "sashite/epin"
 require "sashite/sin"
-
-# Helper function to run a test and report errors
-def run_test(name)
-  print "  #{name}... "
-  yield
-  puts "✓"
-rescue StandardError => e
-  warn "✗ Failure: #{e.message}"
-  warn "    #{e.backtrace.first}"
-  exit(1)
-end unless defined?(run_test)
 
 puts
 puts "=== Position Tests ==="

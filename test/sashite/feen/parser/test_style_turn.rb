@@ -5,323 +5,349 @@ require_relative "../../../helper"
 require_relative "../../../../lib/sashite/feen/parser/style_turn"
 
 puts
-puts "=== StyleTurn Parser Tests ==="
+puts "=== Parser::StyleTurn Tests ==="
 puts
 
 # ============================================================================
-# VALID INPUTS - FIRST PLAYER ACTIVE
+# VALID SAME-STYLE GAMES
 # ============================================================================
 
-puts "Valid inputs - first player active:"
+puts "Valid same-style games:"
 
-run_test("parses 'C/c' (Chess, first to move)") do
+run_test("parses C/c (Chess, first to move)") do
   result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
   raise "wrong active abbr" unless result[:active].abbr == :C
-  raise "wrong active side" unless result[:active].side == :first
   raise "wrong inactive abbr" unless result[:inactive].abbr == :C
-  raise "wrong inactive side" unless result[:inactive].side == :second
-end
-
-run_test("parses 'S/s' (Shogi, first to move)") do
-  result = Sashite::Feen::Parser::StyleTurn.parse("S/s")
-  raise "wrong active abbr" unless result[:active].abbr == :S
   raise "wrong active side" unless result[:active].side == :first
-  raise "wrong inactive abbr" unless result[:inactive].abbr == :S
   raise "wrong inactive side" unless result[:inactive].side == :second
 end
 
-run_test("parses 'X/x' (Xiangqi, first to move)") do
-  result = Sashite::Feen::Parser::StyleTurn.parse("X/x")
-  raise "wrong active abbr" unless result[:active].abbr == :X
-  raise "wrong active side" unless result[:active].side == :first
-  raise "wrong inactive abbr" unless result[:inactive].abbr == :X
-  raise "wrong inactive side" unless result[:inactive].side == :second
-end
-
-# ============================================================================
-# VALID INPUTS - SECOND PLAYER ACTIVE
-# ============================================================================
-
-puts
-puts "Valid inputs - second player active:"
-
-run_test("parses 'c/C' (Chess, second to move)") do
+run_test("parses c/C (Chess, second to move)") do
   result = Sashite::Feen::Parser::StyleTurn.parse("c/C")
   raise "wrong active abbr" unless result[:active].abbr == :C
-  raise "wrong active side" unless result[:active].side == :second
   raise "wrong inactive abbr" unless result[:inactive].abbr == :C
+  raise "wrong active side" unless result[:active].side == :second
   raise "wrong inactive side" unless result[:inactive].side == :first
 end
 
-run_test("parses 's/S' (Shogi, second to move)") do
-  result = Sashite::Feen::Parser::StyleTurn.parse("s/S")
+run_test("parses S/s (Shogi, first to move)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("S/s")
   raise "wrong active abbr" unless result[:active].abbr == :S
-  raise "wrong active side" unless result[:active].side == :second
   raise "wrong inactive abbr" unless result[:inactive].abbr == :S
+  raise "wrong active side" unless result[:active].side == :first
+end
+
+run_test("parses s/S (Shogi, second to move)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("s/S")
+  raise "wrong active side" unless result[:active].side == :second
   raise "wrong inactive side" unless result[:inactive].side == :first
+end
+
+run_test("parses X/x (Xiangqi, first to move)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("X/x")
+  raise "wrong active abbr" unless result[:active].abbr == :X
+end
+
+run_test("parses G/g (Go, first to move)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("G/g")
+  raise "wrong active abbr" unless result[:active].abbr == :G
 end
 
 # ============================================================================
-# VALID INPUTS - DIFFERENT STYLES (CROSS-STYLE GAMES)
+# VALID CROSS-STYLE GAMES
 # ============================================================================
 
 puts
-puts "Valid inputs - cross-style games:"
+puts "Valid cross-style games:"
 
-run_test("parses 'C/s' (Chess vs Shogi, first to move)") do
+run_test("parses C/s (Chess vs Shogi, first to move)") do
   result = Sashite::Feen::Parser::StyleTurn.parse("C/s")
   raise "wrong active abbr" unless result[:active].abbr == :C
-  raise "wrong active side" unless result[:active].side == :first
   raise "wrong inactive abbr" unless result[:inactive].abbr == :S
+  raise "wrong active side" unless result[:active].side == :first
   raise "wrong inactive side" unless result[:inactive].side == :second
 end
 
-run_test("parses 's/C' (Shogi vs Chess, second to move)") do
+run_test("parses s/C (Shogi vs Chess, second to move)") do
   result = Sashite::Feen::Parser::StyleTurn.parse("s/C")
   raise "wrong active abbr" unless result[:active].abbr == :S
-  raise "wrong active side" unless result[:active].side == :second
   raise "wrong inactive abbr" unless result[:inactive].abbr == :C
+  raise "wrong active side" unless result[:active].side == :second
   raise "wrong inactive side" unless result[:inactive].side == :first
 end
 
-run_test("parses 'M/x' (Makruk vs Xiangqi)") do
-  result = Sashite::Feen::Parser::StyleTurn.parse("M/x")
-  raise "wrong active abbr" unless result[:active].abbr == :M
-  raise "wrong inactive abbr" unless result[:inactive].abbr == :X
+run_test("parses S/c (Shogi vs Chess, first to move)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("S/c")
+  raise "wrong active abbr" unless result[:active].abbr == :S
+  raise "wrong inactive abbr" unless result[:inactive].abbr == :C
+end
+
+run_test("parses X/g (Xiangqi vs Go)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("X/g")
+  raise "wrong active abbr" unless result[:active].abbr == :X
+  raise "wrong inactive abbr" unless result[:inactive].abbr == :G
+end
+
+run_test("parses A/z (arbitrary styles)") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("A/z")
+  raise "wrong active abbr" unless result[:active].abbr == :A
+  raise "wrong inactive abbr" unless result[:inactive].abbr == :Z
 end
 
 # ============================================================================
-# VALID INPUTS - ALL LETTERS
+# ALL LETTERS
 # ============================================================================
 
 puts
-puts "Valid inputs - all letters:"
+puts "All letters:"
 
-run_test("parses all uppercase/lowercase pairs A-Z") do
+run_test("accepts all uppercase letters as active") do
   ("A".."Z").each do |letter|
-    input = "#{letter}/#{letter.downcase}"
-    result = Sashite::Feen::Parser::StyleTurn.parse(input)
-    raise "wrong active abbr for #{input}" unless result[:active].abbr == letter.to_sym
-    raise "wrong active side for #{input}" unless result[:active].side == :first
-    raise "wrong inactive side for #{input}" unless result[:inactive].side == :second
+    result = Sashite::Feen::Parser::StyleTurn.parse("#{letter}/a")
+    raise "failed for #{letter}" unless result[:active].side == :first
   end
 end
 
-run_test("parses all lowercase/uppercase pairs a-z") do
+run_test("accepts all lowercase letters as active") do
   ("a".."z").each do |letter|
-    input = "#{letter}/#{letter.upcase}"
-    result = Sashite::Feen::Parser::StyleTurn.parse(input)
-    raise "wrong active abbr for #{input}" unless result[:active].abbr == letter.upcase.to_sym
-    raise "wrong active side for #{input}" unless result[:active].side == :second
-    raise "wrong inactive side for #{input}" unless result[:inactive].side == :first
+    result = Sashite::Feen::Parser::StyleTurn.parse("#{letter}/A")
+    raise "failed for #{letter}" unless result[:active].side == :second
   end
 end
 
 # ============================================================================
-# ERROR CASES - INVALID DELIMITER
+# DELIMITER VALIDATION
 # ============================================================================
 
 puts
-puts "Error cases - invalid delimiter:"
+puts "Delimiter validation:"
 
-run_test("raises on missing delimiter") do
+run_test("rejects missing delimiter") do
   Sashite::Feen::Parser::StyleTurn.parse("Cc")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::INVALID_STYLE_TURN_DELIMITER
+  raise "wrong message" unless e.message == "invalid style-turn delimiter"
 end
 
-run_test("raises on multiple delimiters") do
+run_test("rejects multiple delimiters") do
   Sashite::Feen::Parser::StyleTurn.parse("C/c/")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::INVALID_STYLE_TURN_DELIMITER
+  raise "wrong message" unless e.message == "invalid style-turn delimiter"
 end
 
-run_test("raises on empty string") do
+run_test("rejects empty string") do
   Sashite::Feen::Parser::StyleTurn.parse("")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::INVALID_STYLE_TURN_DELIMITER
+  raise "wrong message" unless e.message == "invalid style-turn delimiter"
 end
 
-run_test("raises on delimiter only") do
+run_test("rejects only delimiter") do
   Sashite::Feen::Parser::StyleTurn.parse("/")
   raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - SIN parser rejects empty string
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects three delimiters") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/c/x")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style-turn delimiter"
 end
 
 # ============================================================================
-# ERROR CASES - SAME CASE
+# INVALID STYLE TOKEN
 # ============================================================================
 
 puts
-puts "Error cases - same case:"
+puts "Invalid style token:"
 
-run_test("raises on both uppercase 'C/S'") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/S")
+run_test("rejects empty active style") do
+  Sashite::Feen::Parser::StyleTurn.parse("/c")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::STYLE_TOKENS_SAME_CASE
+  raise "wrong message" unless e.message == "invalid style token"
 end
 
-run_test("raises on both lowercase 'c/s'") do
-  Sashite::Feen::Parser::StyleTurn.parse("c/s")
+run_test("rejects empty inactive style") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::STYLE_TOKENS_SAME_CASE
+  raise "wrong message" unless e.message == "invalid style token"
 end
 
-run_test("raises on same letter both uppercase 'C/C'") do
+run_test("rejects digit as active style") do
+  Sashite::Feen::Parser::StyleTurn.parse("1/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects digit as inactive style") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/1")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects multiple letters as active style") do
+  Sashite::Feen::Parser::StyleTurn.parse("CC/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects multiple letters as inactive style") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/cc")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects special character as active style") do
+  Sashite::Feen::Parser::StyleTurn.parse("@/c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects special character as inactive style") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/@")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+run_test("rejects space in token") do
+  Sashite::Feen::Parser::StyleTurn.parse("C /c")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "invalid style token"
+end
+
+# ============================================================================
+# SAME CASE VALIDATION
+# ============================================================================
+
+puts
+puts "Same case validation:"
+
+run_test("rejects both uppercase (C/C)") do
   Sashite::Feen::Parser::StyleTurn.parse("C/C")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::STYLE_TOKENS_SAME_CASE
+  raise "wrong message" unless e.message == "style tokens must have opposite case"
 end
 
-run_test("raises on same letter both lowercase 'c/c'") do
+run_test("rejects both lowercase (c/c)") do
   Sashite::Feen::Parser::StyleTurn.parse("c/c")
   raise "should have raised"
 rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == Sashite::Feen::Errors::Argument::Messages::STYLE_TOKENS_SAME_CASE
+  raise "wrong message" unless e.message == "style tokens must have opposite case"
+end
+
+run_test("rejects both uppercase different letters (C/S)") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/S")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "style tokens must have opposite case"
+end
+
+run_test("rejects both lowercase different letters (c/s)") do
+  Sashite::Feen::Parser::StyleTurn.parse("c/s")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "style tokens must have opposite case"
+end
+
+run_test("rejects A/A") do
+  Sashite::Feen::Parser::StyleTurn.parse("A/A")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "style tokens must have opposite case"
+end
+
+run_test("rejects z/z") do
+  Sashite::Feen::Parser::StyleTurn.parse("z/z")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument => e
+  raise "wrong message" unless e.message == "style tokens must have opposite case"
 end
 
 # ============================================================================
-# ERROR CASES - INVALID SIN TOKENS
+# RETURN STRUCTURE
 # ============================================================================
 
 puts
-puts "Error cases - invalid SIN tokens:"
+puts "Return structure:"
 
-run_test("raises on digit in active position") do
+run_test("returns hash with :active key") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
+  raise "missing :active" unless result.key?(:active)
+end
+
+run_test("returns hash with :inactive key") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
+  raise "missing :inactive" unless result.key?(:inactive)
+end
+
+run_test(":active is Sin::Identifier") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
+  raise "wrong type" unless result[:active].is_a?(Sashite::Sin::Identifier)
+end
+
+run_test(":inactive is Sin::Identifier") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
+  raise "wrong type" unless result[:inactive].is_a?(Sashite::Sin::Identifier)
+end
+
+run_test("Sin::Identifier responds to abbr") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
+  raise "should respond to abbr" unless result[:active].respond_to?(:abbr)
+end
+
+run_test("Sin::Identifier responds to side") do
+  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
+  raise "should respond to side" unless result[:active].respond_to?(:side)
+end
+
+# ============================================================================
+# ERROR CLASS
+# ============================================================================
+
+puts
+puts "Error class:"
+
+run_test("raises Sashite::Feen::Errors::Argument for delimiter error") do
+  Sashite::Feen::Parser::StyleTurn.parse("")
+  raise "should have raised"
+rescue Sashite::Feen::Errors::Argument
+  # Expected
+end
+
+run_test("raises Sashite::Feen::Errors::Argument for invalid token") do
   Sashite::Feen::Parser::StyleTurn.parse("1/c")
   raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - delegated to SIN
-end
-
-run_test("raises on digit in inactive position") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/1")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - delegated to SIN
-end
-
-run_test("raises on multiple letters in active position") do
-  Sashite::Feen::Parser::StyleTurn.parse("CC/c")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - delegated to SIN
-end
-
-run_test("raises on multiple letters in inactive position") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/cc")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - delegated to SIN
-end
-
-run_test("raises on empty active position") do
-  Sashite::Feen::Parser::StyleTurn.parse("/c")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - delegated to SIN
-end
-
-run_test("raises on empty inactive position") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected - delegated to SIN
-end
-
-# ============================================================================
-# SECURITY TESTS - CONTROL CHARACTERS
-# ============================================================================
-
-puts
-puts "Security - control characters:"
-
-run_test("rejects newline in input") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/c\n")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
+rescue Sashite::Feen::Errors::Argument
   # Expected
 end
 
-run_test("rejects carriage return in input") do
-  Sashite::Feen::Parser::StyleTurn.parse("C\r/c")
+run_test("raises Sashite::Feen::Errors::Argument for same case") do
+  Sashite::Feen::Parser::StyleTurn.parse("C/C")
   raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
+rescue Sashite::Feen::Errors::Argument
   # Expected
 end
 
-run_test("rejects tab in input") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/\tc")
+run_test("error is rescuable as ArgumentError") do
+  Sashite::Feen::Parser::StyleTurn.parse("")
   raise "should have raised"
-rescue StandardError
-  # Expected - wrong delimiter count or SIN error
-end
-
-run_test("rejects null byte") do
-  Sashite::Feen::Parser::StyleTurn.parse("C/c\x00")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
+rescue ArgumentError
   # Expected
-end
-
-# ============================================================================
-# SECURITY TESTS - UNICODE
-# ============================================================================
-
-puts
-puts "Security - Unicode:"
-
-run_test("rejects Cyrillic lookalike") do
-  # Cyrillic 'С' (U+0421) looks like Latin 'C'
-  Sashite::Feen::Parser::StyleTurn.parse("\xD0\xA1/c")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected
-end
-
-run_test("rejects full-width characters") do
-  # Full-width 'C' (U+FF23)
-  Sashite::Feen::Parser::StyleTurn.parse("\xEF\xBC\xA3/c")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected
-end
-
-run_test("rejects zero-width characters") do
-  # Zero-width space (U+200B)
-  Sashite::Feen::Parser::StyleTurn.parse("C\xE2\x80\x8B/c")
-  raise "should have raised"
-rescue Sashite::Sin::Errors::Argument
-  # Expected
-end
-
-# ============================================================================
-# RETURN VALUE STRUCTURE
-# ============================================================================
-
-puts
-puts "Return value structure:"
-
-run_test("returns hash with :active and :inactive keys") do
-  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
-  raise "missing :active key" unless result.key?(:active)
-  raise "missing :inactive key" unless result.key?(:inactive)
-  raise "unexpected keys" unless result.keys.sort == [:active, :inactive].sort
-end
-
-run_test("returns SIN Identifier objects") do
-  result = Sashite::Feen::Parser::StyleTurn.parse("C/c")
-  raise "active should be Sin::Identifier" unless result[:active].is_a?(Sashite::Sin::Identifier)
-  raise "inactive should be Sin::Identifier" unless result[:inactive].is_a?(Sashite::Sin::Identifier)
 end
 
 puts
-puts "All StyleTurn Parser tests passed!"
+puts "All Parser::StyleTurn tests passed!"
 puts

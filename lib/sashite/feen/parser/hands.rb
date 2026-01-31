@@ -30,23 +30,31 @@ module Sashite
       # 5. By terminal marker — absent before present
       # 6. By derivation marker — absent before present
       #
+      # Additionally, identical EPIN tokens MUST be aggregated (not repeated).
+      #
       # @api private
       #
-      # @example
+      # @example Empty hands
       #   Hands.parse("/")
       #   # => { first: [], second: [] }
       #
+      # @example Hands with pieces
       #   Hands.parse("2P/p")
-      #   # => { first: [{ piece: <Epin::Identifier P>, count: 2 }],
-      #   #      second: [{ piece: <Epin::Identifier p>, count: 1 }] }
+      #   # => { first: [{ piece: <P>, count: 2 }], second: [{ piece: <p>, count: 1 }] }
+      #
+      # @example Complex canonical order
+      #   Hands.parse("3B2PNR/2qp")
+      #   # => { first: [{ piece: <B>, count: 3 }, { piece: <P>, count: 2 },
+      #   #              { piece: <N>, count: 1 }, { piece: <R>, count: 1 }],
+      #   #      second: [{ piece: <q>, count: 2 }, { piece: <p>, count: 1 }] }
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       module Hands
         # Parses a FEEN Hands field string.
         #
         # @param input [String] The Hands field string
-        # @return [Hash] A hash with :first and :second keys, each containing an array of hand items
-        # @raise [Errors::Argument] If the input is not valid or not in canonical order
+        # @return [Hash] A hash with :first and :second keys
+        # @raise [Errors::Argument] If the input is not valid
         def self.parse(input)
           validate_delimiter!(input)
 
@@ -55,17 +63,28 @@ module Sashite
           first_items = parse_hand(first_str)
           second_items = parse_hand(second_str)
 
+          validate_aggregation!(first_items)
+          validate_aggregation!(second_items)
           validate_canonical_order!(first_items)
           validate_canonical_order!(second_items)
 
-          {
-            first:  first_items,
-            second: second_items
-          }
+          { first: first_items, second: second_items }
         end
 
         class << self
           private
+
+          # ASCII byte constants for efficient parsing.
+          ZERO = 0x30        # '0'
+          NINE = 0x39        # '9'
+          UPPER_A = 0x41     # 'A'
+          UPPER_Z = 0x5A     # 'Z'
+          LOWER_A = 0x61     # 'a'
+          LOWER_Z = 0x7A     # 'z'
+          PLUS = 0x2B        # '+'
+          MINUS = 0x2D       # '-'
+          CARET = 0x5E       # '^'
+          APOSTROPHE = 0x27  # "'"
 
           # Validates that the input contains exactly one delimiter.
           #
@@ -90,7 +109,7 @@ module Sashite
             while pos < hand_str.bytesize
               count, pos = extract_count(hand_str, pos)
               piece, pos = extract_piece(hand_str, pos)
-              items << { piece: piece, count: count }
+              items << { piece:, count: }
             end
 
             items
@@ -107,9 +126,6 @@ module Sashite
             return [1, pos] unless digit?(byte)
 
             start_pos = pos
-            pos += 1
-
-            # Consume remaining digits
             pos += 1 while pos < str.bytesize && digit?(str.getbyte(pos))
 
             count_str = str.byteslice(start_pos, pos - start_pos)
@@ -124,14 +140,14 @@ module Sashite
           # @raise [Errors::Argument] If count is 0, 1, or has leading zeros
           def validate_count!(count_str)
             # Leading zeros are forbidden
-            if count_str.bytesize > 1 && count_str.getbyte(0) == 0x30
+            if count_str.bytesize > 1 && count_str.getbyte(0) == ZERO
               raise Errors::Argument, Errors::Argument::Messages::INVALID_HAND_COUNT
             end
 
             count = count_str.to_i
 
-            # Count must be >= 2 when explicit
-            return unless count < 2
+            # Count must be >= 2 when explicit (1 is implicit)
+            return if count >= 2
 
             raise Errors::Argument, Errors::Argument::Messages::INVALID_HAND_COUNT
           end
@@ -143,13 +159,13 @@ module Sashite
           # @param str [String] The string to extract from
           # @param pos [Integer] Starting position
           # @return [Array(Sashite::Epin::Identifier, Integer)] The parsed EPIN and new position
-          # @raise [Sashite::Epin::Errors::Argument] If EPIN parsing fails
+          # @raise [Errors::Argument] If EPIN parsing fails
           def extract_piece(str, pos)
             start_pos = pos
             byte = str.getbyte(pos)
 
             # Optional state modifier: + or -
-            if byte == 0x2B || byte == 0x2D
+            if byte == PLUS || byte == MINUS
               pos += 1
               byte = str.getbyte(pos)
             end
@@ -161,18 +177,43 @@ module Sashite
             end
 
             # Optional terminal marker: ^
-            if byte == 0x5E
+            if byte == CARET
               pos += 1
               byte = str.getbyte(pos)
             end
 
             # Optional derivation marker: '
-            pos += 1 if byte == 0x27
+            pos += 1 if byte == APOSTROPHE
 
             epin_str = str.byteslice(start_pos, pos - start_pos)
-            piece = ::Sashite::Epin.parse(epin_str)
+
+            begin
+              piece = ::Sashite::Epin.parse(epin_str)
+            rescue ::ArgumentError
+              raise Errors::Argument, Errors::Argument::Messages::INVALID_PIECE_TOKEN
+            end
 
             [piece, pos]
+          end
+
+          # Validates that identical pieces are aggregated.
+          #
+          # @param items [Array<Hash>] The hand items to validate
+          # @raise [Errors::Argument] If duplicate pieces found
+          def validate_aggregation!(items)
+            return if items.size <= 1
+
+            seen = {}
+
+            items.each do |item|
+              key = item[:piece].to_s
+
+              if seen[key]
+                raise Errors::Argument, Errors::Argument::Messages::HAND_ITEMS_NOT_AGGREGATED
+              end
+
+              seen[key] = true
+            end
           end
 
           # Validates that hand items are in canonical order.
@@ -185,13 +226,8 @@ module Sashite
             items.each_cons(2) do |item_a, item_b|
               comparison = compare_hand_items(item_a, item_b)
 
-              if comparison > 0
-                raise Errors::Argument, Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER
-              end
-
-              # Identical items should have been aggregated
-              if comparison == 0
-                raise Errors::Argument, Errors::Argument::Messages::NON_CANONICAL_HAND_ORDER
+              if comparison >= 0
+                raise Errors::Argument, Errors::Argument::Messages::HAND_ITEMS_NOT_CANONICAL
               end
             end
           end
@@ -216,13 +252,20 @@ module Sashite
             cmp = item_b[:count] <=> item_a[:count]
             return cmp unless cmp == 0
 
-            piece_a = item_a[:piece]
-            piece_b = item_b[:piece]
+            compare_pieces(item_a[:piece], item_b[:piece])
+          end
+
+          # Compares two EPIN pieces according to canonical ordering.
+          #
+          # @param piece_a [Sashite::Epin::Identifier] First piece
+          # @param piece_b [Sashite::Epin::Identifier] Second piece
+          # @return [Integer] Comparison result
+          def compare_pieces(piece_a, piece_b)
             pin_a = piece_a.pin
             pin_b = piece_b.pin
 
             # 2. By base letter — case-insensitive alphabetical
-            cmp = pin_a.abbr.to_s <=> pin_b.abbr.to_s
+            cmp = pin_a.abbr.to_s.downcase <=> pin_b.abbr.to_s.downcase
             return cmp unless cmp == 0
 
             # 3. By letter case — uppercase before lowercase (first before second)
@@ -285,7 +328,7 @@ module Sashite
           # @param byte [Integer, nil] The byte to check
           # @return [Boolean]
           def digit?(byte)
-            byte && byte >= 0x30 && byte <= 0x39
+            byte && byte >= ZERO && byte <= NINE
           end
 
           # Checks if byte is an ASCII letter (A-Z or a-z).
@@ -293,7 +336,7 @@ module Sashite
           # @param byte [Integer, nil] The byte to check
           # @return [Boolean]
           def letter?(byte)
-            byte && ((byte >= 0x41 && byte <= 0x5A) || (byte >= 0x61 && byte <= 0x7A))
+            byte && ((byte >= UPPER_A && byte <= UPPER_Z) || (byte >= LOWER_A && byte <= LOWER_Z))
           end
         end
       end

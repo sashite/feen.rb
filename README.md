@@ -52,9 +52,11 @@ require "sashite/feen"
 
 # Standard parsing (raises on error)
 position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
-position.piece_placement  # => PiecePlacement object
-position.hands            # => Hands object
-position.style_turn       # => StyleTurn object
+
+# Access components
+position.piece_placement  # => PiecePlacement
+position.hands            # => Hands
+position.style_turn       # => StyleTurn
 
 # Invalid input raises ArgumentError
 Sashite::Feen.parse("invalid")  # => raises ArgumentError
@@ -62,16 +64,16 @@ Sashite::Feen.parse("invalid")  # => raises ArgumentError
 
 ### Formatting (Position → String)
 
-Convert a `Position` back to a FEEN string.
+Convert a `Position` back to a canonical FEEN string.
 
 ```ruby
-# From Position object
-position = Sashite::Feen::Position.new(
-  piece_placement: piece_placement,
-  hands: hands,
-  style_turn: style_turn
-)
-position.to_s  # => "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s"
+# Round-trip serialization
+position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+position.to_s  # => "8/8/8/8/8/8/8/8 / C/c"
+
+# Build from components
+position = Sashite::Feen::Position.new(piece_placement, hands, style_turn)
+position.to_s  # => canonical FEEN string
 ```
 
 ### Validation
@@ -79,109 +81,83 @@ position.to_s  # => "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL
 ```ruby
 # Boolean check
 Sashite::Feen.valid?("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")  # => true
-Sashite::Feen.valid?("k^+p4+PK^ / C/c")                                                     # => true
-Sashite::Feen.valid?("invalid")                                                             # => false
-Sashite::Feen.valid?("")                                                                    # => false
+Sashite::Feen.valid?("8/8/8/8/8/8/8/8 / C/c")  # => true (empty board)
+Sashite::Feen.valid?("k^+p4+PK^ / C/c")        # => true (1D board)
+Sashite::Feen.valid?("a/b//c/d / G/g")         # => true (3D board)
+Sashite::Feen.valid?("rkr//PPPP / G/g")        # => false (dimensional coherence)
+Sashite::Feen.valid?("invalid")                # => false
 ```
 
-### Accessing Fields
+### Accessing Piece Placement
 
 ```ruby
 position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
 
-# Get piece placement
-position.piece_placement  # => PiecePlacement object
+position.piece_placement.squares_count  # => 81
+position.piece_placement.pieces_count   # => 40
+position.piece_placement.dimensions     # => 2
 
-# Get hands
-position.hands            # => Hands object
-position.hands.first      # => First player's hand
-position.hands.second     # => Second player's hand
-
-# Get style-turn
-position.style_turn                # => StyleTurn object
-position.style_turn.active_style   # => Active player's style (SIN identifier)
-position.style_turn.inactive_style # => Inactive player's style (SIN identifier)
-```
-
-### Working with Piece Placement
-
-```ruby
-position = Sashite::Feen.parse("rheag^aehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAG^AEHR / X/x")
-
-# Iterate over segments
-position.piece_placement.each_segment do |segment|
-  # Process each segment (rank)
+# Iterate over squares
+position.piece_placement.each do |square|
+  case square
+  when Integer then puts "#{square} empty squares"
+  when Sashite::Epin::Identifier then puts "Piece: #{square}"
+  end
 end
-
-# Access as array of tokens
-position.piece_placement.to_a
 ```
 
-### Working with Hands
+### Accessing Hands
 
 ```ruby
-# Parse position with pieces in hand
-position = Sashite::Feen.parse("r1bq1b1r/+p+p+p+p1k^+p+p/2n2n2/4p3/4P3/5N2/+P+P+P+P1+P+P+P/-RNBQK^2+R p/B C/c")
+position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 3P2B/3p2b C/c")
 
-# Access hands
-position.hands.first   # => First player's hand items
-position.hands.second  # => Second player's hand items
+position.hands.first.pieces_count   # => 5
+position.hands.second.pieces_count  # => 5
+position.hands.first.empty?         # => false
 
-# Check if hands are empty
-position.hands.first.empty?   # => false
-position.hands.second.empty?  # => false
+# Iterate over hand items
+position.hands.first.each do |piece, count|
+  puts "#{count}x #{piece}"
+end
 ```
 
-### Working with Style-Turn
+### Accessing Style–Turn
 
 ```ruby
-# Chess position after 1.e4 (second player to move)
-position = Sashite::Feen.parse("-rnbqk^bn-r/+p+p+p+p+p+p+p+p/8/8/4P3/8/+P+P+P+P1+P+P+P/-RNBQK^BN-R / c/C")
+position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
 
-# Get active player info
-position.style_turn.active_style    # => SIN identifier for active player
-position.style_turn.inactive_style  # => SIN identifier for inactive player
-
-# Check which side is active
-position.style_turn.first_to_move?   # => false
-position.style_turn.second_to_move?  # => true
+position.style_turn.active_style    # => Sashite::Sin::Identifier (C)
+position.style_turn.inactive_style  # => Sashite::Sin::Identifier (c)
+position.style_turn.first_to_move?  # => true
+position.style_turn.second_to_move? # => false
 ```
 
-### Multi-Dimensional Boards
+### Queries
 
 ```ruby
-# 3D Raumschach position (5×5×5)
-feen_3d = "-rnk^n-r/+p+p+p+p+p/5/5/5//buqbu/+p+p+p+p+p/5/5/5//5/5/5/5/5//5/5/5/+P+P+P+P+P/BUQBU//5/5/5/+P+P+P+P+P/-RNK^N-R / R/r"
-position = Sashite::Feen.parse(feen_3d)
+position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
 
-# 1D Chess (size 8)
-feen_1d = "k^+p4+PK^ / C/c"
-position = Sashite::Feen.parse(feen_1d)
+# Board metrics
+position.squares_count  # => 81
+position.pieces_count   # => 40
 ```
 
 ## API Reference
 
-### Module Methods
-```ruby
-# Parses a FEEN string into a Position.
-# Raises ArgumentError if the string is not valid.
-#
-# @param string [String] FEEN string
-# @return [Position]
-# @raise [ArgumentError] if invalid
-def Sashite::Feen.parse(string)
+### Types
 
-# Reports whether string is a valid FEEN position.
-#
-# @param string [String] FEEN string
-# @return [Boolean]
-def Sashite::Feen.valid?(string)
-```
-
-### Position
 ```ruby
-# Position represents a complete FEEN position with all three fields.
+# Position represents a complete FEEN position.
 class Sashite::Feen::Position
+  # Creates a Position from its three components.
+  # Raises ArgumentError if components are invalid.
+  #
+  # @param piece_placement [PiecePlacement] Board structure and occupancy
+  # @param hands [Hands] Off-board pieces
+  # @param style_turn [StyleTurn] Player styles and active player
+  # @return [Position]
+  def initialize(piece_placement, hands, style_turn)
+
   # Returns the piece placement component.
   #
   # @return [PiecePlacement]
@@ -197,38 +173,46 @@ class Sashite::Feen::Position
   # @return [StyleTurn]
   def style_turn
 
-  # Returns the canonical FEEN string representation.
+  # Returns the total number of squares on the board.
+  #
+  # @return [Integer]
+  def squares_count
+
+  # Returns the total number of pieces (board + hands).
+  #
+  # @return [Integer]
+  def pieces_count
+
+  # Returns the canonical FEEN string.
   #
   # @return [String]
   def to_s
 end
 ```
 
-### PiecePlacement
 ```ruby
-# PiecePlacement represents board occupancy (Field 1).
+# PiecePlacement represents board structure and occupancy.
 class Sashite::Feen::Position::PiecePlacement
-  # Returns the segments (ranks/layers).
-  # Each segment is an Array of Integer (empty count) or Epin::Identifier (piece).
+  # Returns the total number of squares.
   #
-  # @return [Array<Array>]
-  def segments
+  # @return [Integer]
+  def squares_count
 
-  # Returns the separator strings between segments.
+  # Returns the number of pieces on the board.
   #
-  # @return [Array<String>]
-  def separators
+  # @return [Integer]
+  def pieces_count
 
-  # Iterates over each segment.
+  # Returns the board dimensionality.
   #
-  # @yieldparam segment [Array] A segment of placement tokens
-  # @return [Enumerator, self]
-  def each_segment
+  # @return [Integer] 1 for 1D, 2 for 2D, etc.
+  def dimensions
 
-  # Returns all tokens as a flat array.
+  # Iterates over each square (empty counts or pieces).
   #
-  # @return [Array]
-  def to_a
+  # @yieldparam square [Integer, Sashite::Epin::Identifier]
+  # @return [Enumerator] if no block given
+  def each
 
   # Returns the canonical string representation.
   #
@@ -237,9 +221,8 @@ class Sashite::Feen::Position::PiecePlacement
 end
 ```
 
-### Hands
 ```ruby
-# Hands represents off-board pieces (Field 2).
+# Hands represents off-board pieces for both players.
 class Sashite::Feen::Position::Hands
   # Returns the first player's hand.
   #
@@ -251,6 +234,11 @@ class Sashite::Feen::Position::Hands
   # @return [Hand]
   def second
 
+  # Returns the total pieces in both hands.
+  #
+  # @return [Integer]
+  def pieces_count
+
   # Returns the canonical string representation.
   #
   # @return [String]
@@ -258,17 +246,10 @@ class Sashite::Feen::Position::Hands
 end
 ```
 
-### Hand
 ```ruby
-# Hand represents a single player's hand.
+# Hand represents a single player's off-board pieces.
 class Sashite::Feen::Position::Hand
-  # Returns the hand items.
-  # Each item is a Hash with :piece (Epin::Identifier) and :count (Integer).
-  #
-  # @return [Array<Hash>]
-  def items
-
-  # Returns true if the hand is empty.
+  # Returns true if the hand contains no pieces.
   #
   # @return [Boolean]
   def empty?
@@ -278,10 +259,16 @@ class Sashite::Feen::Position::Hand
   # @return [Integer]
   def size
 
-  # Iterates over each hand item.
+  # Returns the total number of pieces.
   #
-  # @yieldparam item [Hash] A hand item with :piece and :count
-  # @return [Enumerator, self]
+  # @return [Integer]
+  def pieces_count
+
+  # Iterates over each piece type and its count.
+  #
+  # @yieldparam piece [Sashite::Epin::Identifier]
+  # @yieldparam count [Integer]
+  # @return [Enumerator] if no block given
   def each
 
   # Returns the canonical string representation.
@@ -291,9 +278,8 @@ class Sashite::Feen::Position::Hand
 end
 ```
 
-### StyleTurn
 ```ruby
-# StyleTurn represents player styles and active player (Field 3).
+# StyleTurn represents player styles and the active player.
 class Sashite::Feen::Position::StyleTurn
   # Returns the active player's style.
   #
@@ -322,34 +308,71 @@ class Sashite::Feen::Position::StyleTurn
 end
 ```
 
+### Constants
+
+```ruby
+Sashite::Feen::Constants::MAX_STRING_LENGTH  # => 4096
+Sashite::Feen::Constants::MAX_DIMENSIONS     # => 3
+Sashite::Feen::Constants::MAX_DIMENSION_SIZE # => 255
+```
+
+### Parsing
+
+```ruby
+# Parses a FEEN string into a Position.
+# Raises ArgumentError if the string is not valid.
+#
+# @param feen_string [String] FEEN string
+# @return [Position]
+# @raise [ArgumentError] if invalid
+def Sashite::Feen.parse(feen_string)
+```
+
+### Validation
+
+```ruby
+# Reports whether string is a valid FEEN position.
+#
+# @param feen_string [String] FEEN string
+# @return [Boolean]
+def Sashite::Feen.valid?(feen_string)
+```
+
 ### Errors
 
 All parsing and validation errors raise `ArgumentError` with descriptive messages:
 
 | Message | Cause |
 |---------|-------|
-| `"empty input"` | String length is 0 |
-| `"input too long"` | String exceeds 4096 characters |
-| `"input contains line breaks"` | Input contains `\r` or `\n` |
+| `"input exceeds 4096 characters"` | String too long |
 | `"invalid field count"` | Not exactly 3 space-separated fields |
+| `"piece placement is empty"` | Field 1 is empty |
 | `"piece placement starts with separator"` | Field 1 starts with `/` |
 | `"piece placement ends with separator"` | Field 1 ends with `/` |
-| `"invalid empty count"` | Zero or leading zeros in empty count |
-| `"invalid hands delimiter"` | Field 2 missing `/` delimiter |
-| `"invalid hand count"` | Count is 0, 1, or has leading zeros |
-| `"hand items are not in canonical order"` | Hand items not in canonical order |
-| `"invalid style-turn delimiter"` | Field 3 missing `/` delimiter |
-| `"style tokens must have opposite case"` | Both styles same case |
+| `"empty segment"` | Segment between separators contains no tokens |
+| `"invalid empty count"` | Empty count is zero or has leading zeros |
+| `"invalid piece token"` | Token is not a valid EPIN identifier |
+| `"consecutive empty counts must be merged"` | Adjacent empty counts violate canonical form |
+| `"dimensional coherence violation"` | Separator of length N without N-1 separators in segments |
+| `"exceeds 3 dimensions"` | Board has more than 3 dimensions |
+| `"dimension size exceeds 255"` | A rank or layer exceeds 255 squares |
+| `"invalid hands delimiter"` | Field 2 missing `/` or contains multiple `/` |
+| `"invalid hand count"` | Multiplicity is 0, 1, or has leading zeros |
+| `"hand items not aggregated"` | Identical EPIN tokens not combined |
+| `"hand items not in canonical order"` | Items violate canonical ordering rules |
+| `"invalid style-turn delimiter"` | Field 3 missing `/` or contains multiple `/` |
+| `"invalid style token"` | Token is not a valid SIN identifier |
+| `"style tokens must have opposite case"` | Both tokens uppercase or both lowercase |
+| `"too many pieces for board size"` | Total pieces exceeds total squares |
 
 ## Design Principles
 
-- **Spec conformance**: Strict adherence to FEEN v1.0.0 specification
-- **Bounded values**: Length and dimension limits prevent resource exhaustion
+- **Spec conformance**: Strict adherence to FEEN v1.0.0
+- **Pure composition**: Delegates to EPIN and SIN for token handling
 - **Canonical output**: `to_s` always produces canonical form
-- **Composition**: Delegates to EPIN and SIN for token validation
-- **Ruby idioms**: `valid?` predicate, `to_s` conversion, `ArgumentError` for invalid input
 - **Immutable positions**: Frozen instances prevent mutation
-- **No runtime dependencies**: Only EPIN and SIN gems required
+- **Ruby idioms**: `valid?` predicate, `to_s` conversion, `ArgumentError` for invalid input
+- **Enumerable support**: `each` methods for iteration
 
 ## Related Specifications
 

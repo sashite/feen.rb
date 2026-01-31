@@ -1,31 +1,39 @@
 # frozen_string_literal: true
 
 require_relative "constants"
-require_relative "errors"
 require_relative "position/hands"
 require_relative "position/piece_placement"
 require_relative "position/style_turn"
 
 module Sashite
   module Feen
-    # Represents a parsed FEEN (Field Expression Encoding Notation) position.
+    # Represents a complete FEEN position.
     #
     # A Position encapsulates the three FEEN fields:
-    # - Piece Placement: Board occupancy
+    # - Piece Placement: Board structure and occupancy
     # - Hands: Off-board pieces held by each player
     # - Style-Turn: Player styles and active player
     #
-    # Instances are immutable (frozen after creation).
+    # Instances are immutable (frozen after creation) and thread-safe.
     #
     # @api public
     #
-    # @example Creating a position
-    #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
-    #   position.to_s  # => "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s"
+    # @example Creating a position via parsing
+    #   position = Sashite::Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
+    #   position.to_s  # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
+    #
+    # @example Accessing components
+    #   position.piece_placement  # => PiecePlacement
+    #   position.hands            # => Hands
+    #   position.style_turn       # => StyleTurn
+    #
+    # @example Querying metrics
+    #   position.squares_count  # => 64
+    #   position.pieces_count   # => 32
     #
     # @see https://sashite.dev/specs/feen/1.0.0/
     class Position
-      # @return [PiecePlacement] Board occupancy
+      # @return [PiecePlacement] Board structure and occupancy
       attr_reader :piece_placement
 
       # @return [Hands] Off-board pieces
@@ -39,7 +47,7 @@ module Sashite
       # @param piece_placement [Hash] Parsed piece placement with :segments and :separators
       # @param hands [Hash] Parsed hands with :first and :second
       # @param style_turn [Hash] Parsed style-turn with :active and :inactive
-      # @return [Position] A new frozen Position instance
+      # @return [Position] A new frozen instance
       def initialize(piece_placement:, hands:, style_turn:)
         @piece_placement = PiecePlacement.new(**piece_placement)
         @hands = Hands.new(**hands)
@@ -48,9 +56,32 @@ module Sashite
         freeze
       end
 
+      # Returns the total number of squares on the board.
+      #
+      # @return [Integer] Total square count
+      #
+      # @example
+      #   position.squares_count  # => 64
+      def squares_count
+        piece_placement.squares_count
+      end
+
+      # Returns the total number of pieces (board + hands).
+      #
+      # @return [Integer] Total piece count
+      #
+      # @example
+      #   position.pieces_count  # => 32
+      def pieces_count
+        piece_placement.pieces_count + hands.pieces_count
+      end
+
       # Returns the canonical FEEN string representation.
       #
       # @return [String] The FEEN string
+      #
+      # @example
+      #   position.to_s  # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
       def to_s
         [
           piece_placement.to_s,

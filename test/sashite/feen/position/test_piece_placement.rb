@@ -2,505 +2,434 @@
 # frozen_string_literal: true
 
 require_relative "../../../helper"
+require_relative "../../../../lib/sashite/feen/parser/piece_placement"
 require_relative "../../../../lib/sashite/feen/position/piece_placement"
-
-require "sashite/epin"
 
 puts
 puts "=== Position::PiecePlacement Tests ==="
 puts
 
-# ============================================================================
-# CONSTRUCTOR TESTS
-# ============================================================================
-
-puts "Constructor:"
-
-run_test("creates PiecePlacement with single segment") do
-  piece = Sashite::Epin.parse("K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[piece]],
-    separators: []
-  )
-  raise "wrong segment count" unless pp.segments.size == 1
-  raise "wrong separator count" unless pp.separators.empty?
-end
-
-run_test("creates PiecePlacement with multiple segments") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [q]],
-    separators: ["/"]
-  )
-  raise "wrong segment count" unless pp.segments.size == 2
-  raise "wrong separator count" unless pp.separators.size == 1
-end
-
-run_test("creates PiecePlacement with empty counts") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8]],
-    separators: []
-  )
-  raise "wrong token" unless pp.segments[0][0] == 8
-end
-
-run_test("creates PiecePlacement with mixed tokens") do
-  k = Sashite::Epin.parse("K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[3, k, 4]],
-    separators: []
-  )
-  raise "wrong token count" unless pp.segments[0].size == 3
-  raise "first token wrong" unless pp.segments[0][0] == 3
-  raise "second token wrong" unless pp.segments[0][1] == k
-  raise "third token wrong" unless pp.segments[0][2] == 4
-end
-
-run_test("creates PiecePlacement with double separators") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8], [8], [8]],
-    separators: ["/", "//"]
-  )
-  raise "wrong separator 0" unless pp.separators[0] == "/"
-  raise "wrong separator 1" unless pp.separators[1] == "//"
+# Helper to create PiecePlacement from FEEN string
+def parse_placement(input)
+  parsed = Sashite::Feen::Parser::PiecePlacement.parse(input)
+  Sashite::Feen::Position::PiecePlacement.new(**parsed)
 end
 
 # ============================================================================
-# IMMUTABILITY TESTS
+# INITIALIZATION
+# ============================================================================
+
+puts "Initialization:"
+
+run_test("creates instance from parsed data") do
+  placement = parse_placement("K")
+  raise "wrong type" unless placement.is_a?(Sashite::Feen::Position::PiecePlacement)
+end
+
+run_test("instance is frozen") do
+  placement = parse_placement("K")
+  raise "should be frozen" unless placement.frozen?
+end
+
+run_test("segments accessor returns segments") do
+  placement = parse_placement("K/Q")
+  raise "wrong segments count" unless placement.segments.size == 2
+end
+
+run_test("separators accessor returns separators") do
+  placement = parse_placement("K/Q")
+  raise "wrong separators count" unless placement.separators.size == 1
+end
+
+# ============================================================================
+# SQUARES_COUNT
 # ============================================================================
 
 puts
-puts "Immutability:"
+puts "squares_count:"
 
-run_test("PiecePlacement is frozen after creation") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8]],
-    separators: []
-  )
-  raise "should be frozen" unless pp.frozen?
+run_test("counts single piece as 1 square") do
+  placement = parse_placement("K")
+  raise "wrong count" unless placement.squares_count == 1
+end
+
+run_test("counts empty squares") do
+  placement = parse_placement("8")
+  raise "wrong count" unless placement.squares_count == 8
+end
+
+run_test("counts mixed pieces and empty") do
+  placement = parse_placement("K2Q")
+  raise "wrong count" unless placement.squares_count == 4
+end
+
+run_test("counts across segments") do
+  placement = parse_placement("8/8")
+  raise "wrong count" unless placement.squares_count == 16
+end
+
+run_test("counts Chess board (64 squares)") do
+  placement = parse_placement("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+  raise "wrong count" unless placement.squares_count == 64
+end
+
+run_test("counts Shogi board (81 squares)") do
+  placement = parse_placement("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")
+  raise "wrong count" unless placement.squares_count == 81
+end
+
+run_test("counts Xiangqi board (90 squares)") do
+  placement = parse_placement("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR")
+  raise "wrong count" unless placement.squares_count == 90
+end
+
+run_test("counts 3D board") do
+  placement = parse_placement("4/4//4/4")
+  raise "wrong count" unless placement.squares_count == 16
 end
 
 # ============================================================================
-# ATTRIBUTE ACCESSORS
-# ============================================================================
-
-puts
-puts "Attribute accessors:"
-
-run_test("segments returns the segments array") do
-  k = Sashite::Epin.parse("K")
-  segments = [[k], [8]]
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: segments,
-    separators: ["/"]
-  )
-  raise "wrong segments" unless pp.segments == segments
-end
-
-run_test("separators returns the separators array") do
-  separators = ["/", "//"]
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8], [8], [8]],
-    separators: separators
-  )
-  raise "wrong separators" unless pp.separators == separators
-end
-
-# ============================================================================
-# EACH_SEGMENT TESTS
-# ============================================================================
-
-puts
-puts "each_segment:"
-
-run_test("iterates over all segments") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [8], [q]],
-    separators: ["/", "/"]
-  )
-
-  collected = []
-  pp.each_segment { |seg| collected << seg }
-
-  raise "wrong count" unless collected.size == 3
-  raise "first segment wrong" unless collected[0][0] == k
-  raise "second segment wrong" unless collected[1][0] == 8
-  raise "third segment wrong" unless collected[2][0] == q
-end
-
-run_test("returns enumerator without block") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8]],
-    separators: []
-  )
-  raise "should return Enumerator" unless pp.each_segment.is_a?(Enumerator)
-end
-
-run_test("returns self with block") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8]],
-    separators: []
-  )
-  result = pp.each_segment { |_| }
-  raise "should return self" unless result.equal?(pp)
-end
-
-# ============================================================================
-# TO_A TESTS
+# PIECES_COUNT
 # ============================================================================
 
 puts
-puts "to_a:"
+puts "pieces_count:"
 
-run_test("returns flat array of all tokens") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[3, k], [q, 2]],
-    separators: ["/"]
-  )
-
-  result = pp.to_a
-
-  raise "wrong size" unless result.size == 4
-  raise "token 0 wrong" unless result[0] == 3
-  raise "token 1 wrong" unless result[1] == k
-  raise "token 2 wrong" unless result[2] == q
-  raise "token 3 wrong" unless result[3] == 2
+run_test("counts single piece") do
+  placement = parse_placement("K")
+  raise "wrong count" unless placement.pieces_count == 1
 end
 
-run_test("returns empty array for empty segments") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[]],
-    separators: []
-  )
-  raise "should be empty" unless pp.to_a.empty?
+run_test("counts zero pieces on empty board") do
+  placement = parse_placement("8")
+  raise "wrong count" unless placement.pieces_count == 0
 end
 
-# ============================================================================
-# TO_S TESTS - SINGLE SEGMENT
-# ============================================================================
-
-puts
-puts "to_s - single segment:"
-
-run_test("returns 'K' for single piece") do
-  k = Sashite::Epin.parse("K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "K"
+run_test("counts multiple pieces in segment") do
+  placement = parse_placement("KQR")
+  raise "wrong count" unless placement.pieces_count == 3
 end
 
-run_test("returns '8' for empty count") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "8"
+run_test("counts pieces with empty squares") do
+  placement = parse_placement("K2Q")
+  raise "wrong count" unless placement.pieces_count == 2
 end
 
-run_test("returns 'KQR' for multiple pieces") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  r = Sashite::Epin.parse("R")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k, q, r]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "KQR"
+run_test("counts pieces across segments") do
+  placement = parse_placement("K/Q/R")
+  raise "wrong count" unless placement.pieces_count == 3
 end
 
-run_test("returns '3K2' for mixed tokens") do
-  k = Sashite::Epin.parse("K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[3, k, 2]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "3K2"
+run_test("counts Chess initial position (32 pieces)") do
+  placement = parse_placement("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+  raise "wrong count" unless placement.pieces_count == 32
+end
+
+run_test("counts Shogi initial position (40 pieces)") do
+  placement = parse_placement("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")
+  raise "wrong count" unless placement.pieces_count == 40
+end
+
+run_test("counts pieces with modifiers") do
+  placement = parse_placement("+K-QR'N")
+  raise "wrong count" unless placement.pieces_count == 4
 end
 
 # ============================================================================
-# TO_S TESTS - MULTIPLE SEGMENTS
+# DIMENSIONS
 # ============================================================================
 
 puts
-puts "to_s - multiple segments:"
+puts "dimensions:"
 
-run_test("returns 'K/Q' for two segments") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [q]],
-    separators: ["/"]
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "K/Q"
+run_test("returns 1 for 1D board (no separators)") do
+  placement = parse_placement("K")
+  raise "wrong dimensions" unless placement.dimensions == 1
 end
 
-run_test("returns '8/8/8' for three empty segments") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8], [8], [8]],
-    separators: ["/", "/"]
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "8/8/8"
+run_test("returns 1 for 1D board with multiple pieces") do
+  placement = parse_placement("K2Q3R")
+  raise "wrong dimensions" unless placement.dimensions == 1
 end
 
-run_test("returns 'K//Q' with double separator") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [q]],
-    separators: ["//"]
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "K//Q"
+run_test("returns 2 for 2D board (single separators)") do
+  placement = parse_placement("8/8")
+  raise "wrong dimensions" unless placement.dimensions == 2
 end
 
-run_test("returns '8/8//8/8' for mixed separators") do
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8], [8], [8], [8]],
-    separators: ["/", "//", "/"]
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "8/8//8/8"
+run_test("returns 2 for Chess board") do
+  placement = parse_placement("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+  raise "wrong dimensions" unless placement.dimensions == 2
 end
 
-run_test("returns 'K///Q' with triple separator") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [q]],
-    separators: ["///"]
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "K///Q"
+run_test("returns 3 for 3D board (double separators)") do
+  placement = parse_placement("4/4//4/4")
+  raise "wrong dimensions" unless placement.dimensions == 3
+end
+
+run_test("returns 3 for complex 3D board") do
+  placement = parse_placement("1/1/1//1/1/1//1/1/1")
+  raise "wrong dimensions" unless placement.dimensions == 3
 end
 
 # ============================================================================
-# TO_S TESTS - EPIN MODIFIERS
+# EACH
 # ============================================================================
 
 puts
-puts "to_s - EPIN modifiers:"
+puts "each:"
 
-run_test("handles enhanced pieces") do
-  k = Sashite::Epin.parse("+K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "+K"
+run_test("yields each token in segment") do
+  placement = parse_placement("K2Q")
+  tokens = []
+  placement.each { |token| tokens << token }
+  raise "wrong count" unless tokens.size == 3
 end
 
-run_test("handles diminished pieces") do
-  k = Sashite::Epin.parse("-K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "-K"
+run_test("yields pieces as Epin::Identifier") do
+  placement = parse_placement("K")
+  placement.each do |token|
+    raise "wrong type" unless token.is_a?(Sashite::Epin::Identifier)
+  end
 end
 
-run_test("handles terminal pieces") do
-  k = Sashite::Epin.parse("K^")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "K^"
+run_test("yields empty counts as Integer") do
+  placement = parse_placement("8")
+  placement.each do |token|
+    raise "wrong type" unless token.is_a?(Integer)
+    raise "wrong value" unless token == 8
+  end
 end
 
-run_test("handles derived pieces") do
-  k = Sashite::Epin.parse("K'")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "K'"
+run_test("yields tokens across segments") do
+  placement = parse_placement("K/Q")
+  tokens = []
+  placement.each { |token| tokens << token }
+  raise "wrong count" unless tokens.size == 2
 end
 
-run_test("handles all modifiers combined") do
-  k = Sashite::Epin.parse("+K^'")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "+K^'"
+run_test("returns Enumerator when no block given") do
+  placement = parse_placement("K")
+  enum = placement.each
+  raise "wrong type" unless enum.is_a?(Enumerator)
 end
 
-run_test("handles lowercase pieces") do
-  k = Sashite::Epin.parse("k")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == "k"
+run_test("Enumerator works correctly") do
+  placement = parse_placement("K2Q")
+  tokens = placement.each.to_a
+  raise "wrong count" unless tokens.size == 3
 end
 
 # ============================================================================
-# TO_S TESTS - REALISTIC EXAMPLES
+# ENUMERABLE
 # ============================================================================
 
 puts
-puts "to_s - realistic examples:"
+puts "Enumerable:"
 
-run_test("returns Chess initial position") do
-  # Build the chess initial position
-  rank8 = "rnbqkbnr".chars.map { |c| Sashite::Epin.parse(c) }
-  rank7 = "pppppppp".chars.map { |c| Sashite::Epin.parse(c) }
-  rank2 = "PPPPPPPP".chars.map { |c| Sashite::Epin.parse(c) }
-  rank1 = "RNBQKBNR".chars.map { |c| Sashite::Epin.parse(c) }
-
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [rank8, rank7, [8], [8], [8], [8], rank2, rank1],
-    separators: ["/", "/", "/", "/", "/", "/", "/"]
-  )
-
-  expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-  raise "wrong string: #{pp.to_s}" unless pp.to_s == expected
+run_test("includes Enumerable") do
+  raise "should include Enumerable" unless Sashite::Feen::Position::PiecePlacement.include?(Enumerable)
 end
 
-run_test("returns 3D Raumschach layer structure") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("k")
+run_test("responds to map") do
+  placement = parse_placement("K")
+  raise "should respond to map" unless placement.respond_to?(:map)
+end
 
-  # 5 layers of 5x5, with pieces on layer 2 and 4
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [
-      [5], [5], [5], [5], [5],  # layer 1
-      [5], [5], [2, k, 2], [5], [5],  # layer 2 with K
-      [5], [5], [5], [5], [5],  # layer 3
-      [5], [5], [2, q, 2], [5], [5],  # layer 4 with k
-      [5], [5], [5], [5], [5]   # layer 5
-    ],
-    separators: [
-      "/", "/", "/", "/",   # within layer 1
-      "//",                  # between layer 1-2
-      "/", "/", "/", "/",   # within layer 2
-      "//",                  # between layer 2-3
-      "/", "/", "/", "/",   # within layer 3
-      "//",                  # between layer 3-4
-      "/", "/", "/", "/",   # within layer 4
-      "//",                  # between layer 4-5
-      "/", "/", "/", "/"    # within layer 5
-    ]
-  )
+run_test("responds to select") do
+  placement = parse_placement("K")
+  raise "should respond to select" unless placement.respond_to?(:select)
+end
 
-  result = pp.to_s
-  raise "should contain double separator" unless result.include?("//")
-  raise "should contain pieces" unless result.include?("K") && result.include?("k")
+run_test("responds to count") do
+  placement = parse_placement("K")
+  raise "should respond to count" unless placement.respond_to?(:count)
+end
+
+run_test("map works correctly") do
+  placement = parse_placement("K2Q")
+  result = placement.map { |t| t.is_a?(Integer) ? t : t.to_s }
+  raise "wrong result" unless result == ["K", 2, "Q"]
+end
+
+run_test("select works correctly") do
+  placement = parse_placement("K2Q")
+  pieces = placement.select { |t| !t.is_a?(Integer) }
+  raise "wrong count" unless pieces.size == 2
+end
+
+run_test("count with block works correctly") do
+  placement = parse_placement("K2Q3R")
+  piece_count = placement.count { |t| !t.is_a?(Integer) }
+  raise "wrong count" unless piece_count == 3
+end
+
+run_test("to_a works correctly") do
+  placement = parse_placement("K2Q")
+  array = placement.to_a
+  raise "wrong size" unless array.size == 3
 end
 
 # ============================================================================
-# EQUALITY TESTS
+# TO_S
+# ============================================================================
+
+puts
+puts "to_s:"
+
+run_test("serializes single piece") do
+  placement = parse_placement("K")
+  raise "wrong string" unless placement.to_s == "K"
+end
+
+run_test("serializes empty count") do
+  placement = parse_placement("8")
+  raise "wrong string" unless placement.to_s == "8"
+end
+
+run_test("serializes mixed segment") do
+  placement = parse_placement("K2Q")
+  raise "wrong string" unless placement.to_s == "K2Q"
+end
+
+run_test("serializes 2D board with separators") do
+  placement = parse_placement("8/8")
+  raise "wrong string" unless placement.to_s == "8/8"
+end
+
+run_test("serializes Chess initial position") do
+  input = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+  placement = parse_placement(input)
+  raise "wrong string" unless placement.to_s == input
+end
+
+run_test("serializes 3D board with double separators") do
+  input = "4/4//4/4"
+  placement = parse_placement(input)
+  raise "wrong string" unless placement.to_s == input
+end
+
+run_test("serializes pieces with modifiers") do
+  input = "+K^'"
+  placement = parse_placement(input)
+  raise "wrong string" unless placement.to_s == input
+end
+
+run_test("round-trip preserves original") do
+  inputs = [
+    "K",
+    "8",
+    "K2Q",
+    "8/8/8/8/8/8/8/8",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+    "4/4//4/4",
+    "+K^'-q2R"
+  ]
+  inputs.each do |input|
+    placement = parse_placement(input)
+    raise "round-trip failed for #{input}" unless placement.to_s == input
+  end
+end
+
+# ============================================================================
+# EQUALITY
 # ============================================================================
 
 puts
 puts "Equality:"
 
-run_test("returns false when comparing PiecePlacement with different type") do
-  k = Sashite::Epin.parse("K")
-  pp = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-
-  raise "should not equal nil" if pp == nil
-  raise "should not equal string" if pp == "K"
-  raise "should not equal array" if pp == [[k]]
+run_test("equal placements are ==") do
+  p1 = parse_placement("K2Q")
+  p2 = parse_placement("K2Q")
+  raise "should be equal" unless p1 == p2
 end
 
-run_test("equal PiecePlacements are ==") do
-  k = Sashite::Epin.parse("K")
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [8]],
-    separators: ["/"]
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [8]],
-    separators: ["/"]
-  )
-  raise "should be equal" unless pp1 == pp2
-end
-
-run_test("different segments are not ==") do
-  k = Sashite::Epin.parse("K")
-  q = Sashite::Epin.parse("Q")
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[q]],
-    separators: []
-  )
-  raise "should not be equal" if pp1 == pp2
+run_test("different placements are not ==") do
+  p1 = parse_placement("K2Q")
+  p2 = parse_placement("K3Q")
+  raise "should not be equal" if p1 == p2
 end
 
 run_test("different separators are not ==") do
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8], [8]],
-    separators: ["/"]
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8], [8]],
-    separators: ["//"]
-  )
-  raise "should not be equal" if pp1 == pp2
+  p1 = parse_placement("K/Q")
+  p2 = parse_placement("K//Q")
+  raise "should not be equal" if p1 == p2
 end
 
-run_test("different empty counts are not ==") do
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[8]],
-    separators: []
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[9]],
-    separators: []
-  )
-  raise "should not be equal" if pp1 == pp2
+run_test("== returns false for non-PiecePlacement") do
+  placement = parse_placement("K")
+  raise "should not be equal to string" if placement == "K"
+  raise "should not be equal to nil" if placement == nil
 end
 
 run_test("eql? is aliased to ==") do
-  k = Sashite::Epin.parse("K")
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  raise "eql? should work" unless pp1.eql?(pp2)
+  p1 = parse_placement("K2Q")
+  p2 = parse_placement("K2Q")
+  raise "eql? should work" unless p1.eql?(p2)
 end
 
-run_test("equal PiecePlacements have same hash") do
-  k = Sashite::Epin.parse("K")
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [8]],
-    separators: ["/"]
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k], [8]],
-    separators: ["/"]
-  )
-  raise "hash should match" unless pp1.hash == pp2.hash
+# ============================================================================
+# HASH
+# ============================================================================
+
+puts
+puts "Hash:"
+
+run_test("equal placements have same hash") do
+  p1 = parse_placement("K2Q")
+  p2 = parse_placement("K2Q")
+  raise "hashes should be equal" unless p1.hash == p2.hash
+end
+
+run_test("different placements have different hash") do
+  p1 = parse_placement("K2Q")
+  p2 = parse_placement("K3Q")
+  # Note: hash collision is possible but unlikely
+  raise "hashes should differ" if p1.hash == p2.hash
 end
 
 run_test("can be used as hash key") do
-  k = Sashite::Epin.parse("K")
-  pp1 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
-  pp2 = Sashite::Feen::Position::PiecePlacement.new(
-    segments: [[k]],
-    separators: []
-  )
+  p1 = parse_placement("K2Q")
+  p2 = parse_placement("K2Q")
+  hash = { p1 => "value" }
+  raise "should find by equal key" unless hash[p2] == "value"
+end
 
-  hash = { pp1 => "value" }
-  raise "should find by equal key" unless hash[pp2] == "value"
+# ============================================================================
+# INSPECT
+# ============================================================================
+
+puts
+puts "Inspect:"
+
+run_test("inspect includes class name") do
+  placement = parse_placement("K")
+  raise "should include class" unless placement.inspect.include?("PiecePlacement")
+end
+
+run_test("inspect includes string representation") do
+  placement = parse_placement("K2Q")
+  raise "should include to_s" unless placement.inspect.include?("K2Q")
+end
+
+run_test("inspect format is #<Class string>") do
+  placement = parse_placement("K")
+  raise "wrong format" unless placement.inspect.match?(/^#<.*PiecePlacement.*K>$/)
+end
+
+# ============================================================================
+# CLASS STRUCTURE
+# ============================================================================
+
+puts
+puts "Class structure:"
+
+run_test("PiecePlacement is a Class") do
+  raise "wrong type" unless Sashite::Feen::Position::PiecePlacement.is_a?(Class)
+end
+
+run_test("PiecePlacement is nested under Position") do
+  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:PiecePlacement)
 end
 
 puts

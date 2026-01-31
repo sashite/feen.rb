@@ -25,17 +25,25 @@ module Sashite
       # - Lowercase (a-z): Player Side `second`
       #
       # Turn attribution (by position):
-      # - Left of `/`: Active Player
-      # - Right of `/`: Inactive Player
+      # - Left of `/`: Active Player (to move)
+      # - Right of `/`: Inactive Player (waiting)
+      #
+      # The two tokens MUST have opposite case, ensuring both players
+      # are represented.
       #
       # @api private
       #
-      # @example
+      # @example First player to move (same style)
       #   StyleTurn.parse("C/c")
-      #   # => { active: <Sin::Identifier C>, inactive: <Sin::Identifier c> }
+      #   # => { active: <Sin C>, inactive: <Sin c> }
       #
-      #   StyleTurn.parse("s/S")
-      #   # => { active: <Sin::Identifier s>, inactive: <Sin::Identifier S> }
+      # @example Second player to move (same style)
+      #   StyleTurn.parse("c/C")
+      #   # => { active: <Sin c>, inactive: <Sin C> }
+      #
+      # @example Cross-style game (Chess vs Shogi)
+      #   StyleTurn.parse("C/s")
+      #   # => { active: <Sin C>, inactive: <Sin s> }
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       module StyleTurn
@@ -54,7 +62,7 @@ module Sashite
 
           validate_opposite_case!(active, inactive)
 
-          { active: active, inactive: inactive }
+          { active:, inactive: }
         end
 
         class << self
@@ -74,12 +82,17 @@ module Sashite
           #
           # @param str [String] The string to parse
           # @return [Sashite::Sin::Identifier] The parsed SIN identifier
-          # @raise [Sashite::Sin::Errors::Argument] If SIN parsing fails
+          # @raise [Errors::Argument] If SIN parsing fails
           def parse_style(str)
             ::Sashite::Sin.parse(str)
+          rescue ::ArgumentError
+            raise Errors::Argument, Errors::Argument::Messages::INVALID_STYLE_TOKEN
           end
 
           # Validates that the two style tokens have opposite case.
+          #
+          # One must be uppercase (first player) and one must be lowercase
+          # (second player) to ensure both sides are represented.
           #
           # @param active [Sashite::Sin::Identifier] The active player's style
           # @param inactive [Sashite::Sin::Identifier] The inactive player's style

@@ -2,126 +2,92 @@
 # frozen_string_literal: true
 
 require_relative "../../../helper"
-require_relative "../../../../lib/sashite/feen/parser/style_turn"
 require_relative "../../../../lib/sashite/feen/position/style_turn"
 
 puts
 puts "=== Position::StyleTurn Tests ==="
 puts
 
-# Helper to create StyleTurn from FEEN style-turn string
-def parse_style_turn(input)
-  parsed = Sashite::Feen::Parser::StyleTurn.parse(input)
-  Sashite::Feen::Position::StyleTurn.new(**parsed)
+StyleTurn = Sashite::Feen::Position::StyleTurn
+
+# Mock style object that responds to :side and :to_s
+MockStyle = Struct.new(:side, :abbr) do
+  def to_s
+    side == :first ? abbr.to_s.upcase : abbr.to_s.downcase
+  end
 end
 
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
 
-puts "Initialization:"
+puts "initialization:"
 
-run_test("creates instance from parsed data") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong type" unless style_turn.is_a?(Sashite::Feen::Position::StyleTurn)
+run_test("creates instance with valid styles") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected StyleTurn instance" unless StyleTurn === st
 end
 
-run_test("instance is frozen") do
-  style_turn = parse_style_turn("C/c")
-  raise "should be frozen" unless style_turn.frozen?
+run_test("accepts any object responding to :side for active") do
+  active = MockStyle.new(:second, :S)
+  inactive = MockStyle.new(:first, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected StyleTurn instance" unless StyleTurn === st
 end
 
-run_test("creates instance with first player active") do
-  style_turn = parse_style_turn("C/c")
-  raise "should be first to move" unless style_turn.first_to_move?
+run_test("raises ArgumentError when active does not respond to :side") do
+  inactive = MockStyle.new(:second, :C)
+  StyleTurn.send(:new, active: "not a style", inactive: inactive)
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("active must respond to :side")
 end
 
-run_test("creates instance with second player active") do
-  style_turn = parse_style_turn("c/C")
-  raise "should be second to move" unless style_turn.second_to_move?
+run_test("raises ArgumentError when inactive does not respond to :side") do
+  active = MockStyle.new(:first, :C)
+  StyleTurn.send(:new, active: active, inactive: "not a style")
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("inactive must respond to :side")
 end
 
-# ============================================================================
-# ACTIVE_STYLE ACCESSOR
-# ============================================================================
-
-puts
-puts "active_style accessor:"
-
-run_test("returns Sin::Identifier") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong type" unless style_turn.active_style.is_a?(Sashite::Sin::Identifier)
+run_test("raises ArgumentError when active is nil") do
+  inactive = MockStyle.new(:second, :C)
+  StyleTurn.send(:new, active: nil, inactive: inactive)
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("active must respond to :side")
 end
 
-run_test("returns correct style for first player active") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong abbr" unless style_turn.active_style.abbr == :C
-  raise "wrong side" unless style_turn.active_style.side == :first
-end
-
-run_test("returns correct style for second player active") do
-  style_turn = parse_style_turn("c/C")
-  raise "wrong abbr" unless style_turn.active_style.abbr == :C
-  raise "wrong side" unless style_turn.active_style.side == :second
-end
-
-run_test("returns correct style for cross-style game") do
-  style_turn = parse_style_turn("C/s")
-  raise "wrong abbr" unless style_turn.active_style.abbr == :C
-end
-
-run_test("active_style responds to abbr") do
-  style_turn = parse_style_turn("S/s")
-  raise "should respond to abbr" unless style_turn.active_style.respond_to?(:abbr)
-  raise "wrong abbr" unless style_turn.active_style.abbr == :S
-end
-
-run_test("active_style responds to side") do
-  style_turn = parse_style_turn("S/s")
-  raise "should respond to side" unless style_turn.active_style.respond_to?(:side)
-  raise "wrong side" unless style_turn.active_style.side == :first
+run_test("raises ArgumentError when inactive is nil") do
+  active = MockStyle.new(:first, :C)
+  StyleTurn.send(:new, active: active, inactive: nil)
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("inactive must respond to :side")
 end
 
 # ============================================================================
-# INACTIVE_STYLE ACCESSOR
+# ACCESSORS
 # ============================================================================
 
 puts
-puts "inactive_style accessor:"
+puts "accessors:"
 
-run_test("returns Sin::Identifier") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong type" unless style_turn.inactive_style.is_a?(Sashite::Sin::Identifier)
+run_test("active_style returns the active style") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "wrong active_style" unless st.active_style == active
 end
 
-run_test("returns correct style for first player active") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong abbr" unless style_turn.inactive_style.abbr == :C
-  raise "wrong side" unless style_turn.inactive_style.side == :second
-end
-
-run_test("returns correct style for second player active") do
-  style_turn = parse_style_turn("c/C")
-  raise "wrong abbr" unless style_turn.inactive_style.abbr == :C
-  raise "wrong side" unless style_turn.inactive_style.side == :first
-end
-
-run_test("returns correct style for cross-style game") do
-  style_turn = parse_style_turn("C/s")
-  raise "wrong abbr" unless style_turn.inactive_style.abbr == :S
-  raise "wrong side" unless style_turn.inactive_style.side == :second
-end
-
-run_test("inactive_style responds to abbr") do
-  style_turn = parse_style_turn("S/s")
-  raise "should respond to abbr" unless style_turn.inactive_style.respond_to?(:abbr)
-  raise "wrong abbr" unless style_turn.inactive_style.abbr == :S
-end
-
-run_test("inactive_style responds to side") do
-  style_turn = parse_style_turn("S/s")
-  raise "should respond to side" unless style_turn.inactive_style.respond_to?(:side)
-  raise "wrong side" unless style_turn.inactive_style.side == :second
+run_test("inactive_style returns the inactive style") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "wrong inactive_style" unless st.inactive_style == inactive
 end
 
 # ============================================================================
@@ -131,34 +97,25 @@ end
 puts
 puts "first_to_move?:"
 
-run_test("returns true when uppercase is active") do
-  style_turn = parse_style_turn("C/c")
-  raise "should be true" unless style_turn.first_to_move?
+run_test("returns true when active side is :first") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected true" unless st.first_to_move? == true
 end
 
-run_test("returns false when lowercase is active") do
-  style_turn = parse_style_turn("c/C")
-  raise "should be false" if style_turn.first_to_move?
+run_test("returns false when active side is :second") do
+  active = MockStyle.new(:second, :C)
+  inactive = MockStyle.new(:first, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected false" unless st.first_to_move? == false
 end
 
-run_test("returns true for S/s") do
-  style_turn = parse_style_turn("S/s")
-  raise "should be true" unless style_turn.first_to_move?
-end
-
-run_test("returns true for X/x") do
-  style_turn = parse_style_turn("X/x")
-  raise "should be true" unless style_turn.first_to_move?
-end
-
-run_test("returns true for cross-style C/s") do
-  style_turn = parse_style_turn("C/s")
-  raise "should be true" unless style_turn.first_to_move?
-end
-
-run_test("returns false for cross-style s/C") do
-  style_turn = parse_style_turn("s/C")
-  raise "should be false" if style_turn.first_to_move?
+run_test("works with cross-style game (first to move)") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :S)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected true" unless st.first_to_move? == true
 end
 
 # ============================================================================
@@ -168,60 +125,32 @@ end
 puts
 puts "second_to_move?:"
 
-run_test("returns false when uppercase is active") do
-  style_turn = parse_style_turn("C/c")
-  raise "should be false" if style_turn.second_to_move?
+run_test("returns true when active side is :second") do
+  active = MockStyle.new(:second, :C)
+  inactive = MockStyle.new(:first, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected true" unless st.second_to_move? == true
 end
 
-run_test("returns true when lowercase is active") do
-  style_turn = parse_style_turn("c/C")
-  raise "should be true" unless style_turn.second_to_move?
+run_test("returns false when active side is :first") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected false" unless st.second_to_move? == false
 end
 
-run_test("returns true for s/S") do
-  style_turn = parse_style_turn("s/S")
-  raise "should be true" unless style_turn.second_to_move?
+run_test("works with cross-style game (second to move)") do
+  active = MockStyle.new(:second, :S)
+  inactive = MockStyle.new(:first, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected true" unless st.second_to_move? == true
 end
 
-run_test("returns true for x/X") do
-  style_turn = parse_style_turn("x/X")
-  raise "should be true" unless style_turn.second_to_move?
-end
-
-run_test("returns false for cross-style C/s") do
-  style_turn = parse_style_turn("C/s")
-  raise "should be false" if style_turn.second_to_move?
-end
-
-run_test("returns true for cross-style s/C") do
-  style_turn = parse_style_turn("s/C")
-  raise "should be true" unless style_turn.second_to_move?
-end
-
-# ============================================================================
-# MUTUAL EXCLUSIVITY
-# ============================================================================
-
-puts
-puts "Mutual exclusivity:"
-
-run_test("first_to_move? and second_to_move? are mutually exclusive (first)") do
-  style_turn = parse_style_turn("C/c")
-  raise "should be mutually exclusive" if style_turn.first_to_move? == style_turn.second_to_move?
-end
-
-run_test("first_to_move? and second_to_move? are mutually exclusive (second)") do
-  style_turn = parse_style_turn("c/C")
-  raise "should be mutually exclusive" if style_turn.first_to_move? == style_turn.second_to_move?
-end
-
-run_test("exactly one is true for any valid style-turn") do
-  ["C/c", "c/C", "S/s", "s/S", "C/s", "s/C"].each do |input|
-    style_turn = parse_style_turn(input)
-    first = style_turn.first_to_move?
-    second = style_turn.second_to_move?
-    raise "exactly one should be true for #{input}" unless first ^ second
-  end
+run_test("first_to_move? and second_to_move? are mutually exclusive") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected mutually exclusive" if st.first_to_move? == st.second_to_move?
 end
 
 # ============================================================================
@@ -231,81 +160,129 @@ end
 puts
 puts "to_s:"
 
-run_test("serializes C/c") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong string" unless style_turn.to_s == "C/c"
+run_test("returns canonical format with first to move") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected C/c" unless st.to_s == "C/c"
 end
 
-run_test("serializes c/C") do
-  style_turn = parse_style_turn("c/C")
-  raise "wrong string" unless style_turn.to_s == "c/C"
+run_test("returns canonical format with second to move") do
+  active = MockStyle.new(:second, :C)
+  inactive = MockStyle.new(:first, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected c/C" unless st.to_s == "c/C"
 end
 
-run_test("serializes S/s") do
-  style_turn = parse_style_turn("S/s")
-  raise "wrong string" unless style_turn.to_s == "S/s"
+run_test("returns canonical format for cross-style game") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :S)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected C/s" unless st.to_s == "C/s"
 end
 
-run_test("serializes cross-style C/s") do
-  style_turn = parse_style_turn("C/s")
-  raise "wrong string" unless style_turn.to_s == "C/s"
+run_test("returns canonical format for Shogi") do
+  active = MockStyle.new(:first, :S)
+  inactive = MockStyle.new(:second, :S)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected S/s" unless st.to_s == "S/s"
 end
 
-run_test("serializes cross-style s/C") do
-  style_turn = parse_style_turn("s/C")
-  raise "wrong string" unless style_turn.to_s == "s/C"
-end
-
-run_test("round-trip preserves original") do
-  inputs = ["C/c", "c/C", "S/s", "s/S", "X/x", "x/X", "C/s", "s/C", "A/z", "z/A"]
-  inputs.each do |input|
-    style_turn = parse_style_turn(input)
-    raise "round-trip failed for '#{input}'" unless style_turn.to_s == input
-  end
+run_test("returns canonical format for Xiangqi") do
+  active = MockStyle.new(:first, :X)
+  inactive = MockStyle.new(:second, :X)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+  raise "expected X/x" unless st.to_s == "X/x"
 end
 
 # ============================================================================
-# EQUALITY
+# EQUALITY (==)
 # ============================================================================
 
 puts
-puts "Equality:"
+puts "equality:"
 
-run_test("equal style-turns are ==") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("C/c")
-  raise "should be equal" unless st1 == st2
+run_test("equal when active and inactive match") do
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected equal" unless a == b
 end
 
-run_test("different active styles are not ==") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("S/s")
-  raise "should not be equal" if st1 == st2
+run_test("not equal when active styles differ") do
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :S),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected not equal" if a == b
 end
 
-run_test("different turn order is not ==") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("c/C")
-  raise "should not be equal" if st1 == st2
+run_test("not equal when inactive styles differ") do
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :S)
+  )
+  raise "expected not equal" if a == b
 end
 
-run_test("cross-style vs same-style are not ==") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("C/s")
-  raise "should not be equal" if st1 == st2
+run_test("not equal when active sides differ") do
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:second, :C),
+    inactive: MockStyle.new(:first, :C)
+  )
+  raise "expected not equal" if a == b
 end
 
-run_test("== returns false for non-StyleTurn") do
-  style_turn = parse_style_turn("C/c")
-  raise "should not be equal to string" if style_turn == "C/c"
-  raise "should not be equal to nil" if style_turn == nil
-  raise "should not be equal to array" if style_turn == []
+run_test("not equal to nil") do
+  st = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected not equal" if st == nil
 end
 
-run_test("eql? is aliased to ==") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("C/c")
-  raise "eql? should work" unless st1.eql?(st2)
+run_test("not equal to other types") do
+  st = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "not equal to String" if st == "C/c"
+  raise "not equal to Hash" if st == { active: :C, inactive: :c }
+  raise "not equal to Array" if st == [:C, :c]
+end
+
+run_test("eql? behaves like ==") do
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  c = StyleTurn.send(:new,
+    active: MockStyle.new(:second, :C),
+    inactive: MockStyle.new(:first, :C)
+  )
+  raise "expected eql?" unless a.eql?(b)
+  raise "expected not eql?" if a.eql?(c)
 end
 
 # ============================================================================
@@ -313,31 +290,31 @@ end
 # ============================================================================
 
 puts
-puts "Hash:"
+puts "hash:"
 
-run_test("equal style-turns have same hash") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("C/c")
-  raise "hashes should be equal" unless st1.hash == st2.hash
-end
-
-run_test("different style-turns have different hash") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("c/C")
-  raise "hashes should differ" if st1.hash == st2.hash
-end
-
-run_test("different styles have different hash") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("S/s")
-  raise "hashes should differ" if st1.hash == st2.hash
+run_test("equal objects have equal hash codes") do
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected equal hashes" unless a.hash == b.hash
 end
 
 run_test("can be used as hash key") do
-  st1 = parse_style_turn("C/c")
-  st2 = parse_style_turn("C/c")
-  hash = { st1 => "value" }
-  raise "should find by equal key" unless hash[st2] == "value"
+  a = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  b = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  hash = { a => "value" }
+  raise "expected to find by equal key" unless hash[b] == "value"
 end
 
 # ============================================================================
@@ -345,36 +322,98 @@ end
 # ============================================================================
 
 puts
-puts "Inspect:"
+puts "inspect:"
 
-run_test("inspect includes class name") do
-  style_turn = parse_style_turn("C/c")
-  raise "should include class" unless style_turn.inspect.include?("StyleTurn")
+run_test("includes class name") do
+  st = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected class name" unless st.inspect.include?("StyleTurn")
 end
 
-run_test("inspect includes string representation") do
-  style_turn = parse_style_turn("C/c")
-  raise "should include to_s" unless style_turn.inspect.include?("C/c")
-end
-
-run_test("inspect format is #<Class string>") do
-  style_turn = parse_style_turn("C/c")
-  raise "wrong format" unless style_turn.inspect.match?(/^#<.*StyleTurn.*C\/c>$/)
+run_test("includes string representation") do
+  st = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected to_s content" unless st.inspect.include?("C/c")
 end
 
 # ============================================================================
-# CLASS STRUCTURE
+# IMMUTABILITY
 # ============================================================================
 
 puts
-puts "Class structure:"
+puts "immutability:"
 
-run_test("StyleTurn is a Class") do
-  raise "wrong type" unless Sashite::Feen::Position::StyleTurn.is_a?(Class)
+run_test("instance is frozen") do
+  st = StyleTurn.send(:new,
+    active: MockStyle.new(:first, :C),
+    inactive: MockStyle.new(:second, :C)
+  )
+  raise "expected frozen" unless st.frozen?
 end
 
-run_test("StyleTurn is nested under Position") do
-  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:StyleTurn)
+# ============================================================================
+# REAL-WORLD EXAMPLES
+# ============================================================================
+
+puts
+puts "real-world examples:"
+
+run_test("Chess: first player (white) to move") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+
+  raise "expected first to move" unless st.first_to_move?
+  raise "expected C/c" unless st.to_s == "C/c"
+end
+
+run_test("Chess: second player (black) to move") do
+  active = MockStyle.new(:second, :C)
+  inactive = MockStyle.new(:first, :C)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+
+  raise "expected second to move" unless st.second_to_move?
+  raise "expected c/C" unless st.to_s == "c/C"
+end
+
+run_test("Shogi: sente (first) to move") do
+  active = MockStyle.new(:first, :S)
+  inactive = MockStyle.new(:second, :S)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+
+  raise "expected first to move" unless st.first_to_move?
+  raise "expected S/s" unless st.to_s == "S/s"
+end
+
+run_test("Shogi: gote (second) to move") do
+  active = MockStyle.new(:second, :S)
+  inactive = MockStyle.new(:first, :S)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+
+  raise "expected second to move" unless st.second_to_move?
+  raise "expected s/S" unless st.to_s == "s/S"
+end
+
+run_test("Cross-style: Chess vs Shogi") do
+  active = MockStyle.new(:first, :C)
+  inactive = MockStyle.new(:second, :S)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+
+  raise "expected first to move" unless st.first_to_move?
+  raise "expected C/s" unless st.to_s == "C/s"
+end
+
+run_test("Cross-style: Shogi vs Xiangqi, second to move") do
+  active = MockStyle.new(:second, :S)
+  inactive = MockStyle.new(:first, :X)
+  st = StyleTurn.send(:new, active: active, inactive: inactive)
+
+  raise "expected second to move" unless st.second_to_move?
+  raise "expected s/X" unless st.to_s == "s/X"
 end
 
 puts

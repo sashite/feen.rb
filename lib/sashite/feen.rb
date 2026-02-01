@@ -3,9 +3,14 @@
 require "sashite/epin"
 require "sashite/sin"
 
-require_relative "feen/constants"
-require_relative "feen/errors"
+require_relative "feen/error"
+require_relative "feen/errors/parse_error"
+require_relative "feen/errors/piece_placement_error"
+require_relative "feen/errors/hands_error"
+require_relative "feen/errors/style_turn_error"
+require_relative "feen/errors/cardinality_error"
 require_relative "feen/parser"
+require_relative "feen/dumper"
 require_relative "feen/position"
 
 module Sashite
@@ -37,6 +42,14 @@ module Sashite
   #   Sashite::Feen.valid?("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")  # => true
   #   Sashite::Feen.valid?("invalid")  # => false
   #
+  #   # Dump structured data to FEEN string
+  #   Sashite::Feen.dump(
+  #     piece_placement: { segments: [[8], [8], ...], separators: ["/", ...] },
+  #     hands: { first: [], second: [] },
+  #     style_turn: { active: "C", inactive: "c" }
+  #   )
+  #   # => "8/8/8/8/8/8/8/8 / C/c"
+  #
   # @see https://sashite.dev/specs/feen/1.0.0/
   # @api public
   module Feen
@@ -45,7 +58,7 @@ module Sashite
     # @api public
     # @param feen_string [String] The FEEN string to parse
     # @return [Position] A new Position instance
-    # @raise [ArgumentError] If the string is not a valid FEEN
+    # @raise [ParseError] If the string is not a valid FEEN
     #
     # @example Parsing a Chess position
     #   position = Sashite::Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
@@ -56,11 +69,11 @@ module Sashite
     #   position = Sashite::Feen.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
     #   position.piece_placement.dimensions  # => 2
     #
-    # @example Invalid input raises ArgumentError
-    #   Sashite::Feen.parse("invalid")  # => raises ArgumentError
+    # @example Invalid input raises ParseError
+    #   Sashite::Feen.parse("invalid")  # => raises ParseError
     def self.parse(feen_string)
       components = Parser.parse(feen_string)
-      Position.new(**components)
+      Position.send(:new, **components)
     end
 
     # Reports whether a string is a valid FEEN position.
@@ -81,6 +94,43 @@ module Sashite
     #   Sashite::Feen.valid?(123)              # => false
     def self.valid?(feen_string)
       Parser.valid?(feen_string)
+    end
+
+    # Serializes structured position data to a FEEN string.
+    #
+    # @api public
+    # @param piece_placement [Hash] Piece placement with :segments and :separators
+    # @param hands [Hash] Hands with :first and :second
+    # @param style_turn [Hash] Style-turn with :active and :inactive
+    # @return [String] Canonical FEEN string
+    #
+    # @example Dumping an empty Chess board
+    #   Sashite::Feen.dump(
+    #     piece_placement: {
+    #       segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
+    #       separators: ["/", "/", "/", "/", "/", "/", "/"]
+    #     },
+    #     hands: { first: [], second: [] },
+    #     style_turn: { active: "C", inactive: "c" }
+    #   )
+    #   # => "8/8/8/8/8/8/8/8 / C/c"
+    #
+    # @example Dumping a position with hands
+    #   Sashite::Feen.dump(
+    #     piece_placement: { segments: [["K", 6, "k"]], separators: [] },
+    #     hands: {
+    #       first: [{ piece: "P", count: 2 }],
+    #       second: [{ piece: "p", count: 1 }]
+    #     },
+    #     style_turn: { active: "S", inactive: "s" }
+    #   )
+    #   # => "K6k 2P/p S/s"
+    def self.dump(piece_placement:, hands:, style_turn:)
+      Dumper.dump(
+        piece_placement: piece_placement,
+        hands:           hands,
+        style_turn:      style_turn
+      )
     end
   end
 end

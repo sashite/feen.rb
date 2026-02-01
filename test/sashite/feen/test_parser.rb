@@ -8,238 +8,241 @@ puts
 puts "=== Parser Tests ==="
 puts
 
+Parser = Sashite::Feen::Parser
+ParseError = Sashite::Feen::ParseError
+CardinalityError = Sashite::Feen::CardinalityError
+PiecePlacementError = Sashite::Feen::PiecePlacementError
+HandsError = Sashite::Feen::HandsError
+StyleTurnError = Sashite::Feen::StyleTurnError
+
 # ============================================================================
 # PARSE - VALID INPUTS
 # ============================================================================
 
 puts "parse - valid inputs:"
 
-run_test("parses minimal FEEN 'K / C/c'") do
-  result = Sashite::Feen::Parser.parse("K / C/c")
-  raise "missing :piece_placement" unless result.key?(:piece_placement)
-  raise "missing :hands" unless result.key?(:hands)
-  raise "missing :style_turn" unless result.key?(:style_turn)
-end
-
-run_test("parses empty board '8 / C/c'") do
-  result = Sashite::Feen::Parser.parse("8 / C/c")
-  raise "should parse" unless result[:piece_placement][:segments][0][0] == 8
+run_test("parses minimal FEEN string") do
+  result = Parser.parse("K / C/c")
+  raise "expected Hash" unless ::Hash === result
+  raise "expected :piece_placement" unless result.key?(:piece_placement)
+  raise "expected :hands" unless result.key?(:hands)
+  raise "expected :style_turn" unless result.key?(:style_turn)
 end
 
 run_test("parses Chess initial position") do
-  input = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong segment count" unless result[:piece_placement][:segments].size == 8
+  result = Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
+  raise "expected 8 segments" unless result[:piece_placement][:segments].size == 8
 end
 
 run_test("parses Shogi initial position") do
-  input = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong segment count" unless result[:piece_placement][:segments].size == 9
-end
-
-run_test("parses Xiangqi initial position") do
-  input = "rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR / X/x"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong segment count" unless result[:piece_placement][:segments].size == 10
+  result = Parser.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
+  raise "expected 9 segments" unless result[:piece_placement][:segments].size == 9
 end
 
 run_test("parses position with pieces in hands") do
-  input = "8/8/8/8/8/8/8/8 3B2PNR/2qp C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong first hand size" unless result[:hands][:first].size == 4
-  raise "wrong second hand size" unless result[:hands][:second].size == 2
+  result = Parser.parse("8/8/8/8/8/8/8/8 3BNP/2qp C/c")
+  raise "expected 3 items in first hand" unless result[:hands][:first].size == 3
+  raise "expected 2 items in second hand" unless result[:hands][:second].size == 2
 end
 
 run_test("parses 3D position") do
-  input = "4/4//4/4 / C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong segment count" unless result[:piece_placement][:segments].size == 4
+  result = Parser.parse("4/4//4/4 / C/c")
+  raise "expected '//' separator" unless result[:piece_placement][:separators].include?("//")
 end
 
 run_test("parses cross-style game") do
-  input = "K / C/s"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong active abbr" unless result[:style_turn][:active].abbr == :C
-  raise "wrong inactive abbr" unless result[:style_turn][:inactive].abbr == :S
+  result = Parser.parse("K / C/s")
+  raise "expected C active" unless result[:style_turn][:active].abbr == :C
+  raise "expected S inactive" unless result[:style_turn][:inactive].abbr == :S
 end
 
-run_test("parses with second player to move") do
-  input = "K / c/C"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "wrong active side" unless result[:style_turn][:active].side == :second
+run_test("parses second player to move") do
+  result = Parser.parse("K / c/C")
+  raise "expected second active" unless result[:style_turn][:active].side == :second
 end
 
-# ============================================================================
-# PARSE - LENGTH VALIDATION
-# ============================================================================
-
-puts
-puts "parse - length validation:"
-
-run_test("accepts string of exactly 4096 bytes") do
-  # Build a valid FEEN string close to 4096 bytes
-  # "K" + "/" * 4090 + " / C/c" would exceed, so we need to be careful
-  # Let's use a valid 2D board with many ranks
-  ranks = (1..1000).map { "4" }.join("/")
-  input = "#{ranks} / C/c"
-  # Trim if too long, ensure it's valid
-  if input.bytesize > 4096
-    # Use a simpler approach
-    input = "K / C/c"
-  end
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
+run_test("parses empty board") do
+  result = Parser.parse("8/8/8/8/8/8/8/8 / C/c")
+  # No pieces on board, no pieces in hands
+  board_pieces = result[:piece_placement][:segments].sum { |s| s.count { |t| !(::Integer === t) } }
+  raise "expected 0 board pieces" unless board_pieces == 0
 end
 
-run_test("rejects string exceeding 4096 bytes") do
-  long_string = "K" + "K" * 4096 + " / C/c"
-  Sashite::Feen::Parser.parse(long_string)
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "input exceeds 4096 characters"
+run_test("parses maximum board pieces") do
+  # 4 squares, 4 pieces on board, 0 in hands
+  result = Parser.parse("KQkq / C/c")
+  raise "expected 4 tokens" unless result[:piece_placement][:segments][0].size == 4
 end
 
 # ============================================================================
-# PARSE - FIELD COUNT VALIDATION
+# PARSE - INVALID INPUTS - GENERAL
 # ============================================================================
 
 puts
-puts "parse - field count validation:"
+puts "parse - invalid inputs - general:"
 
-run_test("rejects zero fields (empty string)") do
-  Sashite::Feen::Parser.parse("")
+run_test("raises for empty string") do
+  Parser.parse("")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument
-  # Could be empty or field count error
+rescue ParseError => e
+  raise "wrong message" unless e.message == ParseError::INVALID_FIELD_COUNT
 end
 
-run_test("rejects one field") do
-  Sashite::Feen::Parser.parse("K")
+run_test("raises for one field") do
+  Parser.parse("K")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid field count"
+rescue ParseError => e
+  raise "wrong message" unless e.message == ParseError::INVALID_FIELD_COUNT
 end
 
-run_test("rejects two fields") do
-  Sashite::Feen::Parser.parse("K /")
+run_test("raises for two fields") do
+  Parser.parse("K /")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid field count"
+rescue ParseError => e
+  raise "wrong message" unless e.message == ParseError::INVALID_FIELD_COUNT
 end
 
-run_test("rejects four fields") do
-  Sashite::Feen::Parser.parse("K / C/c extra")
+run_test("raises for four fields") do
+  Parser.parse("K / C/c extra")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid field count"
+rescue ParseError => e
+  raise "wrong message" unless e.message == ParseError::INVALID_FIELD_COUNT
 end
 
-run_test("rejects five fields") do
-  Sashite::Feen::Parser.parse("K / C/c one two")
+run_test("raises for string too long") do
+  long_input = "K" + ("/" + "8" * 255) * 16 + " / C/c"
+  # Make sure it exceeds 4096 bytes
+  long_input = "K" * 4097 + " / C/c" if long_input.bytesize <= 4096
+  Parser.parse(long_input)
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid field count"
-end
-
-run_test("correctly splits on single spaces") do
-  input = "K / C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
+rescue ParseError => e
+  raise "wrong message" unless e.message == ParseError::INPUT_TOO_LONG
 end
 
 # ============================================================================
-# PARSE - PIECE COUNT VALIDATION
+# PARSE - INVALID INPUTS - PIECE PLACEMENT
 # ============================================================================
 
 puts
-puts "parse - piece count validation:"
+puts "parse - invalid inputs - piece placement:"
 
-run_test("accepts pieces equal to squares") do
-  # 1 square, 1 piece on board
-  input = "K / C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
-end
-
-run_test("accepts pieces less than squares") do
-  # 8 squares, 2 pieces
-  input = "K6Q / C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
-end
-
-run_test("accepts empty board") do
-  # 8 squares, 0 pieces
-  input = "8 / C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
-end
-
-run_test("accepts pieces on board and in hands within limit") do
-  # 4 squares, 2 pieces on board, 1 in hand = 3 total <= 4
-  input = "K2Q P/ C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
-end
-
-run_test("rejects pieces exceeding squares (with hands)") do
-  # 1 square, 0 pieces on board, 2 in hand
-  Sashite::Feen::Parser.parse("1 2P/ C/c")
+run_test("raises for invalid piece placement (starts with separator)") do
+  Parser.parse("/K / C/c")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "too many pieces for board size"
+rescue PiecePlacementError => e
+  raise "wrong message" unless e.message == PiecePlacementError::STARTS_WITH_SEPARATOR
 end
 
-run_test("rejects pieces exceeding squares (combined)") do
-  # 2 squares, 1 piece on board, 2 in hand = 3 > 2
-  Sashite::Feen::Parser.parse("K1 2P/ C/c")
+run_test("raises for invalid empty count") do
+  Parser.parse("0 / C/c")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "too many pieces for board size"
-end
-
-run_test("counts pieces correctly in both hands") do
-  # 4 squares, 0 on board, 3 in first hand, 2 in second = 5 > 4
-  Sashite::Feen::Parser.parse("4 3P/2p C/c")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "too many pieces for board size"
-end
-
-run_test("accepts exactly matching count with hands") do
-  # 4 squares, 1 on board, 2 in first, 1 in second = 4 total = 4 squares
-  input = "K3 2P/p C/c"
-  result = Sashite::Feen::Parser.parse(input)
-  raise "should parse" unless result
+rescue PiecePlacementError => e
+  raise "wrong message" unless e.message == PiecePlacementError::INVALID_EMPTY_COUNT
 end
 
 # ============================================================================
-# PARSE - ERROR PROPAGATION
+# PARSE - INVALID INPUTS - HANDS
 # ============================================================================
 
 puts
-puts "parse - error propagation:"
+puts "parse - invalid inputs - hands:"
 
-run_test("propagates piece placement errors") do
-  Sashite::Feen::Parser.parse("/K / C/c")
+run_test("raises for invalid hands delimiter") do
+  Parser.parse("K P C/c")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "piece placement starts with separator"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_DELIMITER
 end
 
-run_test("propagates hands errors") do
-  Sashite::Feen::Parser.parse("K2 PP/ C/c")
+run_test("raises for non-aggregated hands") do
+  Parser.parse("K PP/ C/c")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not aggregated"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::NOT_AGGREGATED
 end
 
-run_test("propagates style-turn errors") do
-  Sashite::Feen::Parser.parse("K / C/C")
+run_test("raises for non-canonical hands") do
+  Parser.parse("K BA/ C/c")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "style tokens must have opposite case"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::NOT_CANONICAL
+end
+
+# ============================================================================
+# PARSE - INVALID INPUTS - STYLE-TURN
+# ============================================================================
+
+puts
+puts "parse - invalid inputs - style-turn:"
+
+run_test("raises for invalid style-turn delimiter") do
+  Parser.parse("K / Cc")
+  raise "should have raised"
+rescue StyleTurnError => e
+  raise "wrong message" unless e.message == StyleTurnError::INVALID_DELIMITER
+end
+
+run_test("raises for same case styles") do
+  Parser.parse("K / C/C")
+  raise "should have raised"
+rescue StyleTurnError => e
+  raise "wrong message" unless e.message == StyleTurnError::SAME_CASE
+end
+
+run_test("raises for invalid style token") do
+  Parser.parse("K / 1/c")
+  raise "should have raised"
+rescue StyleTurnError => e
+  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
+end
+
+# ============================================================================
+# PARSE - INVALID INPUTS - CARDINALITY
+# ============================================================================
+
+puts
+puts "parse - invalid inputs - cardinality:"
+
+run_test("raises for too many pieces (hands exceed board capacity)") do
+  # 1 square on board, 2 pieces in hands = 2 pieces > 1 square
+  Parser.parse("1 2P/ C/c")
+  raise "should have raised"
+rescue CardinalityError => e
+  raise "wrong message" unless e.message == CardinalityError::TOO_MANY_PIECES
+end
+
+run_test("raises for too many pieces (board + hands combined)") do
+  # 2 squares, 1 on board, 2 in hands = 3 pieces > 2 squares
+  Parser.parse("K1 2P/ C/c")
+  raise "should have raised"
+rescue CardinalityError => e
+  raise "wrong message" unless e.message == CardinalityError::TOO_MANY_PIECES
+end
+
+run_test("raises for too many pieces (both hands)") do
+  # 1 square, 0 on board, 1+1 in hands = 2 pieces > 1 square
+  Parser.parse("1 P/p C/c")
+  raise "should have raised"
+rescue CardinalityError => e
+  raise "wrong message" unless e.message == CardinalityError::TOO_MANY_PIECES
+end
+
+run_test("allows equal pieces and squares") do
+  # 4 squares, 4 pieces on board
+  result = Parser.parse("KQkq / C/c")
+  raise "should have parsed" unless result[:piece_placement]
+end
+
+run_test("allows fewer pieces than squares") do
+  # 8 squares, 2 pieces on board
+  result = Parser.parse("K6q / C/c")
+  raise "should have parsed" unless result[:piece_placement]
+end
+
+run_test("allows pieces in hands within capacity") do
+  # 4 squares, 2 on board, 2 in hands = 4 pieces = 4 squares
+  result = Parser.parse("K1k1 P/p C/c")
+  raise "should have parsed" unless result[:piece_placement]
 end
 
 # ============================================================================
@@ -250,33 +253,23 @@ puts
 puts "valid? - true cases:"
 
 run_test("returns true for minimal FEEN") do
-  raise "should be valid" unless Sashite::Feen::Parser.valid?("K / C/c")
+  raise "should be valid" unless Parser.valid?("K / C/c")
 end
 
 run_test("returns true for Chess initial position") do
-  input = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
-  raise "should be valid" unless Sashite::Feen::Parser.valid?(input)
-end
-
-run_test("returns true for Shogi initial position") do
-  input = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
-  raise "should be valid" unless Sashite::Feen::Parser.valid?(input)
+  raise "should be valid" unless Parser.valid?("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
 end
 
 run_test("returns true for position with hands") do
-  raise "should be valid" unless Sashite::Feen::Parser.valid?("K4 2PN/p C/c")
+  raise "should be valid" unless Parser.valid?("8/8/8/8/8/8/8/8 3BNP/2qp C/c")
 end
 
 run_test("returns true for 3D position") do
-  raise "should be valid" unless Sashite::Feen::Parser.valid?("1/1//1/1 / C/c")
-end
-
-run_test("returns true for cross-style game") do
-  raise "should be valid" unless Sashite::Feen::Parser.valid?("K / C/s")
+  raise "should be valid" unless Parser.valid?("4/4//4/4 / C/c")
 end
 
 run_test("returns true for empty board") do
-  raise "should be valid" unless Sashite::Feen::Parser.valid?("8 / C/c")
+  raise "should be valid" unless Parser.valid?("8 / C/c")
 end
 
 # ============================================================================
@@ -287,112 +280,80 @@ puts
 puts "valid? - false cases:"
 
 run_test("returns false for nil") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?(nil)
+  raise "should be invalid" if Parser.valid?(nil)
 end
 
-run_test("returns false for non-string (Integer)") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?(123)
+run_test("returns false for Integer") do
+  raise "should be invalid" if Parser.valid?(123)
 end
 
-run_test("returns false for non-string (Symbol)") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?(:symbol)
-end
-
-run_test("returns false for non-string (Array)") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?([])
-end
-
-run_test("returns false for non-string (Hash)") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?({})
+run_test("returns false for Array") do
+  raise "should be invalid" if Parser.valid?([])
 end
 
 run_test("returns false for empty string") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("")
-end
-
-run_test("returns false for one field") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("K")
-end
-
-run_test("returns false for two fields") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("K /")
-end
-
-run_test("returns false for four fields") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("K / C/c extra")
+  raise "should be invalid" if Parser.valid?("")
 end
 
 run_test("returns false for invalid piece placement") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("/K / C/c")
+  raise "should be invalid" if Parser.valid?("/K / C/c")
 end
 
 run_test("returns false for invalid hands") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("K PP C/c")
+  raise "should be invalid" if Parser.valid?("K PP/ C/c")
 end
 
 run_test("returns false for invalid style-turn") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("K / C/C")
+  raise "should be invalid" if Parser.valid?("K / C/C")
 end
 
 run_test("returns false for too many pieces") do
-  raise "should be invalid" if Sashite::Feen::Parser.valid?("K 2P/ C/c")
+  raise "should be invalid" if Parser.valid?("K 2P/ C/c")
 end
 
 run_test("returns false for string too long") do
-  long_string = "K" * 4097 + " / C/c"
-  raise "should be invalid" if Sashite::Feen::Parser.valid?(long_string)
+  raise "should be invalid" if Parser.valid?("K" * 4097 + " / C/c")
 end
 
 # ============================================================================
-# RETURN STRUCTURE
-# ============================================================================
-
-puts
-puts "Return structure:"
-
-run_test("returns a Hash") do
-  result = Sashite::Feen::Parser.parse("K / C/c")
-  raise "wrong type" unless result.is_a?(Hash)
-end
-
-run_test("returns exactly 3 keys") do
-  result = Sashite::Feen::Parser.parse("K / C/c")
-  raise "wrong key count" unless result.keys.size == 3
-end
-
-run_test(":piece_placement is a Hash") do
-  result = Sashite::Feen::Parser.parse("K / C/c")
-  raise "wrong type" unless result[:piece_placement].is_a?(Hash)
-end
-
-run_test(":hands is a Hash") do
-  result = Sashite::Feen::Parser.parse("K / C/c")
-  raise "wrong type" unless result[:hands].is_a?(Hash)
-end
-
-run_test(":style_turn is a Hash") do
-  result = Sashite::Feen::Parser.parse("K / C/c")
-  raise "wrong type" unless result[:style_turn].is_a?(Hash)
-end
-
-# ============================================================================
-# ERROR CLASS
+# ERROR HIERARCHY
 # ============================================================================
 
 puts
-puts "Error class:"
+puts "Error hierarchy:"
 
-run_test("raises Sashite::Feen::Errors::Argument") do
-  Sashite::Feen::Parser.parse("invalid")
+run_test("ParseError is rescued by ArgumentError") do
+  Parser.parse("")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument
+rescue ArgumentError
   # Expected
 end
 
-run_test("error is rescuable as ArgumentError") do
-  Sashite::Feen::Parser.parse("invalid")
+run_test("PiecePlacementError is rescued by ParseError") do
+  Parser.parse("/K / C/c")
   raise "should have raised"
-rescue ArgumentError
+rescue ParseError
+  # Expected
+end
+
+run_test("HandsError is rescued by ParseError") do
+  Parser.parse("K PP/ C/c")
+  raise "should have raised"
+rescue ParseError
+  # Expected
+end
+
+run_test("StyleTurnError is rescued by ParseError") do
+  Parser.parse("K / C/C")
+  raise "should have raised"
+rescue ParseError
+  # Expected
+end
+
+run_test("CardinalityError is rescued by ParseError") do
+  Parser.parse("K 2P/ C/c")
+  raise "should have raised"
+rescue ParseError
   # Expected
 end
 
@@ -403,20 +364,65 @@ end
 puts
 puts "Module structure:"
 
-run_test("Parser is a Module") do
-  raise "wrong type" unless Sashite::Feen::Parser.is_a?(Module)
+run_test("module is frozen") do
+  raise "expected frozen" unless Parser.frozen?
 end
 
-run_test("Parser is nested under Sashite::Feen") do
-  raise "wrong nesting" unless Sashite::Feen.const_defined?(:Parser)
+run_test("has parse and valid? public methods") do
+  public_methods = Parser.methods(false) - Object.methods
+  raise "expected :parse" unless public_methods.include?(:parse)
+  raise "expected :valid?" unless public_methods.include?(:valid?)
 end
 
-run_test("FIELD_COUNT constant is defined") do
-  raise "not defined" unless defined?(Sashite::Feen::Parser::FIELD_COUNT)
+run_test("FIELD_COUNT constant is 3") do
+  raise "expected 3" unless Parser::FIELD_COUNT == 3
 end
 
-run_test("FIELD_COUNT equals 3") do
-  raise "wrong value" unless Sashite::Feen::Parser::FIELD_COUNT == 3
+# ============================================================================
+# REAL-WORLD EXAMPLES
+# ============================================================================
+
+puts
+puts "Real-world examples:"
+
+run_test("parses and validates Chess initial position") do
+  feen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
+  raise "should be valid" unless Parser.valid?(feen)
+  result = Parser.parse(feen)
+  # 64 squares, 32 pieces
+  squares = result[:piece_placement][:segments].sum { |s| s.sum { |t| ::Integer === t ? t : 1 } }
+  pieces = result[:piece_placement][:segments].sum { |s| s.count { |t| !(::Integer === t) } }
+  raise "expected 64 squares" unless squares == 64
+  raise "expected 32 pieces" unless pieces == 32
+end
+
+run_test("parses and validates Shogi initial position") do
+  feen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
+  raise "should be valid" unless Parser.valid?(feen)
+  result = Parser.parse(feen)
+  # 81 squares, 40 pieces
+  squares = result[:piece_placement][:segments].sum { |s| s.sum { |t| ::Integer === t ? t : 1 } }
+  pieces = result[:piece_placement][:segments].sum { |s| s.count { |t| !(::Integer === t) } }
+  raise "expected 81 squares" unless squares == 81
+  raise "expected 40 pieces" unless pieces == 40
+end
+
+run_test("parses and validates Xiangqi initial position") do
+  feen = "rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR / X/x"
+  raise "should be valid" unless Parser.valid?(feen)
+  result = Parser.parse(feen)
+  # 90 squares
+  squares = result[:piece_placement][:segments].sum { |s| s.sum { |t| ::Integer === t ? t : 1 } }
+  raise "expected 90 squares" unless squares == 90
+end
+
+run_test("parses mid-game position with hands") do
+  # Shogi mid-game: some pieces captured
+  feen = "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL R/r S/s"
+  raise "should be valid" unless Parser.valid?(feen)
+  result = Parser.parse(feen)
+  raise "expected R in first hand" unless result[:hands][:first].any? { |i| i[:piece].to_s == "R" }
+  raise "expected r in second hand" unless result[:hands][:second].any? { |i| i[:piece].to_s == "r" }
 end
 
 puts

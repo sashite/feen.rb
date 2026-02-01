@@ -2,43 +2,82 @@
 # frozen_string_literal: true
 
 require_relative "../../../helper"
-require_relative "../../../../lib/sashite/feen/parser/piece_placement"
 require_relative "../../../../lib/sashite/feen/position/piece_placement"
 
 puts
 puts "=== Position::PiecePlacement Tests ==="
 puts
 
-# Helper to create PiecePlacement from FEEN string
-def parse_placement(input)
-  parsed = Sashite::Feen::Parser::PiecePlacement.parse(input)
-  Sashite::Feen::Position::PiecePlacement.new(**parsed)
+PiecePlacement = Sashite::Feen::Position::PiecePlacement
+
+# Simple mock piece for testing (responds to to_s)
+MockPiece = Struct.new(:name) do
+  def to_s
+    name
+  end
 end
 
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
 
-puts "Initialization:"
+puts "initialization:"
 
-run_test("creates instance from parsed data") do
-  placement = parse_placement("K")
-  raise "wrong type" unless placement.is_a?(Sashite::Feen::Position::PiecePlacement)
+run_test("creates instance with valid segments and separators") do
+  placement = PiecePlacement.send(:new, segments: [[1]], separators: [])
+  raise "expected PiecePlacement instance" unless PiecePlacement === placement
 end
 
-run_test("instance is frozen") do
-  placement = parse_placement("K")
-  raise "should be frozen" unless placement.frozen?
+run_test("creates instance with empty segments array") do
+  placement = PiecePlacement.send(:new, segments: [], separators: [])
+  raise "expected PiecePlacement instance" unless PiecePlacement === placement
 end
 
-run_test("segments accessor returns segments") do
-  placement = parse_placement("K/Q")
-  raise "wrong segments count" unless placement.segments.size == 2
+run_test("raises ArgumentError when segments is not an Array") do
+  PiecePlacement.send(:new, segments: "not array", separators: [])
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("segments must be an Array")
 end
 
-run_test("separators accessor returns separators") do
-  placement = parse_placement("K/Q")
-  raise "wrong separators count" unless placement.separators.size == 1
+run_test("raises ArgumentError when separators is not an Array") do
+  PiecePlacement.send(:new, segments: [[1]], separators: "not array")
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("separators must be an Array")
+end
+
+run_test("raises ArgumentError when segment is not an Array") do
+  PiecePlacement.send(:new, segments: ["not array"], separators: [])
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("segment at index 0 must be an Array")
+end
+
+run_test("raises ArgumentError when separator is not a String") do
+  PiecePlacement.send(:new, segments: [[1], [1]], separators: [123])
+  raise "expected ArgumentError"
+rescue ArgumentError => e
+  raise "wrong message" unless e.message.include?("separator at index 0 must be a String")
+end
+
+# ============================================================================
+# ACCESSORS
+# ============================================================================
+
+puts
+puts "accessors:"
+
+run_test("segments returns the segments array") do
+  segments = [[MockPiece.new("K"), 3]]
+  placement = PiecePlacement.send(:new, segments: segments, separators: [])
+  raise "wrong segments" unless placement.segments == segments
+end
+
+run_test("separators returns the separators array") do
+  separators = ["/", "/"]
+  placement = PiecePlacement.send(:new, segments: [[1], [1], [1]], separators: separators)
+  raise "wrong separators" unless placement.separators == separators
 end
 
 # ============================================================================
@@ -48,44 +87,47 @@ end
 puts
 puts "squares_count:"
 
-run_test("counts single piece as 1 square") do
-  placement = parse_placement("K")
-  raise "wrong count" unless placement.squares_count == 1
+run_test("returns 0 for empty segments") do
+  placement = PiecePlacement.send(:new, segments: [], separators: [])
+  raise "expected 0" unless placement.squares_count == 0
 end
 
-run_test("counts empty squares") do
-  placement = parse_placement("8")
-  raise "wrong count" unless placement.squares_count == 8
+run_test("counts single empty count") do
+  placement = PiecePlacement.send(:new, segments: [[8]], separators: [])
+  raise "expected 8" unless placement.squares_count == 8
 end
 
-run_test("counts mixed pieces and empty") do
-  placement = parse_placement("K2Q")
-  raise "wrong count" unless placement.squares_count == 4
+run_test("counts single piece as 1") do
+  placement = PiecePlacement.send(:new, segments: [[MockPiece.new("K")]], separators: [])
+  raise "expected 1" unless placement.squares_count == 1
 end
 
-run_test("counts across segments") do
-  placement = parse_placement("8/8")
-  raise "wrong count" unless placement.squares_count == 16
+run_test("counts mixed segment correctly") do
+  # K + 3 empty + Q = 5 squares
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("K"), 3, MockPiece.new("Q")]],
+    separators: []
+  )
+  raise "expected 5" unless placement.squares_count == 5
 end
 
-run_test("counts Chess board (64 squares)") do
-  placement = parse_placement("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-  raise "wrong count" unless placement.squares_count == 64
+run_test("counts multiple segments") do
+  # Segment 1: 8 empty = 8
+  # Segment 2: 8 empty = 8
+  # Total: 16
+  placement = PiecePlacement.send(:new,
+    segments: [[8], [8]],
+    separators: ["/"]
+  )
+  raise "expected 16" unless placement.squares_count == 16
 end
 
-run_test("counts Shogi board (81 squares)") do
-  placement = parse_placement("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")
-  raise "wrong count" unless placement.squares_count == 81
-end
-
-run_test("counts Xiangqi board (90 squares)") do
-  placement = parse_placement("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR")
-  raise "wrong count" unless placement.squares_count == 90
-end
-
-run_test("counts 3D board") do
-  placement = parse_placement("4/4//4/4")
-  raise "wrong count" unless placement.squares_count == 16
+run_test("counts chess-like board (64 squares)") do
+  # 8 ranks of 8 squares each
+  segments = Array.new(8) { [8] }
+  separators = Array.new(7) { "/" }
+  placement = PiecePlacement.send(:new, segments: segments, separators: separators)
+  raise "expected 64" unless placement.squares_count == 64
 end
 
 # ============================================================================
@@ -95,44 +137,35 @@ end
 puts
 puts "pieces_count:"
 
+run_test("returns 0 for empty segments") do
+  placement = PiecePlacement.send(:new, segments: [], separators: [])
+  raise "expected 0" unless placement.pieces_count == 0
+end
+
+run_test("returns 0 for board with only empty squares") do
+  placement = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  raise "expected 0" unless placement.pieces_count == 0
+end
+
 run_test("counts single piece") do
-  placement = parse_placement("K")
-  raise "wrong count" unless placement.pieces_count == 1
+  placement = PiecePlacement.send(:new, segments: [[MockPiece.new("K")]], separators: [])
+  raise "expected 1" unless placement.pieces_count == 1
 end
 
-run_test("counts zero pieces on empty board") do
-  placement = parse_placement("8")
-  raise "wrong count" unless placement.pieces_count == 0
+run_test("counts multiple pieces in one segment") do
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("K"), 2, MockPiece.new("Q"), MockPiece.new("R")]],
+    separators: []
+  )
+  raise "expected 3" unless placement.pieces_count == 3
 end
 
-run_test("counts multiple pieces in segment") do
-  placement = parse_placement("KQR")
-  raise "wrong count" unless placement.pieces_count == 3
-end
-
-run_test("counts pieces with empty squares") do
-  placement = parse_placement("K2Q")
-  raise "wrong count" unless placement.pieces_count == 2
-end
-
-run_test("counts pieces across segments") do
-  placement = parse_placement("K/Q/R")
-  raise "wrong count" unless placement.pieces_count == 3
-end
-
-run_test("counts Chess initial position (32 pieces)") do
-  placement = parse_placement("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-  raise "wrong count" unless placement.pieces_count == 32
-end
-
-run_test("counts Shogi initial position (40 pieces)") do
-  placement = parse_placement("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")
-  raise "wrong count" unless placement.pieces_count == 40
-end
-
-run_test("counts pieces with modifiers") do
-  placement = parse_placement("+K-QR'N")
-  raise "wrong count" unless placement.pieces_count == 4
+run_test("counts pieces across multiple segments") do
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("K"), 7], [8], [MockPiece.new("k"), 7]],
+    separators: ["/", "/"]
+  )
+  raise "expected 2" unless placement.pieces_count == 2
 end
 
 # ============================================================================
@@ -142,132 +175,87 @@ end
 puts
 puts "dimensions:"
 
-run_test("returns 1 for 1D board (no separators)") do
-  placement = parse_placement("K")
-  raise "wrong dimensions" unless placement.dimensions == 1
+run_test("returns 1 for empty separators (1D board)") do
+  placement = PiecePlacement.send(:new, segments: [[MockPiece.new("K"), 2, MockPiece.new("Q")]], separators: [])
+  raise "expected 1" unless placement.dimensions == 1
 end
 
-run_test("returns 1 for 1D board with multiple pieces") do
-  placement = parse_placement("K2Q3R")
-  raise "wrong dimensions" unless placement.dimensions == 1
+run_test("returns 2 for single-slash separators (2D board)") do
+  placement = PiecePlacement.send(:new,
+    segments: [[8], [8], [8]],
+    separators: ["/", "/"]
+  )
+  raise "expected 2" unless placement.dimensions == 2
 end
 
-run_test("returns 2 for 2D board (single separators)") do
-  placement = parse_placement("8/8")
-  raise "wrong dimensions" unless placement.dimensions == 2
+run_test("returns 3 for double-slash separators (3D board)") do
+  placement = PiecePlacement.send(:new,
+    segments: [[4], [4], [4], [4]],
+    separators: ["/", "//", "/"]
+  )
+  raise "expected 3" unless placement.dimensions == 3
 end
 
-run_test("returns 2 for Chess board") do
-  placement = parse_placement("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-  raise "wrong dimensions" unless placement.dimensions == 2
-end
-
-run_test("returns 3 for 3D board (double separators)") do
-  placement = parse_placement("4/4//4/4")
-  raise "wrong dimensions" unless placement.dimensions == 3
-end
-
-run_test("returns 3 for complex 3D board") do
-  placement = parse_placement("1/1/1//1/1/1//1/1/1")
-  raise "wrong dimensions" unless placement.dimensions == 3
+run_test("returns dimension based on max separator length") do
+  # Mix of "/" and "//" means 3D
+  placement = PiecePlacement.send(:new,
+    segments: [[1], [1], [1], [1], [1]],
+    separators: ["/", "/", "//", "/"]
+  )
+  raise "expected 3" unless placement.dimensions == 3
 end
 
 # ============================================================================
-# EACH
+# EACH (ENUMERABLE)
 # ============================================================================
 
 puts
 puts "each:"
 
-run_test("yields each token in segment") do
-  placement = parse_placement("K2Q")
-  tokens = []
-  placement.each { |token| tokens << token }
-  raise "wrong count" unless tokens.size == 3
+run_test("returns Enumerator when no block given") do
+  placement = PiecePlacement.send(:new, segments: [[1]], separators: [])
+  enum = placement.each
+  raise "expected Enumerator" unless Enumerator === enum
 end
 
-run_test("yields pieces as Epin::Identifier") do
-  placement = parse_placement("K")
-  placement.each do |token|
-    raise "wrong type" unless token.is_a?(Sashite::Epin::Identifier)
-  end
+run_test("yields nothing for empty segments") do
+  placement = PiecePlacement.send(:new, segments: [], separators: [])
+  tokens = placement.each.to_a
+  raise "expected empty array" unless tokens == []
 end
 
-run_test("yields empty counts as Integer") do
-  placement = parse_placement("8")
-  placement.each do |token|
-    raise "wrong type" unless token.is_a?(Integer)
-    raise "wrong value" unless token == 8
-  end
+run_test("yields tokens in order") do
+  k = MockPiece.new("K")
+  q = MockPiece.new("Q")
+  placement = PiecePlacement.send(:new, segments: [[k, 2, q]], separators: [])
+  tokens = placement.each.to_a
+  raise "expected [k, 2, q]" unless tokens == [k, 2, q]
 end
 
 run_test("yields tokens across segments") do
-  placement = parse_placement("K/Q")
-  tokens = []
-  placement.each { |token| tokens << token }
-  raise "wrong count" unless tokens.size == 2
-end
-
-run_test("returns Enumerator when no block given") do
-  placement = parse_placement("K")
-  enum = placement.each
-  raise "wrong type" unless enum.is_a?(Enumerator)
-end
-
-run_test("Enumerator works correctly") do
-  placement = parse_placement("K2Q")
+  k = MockPiece.new("K")
+  q = MockPiece.new("Q")
+  placement = PiecePlacement.send(:new,
+    segments: [[k, 3], [4], [q]],
+    separators: ["/", "/"]
+  )
   tokens = placement.each.to_a
-  raise "wrong count" unless tokens.size == 3
+  raise "expected [k, 3, 4, q]" unless tokens == [k, 3, 4, q]
 end
 
-# ============================================================================
-# ENUMERABLE
-# ============================================================================
-
-puts
-puts "Enumerable:"
-
-run_test("includes Enumerable") do
-  raise "should include Enumerable" unless Sashite::Feen::Position::PiecePlacement.include?(Enumerable)
-end
-
-run_test("responds to map") do
-  placement = parse_placement("K")
-  raise "should respond to map" unless placement.respond_to?(:map)
-end
-
-run_test("responds to select") do
-  placement = parse_placement("K")
-  raise "should respond to select" unless placement.respond_to?(:select)
-end
-
-run_test("responds to count") do
-  placement = parse_placement("K")
-  raise "should respond to count" unless placement.respond_to?(:count)
+run_test("supports Enumerable methods via each") do
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("K"), 3, MockPiece.new("Q")]],
+    separators: []
+  )
+  count = placement.count { |t| ::Integer === t }
+  raise "expected 1 integer" unless count == 1
 end
 
 run_test("map works correctly") do
-  placement = parse_placement("K2Q")
-  result = placement.map { |t| t.is_a?(Integer) ? t : t.to_s }
-  raise "wrong result" unless result == ["K", 2, "Q"]
-end
-
-run_test("select works correctly") do
-  placement = parse_placement("K2Q")
-  pieces = placement.select { |t| !t.is_a?(Integer) }
-  raise "wrong count" unless pieces.size == 2
-end
-
-run_test("count with block works correctly") do
-  placement = parse_placement("K2Q3R")
-  piece_count = placement.count { |t| !t.is_a?(Integer) }
-  raise "wrong count" unless piece_count == 3
-end
-
-run_test("to_a works correctly") do
-  placement = parse_placement("K2Q")
-  array = placement.to_a
-  raise "wrong size" unless array.size == 3
+  placement = PiecePlacement.send(:new, segments: [[1, 2, 3]], separators: [])
+  result = placement.map { |t| t * 2 }
+  raise "expected [2, 4, 6]" unless result == [2, 4, 6]
 end
 
 # ============================================================================
@@ -277,95 +265,86 @@ end
 puts
 puts "to_s:"
 
-run_test("serializes single piece") do
-  placement = parse_placement("K")
-  raise "wrong string" unless placement.to_s == "K"
+run_test("returns empty string for empty segments") do
+  placement = PiecePlacement.send(:new, segments: [], separators: [])
+  raise "expected empty string" unless placement.to_s == ""
 end
 
-run_test("serializes empty count") do
-  placement = parse_placement("8")
-  raise "wrong string" unless placement.to_s == "8"
+run_test("serializes single segment without separator") do
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("K"), 2, MockPiece.new("Q")]],
+    separators: []
+  )
+  raise "expected K2Q" unless placement.to_s == "K2Q"
 end
 
-run_test("serializes mixed segment") do
-  placement = parse_placement("K2Q")
-  raise "wrong string" unless placement.to_s == "K2Q"
+run_test("serializes multiple segments with separators") do
+  placement = PiecePlacement.send(:new,
+    segments: [[8], [8], [8]],
+    separators: ["/", "/"]
+  )
+  raise "expected 8/8/8" unless placement.to_s == "8/8/8"
 end
 
-run_test("serializes 2D board with separators") do
-  placement = parse_placement("8/8")
-  raise "wrong string" unless placement.to_s == "8/8"
+run_test("serializes 3D board with double-slash separators") do
+  placement = PiecePlacement.send(:new,
+    segments: [[4], [4], [4], [4]],
+    separators: ["/", "//", "/"]
+  )
+  raise "expected 4/4//4/4" unless placement.to_s == "4/4//4/4"
 end
 
-run_test("serializes Chess initial position") do
-  input = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-  placement = parse_placement(input)
-  raise "wrong string" unless placement.to_s == input
-end
-
-run_test("serializes 3D board with double separators") do
-  input = "4/4//4/4"
-  placement = parse_placement(input)
-  raise "wrong string" unless placement.to_s == input
-end
-
-run_test("serializes pieces with modifiers") do
-  input = "+K^'"
-  placement = parse_placement(input)
-  raise "wrong string" unless placement.to_s == input
-end
-
-run_test("round-trip preserves original") do
-  inputs = [
-    "K",
-    "8",
-    "K2Q",
-    "8/8/8/8/8/8/8/8",
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
-    "4/4//4/4",
-    "+K^'-q2R"
-  ]
-  inputs.each do |input|
-    placement = parse_placement(input)
-    raise "round-trip failed for #{input}" unless placement.to_s == input
-  end
+run_test("serializes mixed content correctly") do
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("r"), MockPiece.new("n"), 4, MockPiece.new("k")], [8]],
+    separators: ["/"]
+  )
+  raise "expected rn4k/8" unless placement.to_s == "rn4k/8"
 end
 
 # ============================================================================
-# EQUALITY
+# EQUALITY (==)
 # ============================================================================
 
 puts
-puts "Equality:"
+puts "equality:"
 
-run_test("equal placements are ==") do
-  p1 = parse_placement("K2Q")
-  p2 = parse_placement("K2Q")
-  raise "should be equal" unless p1 == p2
+run_test("equal when segments and separators match") do
+  a = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  b = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  raise "expected equal" unless a == b
 end
 
-run_test("different placements are not ==") do
-  p1 = parse_placement("K2Q")
-  p2 = parse_placement("K3Q")
-  raise "should not be equal" if p1 == p2
+run_test("not equal when segments differ") do
+  a = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  b = PiecePlacement.send(:new, segments: [[4], [4]], separators: ["/"])
+  raise "expected not equal" if a == b
 end
 
-run_test("different separators are not ==") do
-  p1 = parse_placement("K/Q")
-  p2 = parse_placement("K//Q")
-  raise "should not be equal" if p1 == p2
+run_test("not equal when separators differ") do
+  a = PiecePlacement.send(:new, segments: [[4], [4], [4], [4]], separators: ["/", "/", "/"])
+  b = PiecePlacement.send(:new, segments: [[4], [4], [4], [4]], separators: ["/", "//", "/"])
+  raise "expected not equal" if a == b
 end
 
-run_test("== returns false for non-PiecePlacement") do
-  placement = parse_placement("K")
-  raise "should not be equal to string" if placement == "K"
-  raise "should not be equal to nil" if placement == nil
+run_test("not equal to nil") do
+  a = PiecePlacement.send(:new, segments: [[8]], separators: [])
+  raise "expected not equal" if a == nil
 end
 
-run_test("eql? is aliased to ==") do
-  p1 = parse_placement("K2Q")
-  p2 = parse_placement("K2Q")
-  raise "eql? should work" unless p1.eql?(p2)
+run_test("not equal to other types") do
+  a = PiecePlacement.send(:new, segments: [[8]], separators: [])
+  raise "not equal to String" if a == "8"
+  raise "not equal to Array" if a == [[8]]
+  raise "not equal to Hash" if a == { segments: [[8]], separators: [] }
+end
+
+run_test("eql? behaves like ==") do
+  a = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  b = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  c = PiecePlacement.send(:new, segments: [[4], [4]], separators: ["/"])
+  raise "expected eql?" unless a.eql?(b)
+  raise "expected not eql?" if a.eql?(c)
 end
 
 # ============================================================================
@@ -373,26 +352,19 @@ end
 # ============================================================================
 
 puts
-puts "Hash:"
+puts "hash:"
 
-run_test("equal placements have same hash") do
-  p1 = parse_placement("K2Q")
-  p2 = parse_placement("K2Q")
-  raise "hashes should be equal" unless p1.hash == p2.hash
-end
-
-run_test("different placements have different hash") do
-  p1 = parse_placement("K2Q")
-  p2 = parse_placement("K3Q")
-  # Note: hash collision is possible but unlikely
-  raise "hashes should differ" if p1.hash == p2.hash
+run_test("equal objects have equal hash codes") do
+  a = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  b = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  raise "expected equal hashes" unless a.hash == b.hash
 end
 
 run_test("can be used as hash key") do
-  p1 = parse_placement("K2Q")
-  p2 = parse_placement("K2Q")
-  hash = { p1 => "value" }
-  raise "should find by equal key" unless hash[p2] == "value"
+  a = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  b = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  hash = { a => "value" }
+  raise "expected to find by equal key" unless hash[b] == "value"
 end
 
 # ============================================================================
@@ -400,36 +372,79 @@ end
 # ============================================================================
 
 puts
-puts "Inspect:"
+puts "inspect:"
 
-run_test("inspect includes class name") do
-  placement = parse_placement("K")
-  raise "should include class" unless placement.inspect.include?("PiecePlacement")
+run_test("includes class name") do
+  placement = PiecePlacement.send(:new, segments: [[8]], separators: [])
+  raise "expected class name" unless placement.inspect.include?("PiecePlacement")
 end
 
-run_test("inspect includes string representation") do
-  placement = parse_placement("K2Q")
-  raise "should include to_s" unless placement.inspect.include?("K2Q")
-end
-
-run_test("inspect format is #<Class string>") do
-  placement = parse_placement("K")
-  raise "wrong format" unless placement.inspect.match?(/^#<.*PiecePlacement.*K>$/)
+run_test("includes string representation") do
+  placement = PiecePlacement.send(:new, segments: [[8], [8]], separators: ["/"])
+  raise "expected to_s content" unless placement.inspect.include?("8/8")
 end
 
 # ============================================================================
-# CLASS STRUCTURE
+# REAL-WORLD EXAMPLES
 # ============================================================================
 
 puts
-puts "Class structure:"
+puts "real-world examples:"
 
-run_test("PiecePlacement is a Class") do
-  raise "wrong type" unless Sashite::Feen::Position::PiecePlacement.is_a?(Class)
+run_test("chess initial position metrics") do
+  # Simulated chess position: pieces on ranks 1, 2, 7, 8; empty in between
+  # Using simple strings as mock pieces
+  r = MockPiece.new("r")
+  n = MockPiece.new("n")
+  b = MockPiece.new("b")
+  q = MockPiece.new("q")
+  k = MockPiece.new("k")
+  p_piece = MockPiece.new("p")
+
+  segments = [
+    [r, n, b, q, k, b, n, r],  # rank 8
+    Array.new(8) { p_piece },  # rank 7
+    [8],                        # rank 6
+    [8],                        # rank 5
+    [8],                        # rank 4
+    [8],                        # rank 3
+    Array.new(8) { MockPiece.new("P") },  # rank 2
+    [MockPiece.new("R"), MockPiece.new("N"), MockPiece.new("B"), MockPiece.new("Q"),
+     MockPiece.new("K"), MockPiece.new("B"), MockPiece.new("N"), MockPiece.new("R")]  # rank 1
+  ]
+  separators = ["/", "/", "/", "/", "/", "/", "/"]
+
+  placement = PiecePlacement.send(:new, segments: segments, separators: separators)
+
+  raise "expected 64 squares" unless placement.squares_count == 64
+  raise "expected 32 pieces" unless placement.pieces_count == 32
+  raise "expected 2D" unless placement.dimensions == 2
 end
 
-run_test("PiecePlacement is nested under Position") do
-  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:PiecePlacement)
+run_test("1D board example") do
+  # Linear board: K--Q (King, 2 empty, Queen)
+  placement = PiecePlacement.send(:new,
+    segments: [[MockPiece.new("K"), 2, MockPiece.new("Q")]],
+    separators: []
+  )
+
+  raise "expected 4 squares" unless placement.squares_count == 4
+  raise "expected 2 pieces" unless placement.pieces_count == 2
+  raise "expected 1D" unless placement.dimensions == 1
+  raise "expected K2Q" unless placement.to_s == "K2Q"
+end
+
+run_test("3D board example") do
+  # 2x2x2 cube: 2 layers of 2 ranks
+  placement = PiecePlacement.send(:new,
+    segments: [[2], [2], [2], [2]],
+    separators: ["/", "//", "/"]
+  )
+
+  raise "expected 8 squares" unless placement.squares_count == 8
+  raise "expected 0 pieces" unless placement.pieces_count == 0
+  raise "expected 3D" unless placement.dimensions == 3
+  raise "expected 2/2//2/2" unless placement.to_s == "2/2//2/2"
 end
 
 puts

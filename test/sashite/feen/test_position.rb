@@ -2,127 +2,132 @@
 # frozen_string_literal: true
 
 require_relative "../../helper"
-require_relative "../../../lib/sashite/feen/parser"
 require_relative "../../../lib/sashite/feen/position"
 
 puts
 puts "=== Position Tests ==="
 puts
 
-# Helper to create Position from FEEN string
-def parse_position(input)
-  parsed = Sashite::Feen::Parser.parse(input)
-  Sashite::Feen::Position.new(**parsed)
+Position = Sashite::Feen::Position
+
+# Mock style object that responds to :side and :to_s
+MockStyle = Struct.new(:side, :abbr) do
+  def to_s
+    side == :first ? abbr.to_s.upcase : abbr.to_s.downcase
+  end
+end
+
+# Mock piece for board (responds to to_s)
+MockPiece = Struct.new(:name) do
+  def to_s
+    name
+  end
+end
+
+# Helper to create a simple position
+def create_position(
+  segments: [[8]],
+  separators: [],
+  first_hand: [],
+  second_hand: [],
+  active_side: :first,
+  active_abbr: :C,
+  inactive_abbr: :C
+)
+  inactive_side = active_side == :first ? :second : :first
+  Position.new(
+    piece_placement: { segments: segments, separators: separators },
+    hands: { first: first_hand, second: second_hand },
+    style_turn: {
+      active: MockStyle.new(active_side, active_abbr),
+      inactive: MockStyle.new(inactive_side, inactive_abbr)
+    }
+  )
 end
 
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
 
-puts "Initialization:"
+puts "initialization:"
 
-run_test("creates instance from parsed data") do
-  position = parse_position("K / C/c")
-  raise "wrong type" unless position.is_a?(Sashite::Feen::Position)
+run_test("creates instance with valid components") do
+  position = create_position
+  raise "expected Position instance" unless Position === position
 end
 
-run_test("instance is frozen") do
-  position = parse_position("K / C/c")
-  raise "should be frozen" unless position.frozen?
+run_test("creates instance with empty board") do
+  position = create_position(segments: [[64]], separators: [])
+  raise "expected Position instance" unless Position === position
 end
 
-run_test("creates all three components") do
-  position = parse_position("K / C/c")
-  raise "missing piece_placement" unless position.piece_placement
-  raise "missing hands" unless position.hands
-  raise "missing style_turn" unless position.style_turn
+run_test("creates instance with pieces on board") do
+  k = MockPiece.new("K")
+  q = MockPiece.new("Q")
+  position = create_position(segments: [[k, 6, q]], separators: [])
+  raise "expected Position instance" unless Position === position
 end
 
-# ============================================================================
-# PIECE_PLACEMENT ACCESSOR
-# ============================================================================
-
-puts
-puts "piece_placement accessor:"
-
-run_test("returns PiecePlacement instance") do
-  position = parse_position("K / C/c")
-  raise "wrong type" unless position.piece_placement.is_a?(Sashite::Feen::Position::PiecePlacement)
+run_test("creates instance with pieces in hands") do
+  position = create_position(
+    first_hand: [{ piece: "P", count: 2 }],
+    second_hand: [{ piece: "p", count: 1 }]
+  )
+  raise "expected Position instance" unless Position === position
 end
 
-run_test("piece_placement has correct data") do
-  position = parse_position("K2Q / C/c")
-  raise "wrong squares_count" unless position.piece_placement.squares_count == 4
-  raise "wrong pieces_count" unless position.piece_placement.pieces_count == 2
+run_test("creates instance with 2D board") do
+  position = create_position(
+    segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
+    separators: ["/", "/", "/", "/", "/", "/", "/"]
+  )
+  raise "expected Position instance" unless Position === position
 end
 
-run_test("piece_placement is frozen") do
-  position = parse_position("K / C/c")
-  raise "should be frozen" unless position.piece_placement.frozen?
+run_test("creates instance with 3D board") do
+  position = create_position(
+    segments: [[4], [4], [4], [4]],
+    separators: ["/", "//", "/"]
+  )
+  raise "expected Position instance" unless Position === position
 end
 
-# ============================================================================
-# HANDS ACCESSOR
-# ============================================================================
-
-puts
-puts "hands accessor:"
-
-run_test("returns Hands instance") do
-  position = parse_position("K / C/c")
-  raise "wrong type" unless position.hands.is_a?(Sashite::Feen::Position::Hands)
+run_test("creates instance with cross-style game") do
+  position = create_position(active_abbr: :C, inactive_abbr: :S)
+  raise "expected Position instance" unless Position === position
 end
 
-run_test("hands has correct data (empty)") do
-  position = parse_position("K / C/c")
-  raise "first should be empty" unless position.hands.first.empty?
-  raise "second should be empty" unless position.hands.second.empty?
-end
-
-run_test("hands has correct data (with pieces)") do
-  position = parse_position("K5 3P/2p C/c")
-  raise "first should not be empty" if position.hands.first.empty?
-  raise "second should not be empty" if position.hands.second.empty?
-  raise "wrong first count" unless position.hands.first.pieces_count == 3
-  raise "wrong second count" unless position.hands.second.pieces_count == 2
-end
-
-run_test("hands is frozen") do
-  position = parse_position("K / C/c")
-  raise "should be frozen" unless position.hands.frozen?
+run_test("creates instance with second to move") do
+  position = create_position(active_side: :second)
+  raise "expected Position instance" unless Position === position
 end
 
 # ============================================================================
-# STYLE_TURN ACCESSOR
+# ACCESSORS
 # ============================================================================
 
 puts
-puts "style_turn accessor:"
+puts "accessors:"
 
-run_test("returns StyleTurn instance") do
-  position = parse_position("K / C/c")
-  raise "wrong type" unless position.style_turn.is_a?(Sashite::Feen::Position::StyleTurn)
+run_test("piece_placement returns PiecePlacement") do
+  position = create_position
+  raise "wrong type" unless position.piece_placement.respond_to?(:squares_count)
+  raise "wrong type" unless position.piece_placement.respond_to?(:pieces_count)
+  raise "wrong type" unless position.piece_placement.respond_to?(:dimensions)
 end
 
-run_test("style_turn has correct data (first to move)") do
-  position = parse_position("K / C/c")
-  raise "should be first to move" unless position.style_turn.first_to_move?
+run_test("hands returns Hands") do
+  position = create_position
+  raise "wrong type" unless position.hands.respond_to?(:first)
+  raise "wrong type" unless position.hands.respond_to?(:second)
+  raise "wrong type" unless position.hands.respond_to?(:pieces_count)
 end
 
-run_test("style_turn has correct data (second to move)") do
-  position = parse_position("K / c/C")
-  raise "should be second to move" unless position.style_turn.second_to_move?
-end
-
-run_test("style_turn has correct styles") do
-  position = parse_position("K / C/s")
-  raise "wrong active abbr" unless position.style_turn.active_style.abbr == :C
-  raise "wrong inactive abbr" unless position.style_turn.inactive_style.abbr == :S
-end
-
-run_test("style_turn is frozen") do
-  position = parse_position("K / C/c")
-  raise "should be frozen" unless position.style_turn.frozen?
+run_test("style_turn returns StyleTurn") do
+  position = create_position
+  raise "wrong type" unless position.style_turn.respond_to?(:active_style)
+  raise "wrong type" unless position.style_turn.respond_to?(:inactive_style)
+  raise "wrong type" unless position.style_turn.respond_to?(:first_to_move?)
 end
 
 # ============================================================================
@@ -132,34 +137,31 @@ end
 puts
 puts "squares_count:"
 
-run_test("returns correct count for single piece") do
-  position = parse_position("K / C/c")
-  raise "wrong count" unless position.squares_count == 1
+run_test("returns count for 1D board") do
+  position = create_position(segments: [[8]], separators: [])
+  raise "expected 8" unless position.squares_count == 8
 end
 
-run_test("returns correct count for empty board") do
-  position = parse_position("8 / C/c")
-  raise "wrong count" unless position.squares_count == 8
+run_test("returns count for 2D board (chess-like)") do
+  position = create_position(
+    segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
+    separators: ["/", "/", "/", "/", "/", "/", "/"]
+  )
+  raise "expected 64" unless position.squares_count == 64
 end
 
-run_test("returns correct count for Chess board") do
-  position = parse_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-  raise "wrong count" unless position.squares_count == 64
+run_test("returns count for board with pieces") do
+  k = MockPiece.new("K")
+  position = create_position(segments: [[k, 3, k]], separators: [])
+  raise "expected 5" unless position.squares_count == 5
 end
 
-run_test("returns correct count for Shogi board") do
-  position = parse_position("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
-  raise "wrong count" unless position.squares_count == 81
-end
-
-run_test("returns correct count for 3D board") do
-  position = parse_position("4/4//4/4 / C/c")
-  raise "wrong count" unless position.squares_count == 16
-end
-
-run_test("delegates to piece_placement") do
-  position = parse_position("K2Q / C/c")
-  raise "should match piece_placement" unless position.squares_count == position.piece_placement.squares_count
+run_test("returns count for 3D board") do
+  position = create_position(
+    segments: [[4], [4], [4], [4]],
+    separators: ["/", "//", "/"]
+  )
+  raise "expected 16" unless position.squares_count == 16
 end
 
 # ============================================================================
@@ -169,42 +171,51 @@ end
 puts
 puts "pieces_count:"
 
-run_test("returns correct count for board only") do
-  position = parse_position("K / C/c")
-  raise "wrong count" unless position.pieces_count == 1
+run_test("returns 0 for empty board and hands") do
+  position = create_position(segments: [[8]], separators: [])
+  raise "expected 0" unless position.pieces_count == 0
 end
 
-run_test("returns correct count for empty board") do
-  position = parse_position("8 / C/c")
-  raise "wrong count" unless position.pieces_count == 0
+run_test("counts pieces on board only") do
+  k = MockPiece.new("K")
+  q = MockPiece.new("Q")
+  position = create_position(segments: [[k, 2, q]], separators: [])
+  raise "expected 2" unless position.pieces_count == 2
 end
 
-run_test("returns correct count for hands only") do
-  position = parse_position("8 3P/2p C/c")
-  raise "wrong count" unless position.pieces_count == 5
+run_test("counts pieces in hands only") do
+  position = create_position(
+    segments: [[8]],
+    separators: [],
+    first_hand: [{ piece: "P", count: 2 }, { piece: "B", count: 1 }],
+    second_hand: [{ piece: "p", count: 1 }]
+  )
+  raise "expected 4" unless position.pieces_count == 4
 end
 
-run_test("returns correct count for board and hands") do
-  position = parse_position("K5 3P/2p C/c")
-  # 1 on board + 3 in first hand + 2 in second hand = 6
-  raise "wrong count" unless position.pieces_count == 6
+run_test("counts pieces on board and in hands") do
+  k = MockPiece.new("K")
+  position = create_position(
+    segments: [[k, 7]],
+    separators: [],
+    first_hand: [{ piece: "P", count: 2 }],
+    second_hand: [{ piece: "p", count: 3 }]
+  )
+  raise "expected 6" unless position.pieces_count == 6
 end
 
-run_test("returns correct count for Chess initial position") do
-  position = parse_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-  raise "wrong count" unless position.pieces_count == 32
-end
+run_test("counts chess initial position") do
+  # Simulate 32 pieces on board
+  rank8 = Array.new(8) { MockPiece.new("x") }
+  rank7 = Array.new(8) { MockPiece.new("x") }
+  rank2 = Array.new(8) { MockPiece.new("X") }
+  rank1 = Array.new(8) { MockPiece.new("X") }
 
-run_test("returns correct count for Shogi initial position") do
-  position = parse_position("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
-  raise "wrong count" unless position.pieces_count == 40
-end
-
-run_test("sums board and hands correctly") do
-  position = parse_position("K2Q4 3P/2p C/c")
-  board_pieces = position.piece_placement.pieces_count
-  hand_pieces = position.hands.pieces_count
-  raise "should sum correctly" unless position.pieces_count == board_pieces + hand_pieces
+  position = create_position(
+    segments: [rank8, rank7, [8], [8], [8], [8], rank2, rank1],
+    separators: ["/", "/", "/", "/", "/", "/", "/"]
+  )
+  raise "expected 32" unless position.pieces_count == 32
 end
 
 # ============================================================================
@@ -214,106 +225,126 @@ end
 puts
 puts "to_s:"
 
-run_test("serializes minimal position") do
-  position = parse_position("K / C/c")
-  raise "wrong string" unless position.to_s == "K / C/c"
+run_test("returns canonical format for simple position") do
+  position = create_position(segments: [[8]], separators: [])
+  raise "expected '8 / C/c'" unless position.to_s == "8 / C/c"
 end
 
-run_test("serializes position with hands") do
-  position = parse_position("K5 3P/2p C/c")
-  raise "wrong string" unless position.to_s == "K5 3P/2p C/c"
+run_test("returns canonical format for 2D board") do
+  position = create_position(
+    segments: [[8], [8]],
+    separators: ["/"]
+  )
+  raise "expected '8/8 / C/c'" unless position.to_s == "8/8 / C/c"
 end
 
-run_test("serializes Chess initial position") do
-  input = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
-  position = parse_position(input)
-  raise "wrong string" unless position.to_s == input
+run_test("returns canonical format with pieces on board") do
+  k = MockPiece.new("K")
+  q = MockPiece.new("Q")
+  position = create_position(segments: [[k, 2, q]], separators: [])
+  raise "expected 'K2Q / C/c'" unless position.to_s == "K2Q / C/c"
 end
 
-run_test("serializes Shogi initial position") do
-  input = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
-  position = parse_position(input)
-  raise "wrong string" unless position.to_s == input
+run_test("returns canonical format with pieces in hands") do
+  position = create_position(
+    segments: [[8]],
+    separators: [],
+    first_hand: [{ piece: "P", count: 2 }, { piece: "B", count: 1 }],
+    second_hand: [{ piece: "p", count: 1 }]
+  )
+  raise "expected '8 2PB/p C/c'" unless position.to_s == "8 2PB/p C/c"
 end
 
-run_test("serializes 3D position") do
-  input = "4/4//4/4 / C/c"
-  position = parse_position(input)
-  raise "wrong string" unless position.to_s == input
+run_test("returns canonical format with empty hands") do
+  position = create_position(segments: [[8]], separators: [])
+  # Empty hands should produce "/"
+  raise "should contain ' / '" unless position.to_s.include?(" / ")
 end
 
-run_test("serializes cross-style position") do
-  input = "K / C/s"
-  position = parse_position(input)
-  raise "wrong string" unless position.to_s == input
+run_test("returns canonical format for second to move") do
+  position = create_position(active_side: :second)
+  raise "expected '8 / c/C'" unless position.to_s == "8 / c/C"
 end
 
-run_test("serializes second-to-move position") do
-  input = "K / c/C"
-  position = parse_position(input)
-  raise "wrong string" unless position.to_s == input
+run_test("returns canonical format for cross-style game") do
+  position = create_position(active_abbr: :C, inactive_abbr: :S)
+  raise "expected '8 / C/s'" unless position.to_s == "8 / C/s"
 end
 
-run_test("round-trip preserves original") do
-  inputs = [
-    "K / C/c",
-    "8 / C/c",
-    "K5 3P/2p C/c",
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c",
-    "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s",
-    "4/4//4/4 / C/c",
-    "K / C/s",
-    "K / c/C",
-    "+K^'5 3+P^'/2-p^' C/s"
-  ]
-  inputs.each do |input|
-    position = parse_position(input)
-    raise "round-trip failed for '#{input}'" unless position.to_s == input
-  end
+run_test("returns canonical format for 3D board") do
+  position = create_position(
+    segments: [[2], [2], [2], [2]],
+    separators: ["/", "//", "/"]
+  )
+  raise "expected '2/2//2/2 / C/c'" unless position.to_s == "2/2//2/2 / C/c"
 end
 
 # ============================================================================
-# EQUALITY
+# EQUALITY (==)
 # ============================================================================
 
 puts
-puts "Equality:"
+puts "equality:"
 
-run_test("equal positions are ==") do
-  p1 = parse_position("K5 3P/2p C/c")
-  p2 = parse_position("K5 3P/2p C/c")
-  raise "should be equal" unless p1 == p2
+run_test("equal when all components match") do
+  a = create_position
+  b = create_position
+  raise "expected equal" unless a == b
 end
 
-run_test("different piece_placement are not ==") do
-  p1 = parse_position("K / C/c")
-  p2 = parse_position("Q / C/c")
-  raise "should not be equal" if p1 == p2
+run_test("equal with complex positions") do
+  k = MockPiece.new("K")
+  a = create_position(
+    segments: [[k, 7], [8]],
+    separators: ["/"],
+    first_hand: [{ piece: "P", count: 2 }],
+    second_hand: []
+  )
+  b = create_position(
+    segments: [[k, 7], [8]],
+    separators: ["/"],
+    first_hand: [{ piece: "P", count: 2 }],
+    second_hand: []
+  )
+  raise "expected equal" unless a == b
 end
 
-run_test("different hands are not ==") do
-  p1 = parse_position("K3 3P/ C/c")
-  p2 = parse_position("K3 2P/ C/c")
-  raise "should not be equal" if p1 == p2
+run_test("not equal when piece_placement differs") do
+  a = create_position(segments: [[8]], separators: [])
+  b = create_position(segments: [[4]], separators: [])
+  raise "expected not equal" if a == b
 end
 
-run_test("different style_turn are not ==") do
-  p1 = parse_position("K / C/c")
-  p2 = parse_position("K / c/C")
-  raise "should not be equal" if p1 == p2
+run_test("not equal when hands differ") do
+  a = create_position(first_hand: [{ piece: "P", count: 1 }])
+  b = create_position(first_hand: [{ piece: "P", count: 2 }])
+  raise "expected not equal" if a == b
 end
 
-run_test("== returns false for non-Position") do
-  position = parse_position("K / C/c")
-  raise "should not be equal to string" if position == "K / C/c"
-  raise "should not be equal to nil" if position == nil
-  raise "should not be equal to array" if position == []
+run_test("not equal when style_turn differs") do
+  a = create_position(active_side: :first)
+  b = create_position(active_side: :second)
+  raise "expected not equal" if a == b
 end
 
-run_test("eql? is aliased to ==") do
-  p1 = parse_position("K5 3P/2p C/c")
-  p2 = parse_position("K5 3P/2p C/c")
-  raise "eql? should work" unless p1.eql?(p2)
+run_test("not equal to nil") do
+  position = create_position
+  raise "expected not equal" if position == nil
+end
+
+run_test("not equal to other types") do
+  position = create_position
+  raise "not equal to String" if position == "8 / C/c"
+  raise "not equal to Hash" if position == {}
+  raise "not equal to Array" if position == []
+end
+
+run_test("eql? behaves like ==") do
+  a = create_position
+  b = create_position
+  c = create_position(segments: [[4]], separators: [])
+  raise "expected eql?" unless a.eql?(b)
+  raise "expected not eql?" if a.eql?(c)
 end
 
 # ============================================================================
@@ -321,34 +352,26 @@ end
 # ============================================================================
 
 puts
-puts "Hash:"
+puts "hash:"
 
-run_test("equal positions have same hash") do
-  p1 = parse_position("K5 3P/2p C/c")
-  p2 = parse_position("K5 3P/2p C/c")
-  raise "hashes should be equal" unless p1.hash == p2.hash
-end
-
-run_test("different positions have different hash") do
-  p1 = parse_position("K / C/c")
-  p2 = parse_position("Q / C/c")
-  raise "hashes should differ" if p1.hash == p2.hash
+run_test("equal positions have equal hash codes") do
+  a = create_position
+  b = create_position
+  raise "expected equal hashes" unless a.hash == b.hash
 end
 
 run_test("can be used as hash key") do
-  p1 = parse_position("K5 3P/2p C/c")
-  p2 = parse_position("K5 3P/2p C/c")
-  hash = { p1 => "value" }
-  raise "should find by equal key" unless hash[p2] == "value"
+  a = create_position
+  b = create_position
+  hash = { a => "value" }
+  raise "expected to find by equal key" unless hash[b] == "value"
 end
 
-run_test("different positions as separate hash keys") do
-  p1 = parse_position("K / C/c")
-  p2 = parse_position("Q / C/c")
-  hash = { p1 => "first", p2 => "second" }
-  raise "should have 2 keys" unless hash.size == 2
-  raise "wrong value for p1" unless hash[p1] == "first"
-  raise "wrong value for p2" unless hash[p2] == "second"
+run_test("different positions likely have different hashes") do
+  a = create_position(segments: [[8]], separators: [])
+  b = create_position(segments: [[4]], separators: [])
+  # Not strictly required, but highly likely
+  raise "expected different hashes" if a.hash == b.hash
 end
 
 # ============================================================================
@@ -356,88 +379,129 @@ end
 # ============================================================================
 
 puts
-puts "Inspect:"
+puts "inspect:"
 
-run_test("inspect includes class name") do
-  position = parse_position("K / C/c")
-  raise "should include class" unless position.inspect.include?("Position")
+run_test("includes class name") do
+  position = create_position
+  raise "expected class name" unless position.inspect.include?("Position")
 end
 
-run_test("inspect includes string representation") do
-  position = parse_position("K5 3P/2p C/c")
-  raise "should include to_s" unless position.inspect.include?("K5 3P/2p C/c")
-end
-
-run_test("inspect format is #<Class string>") do
-  position = parse_position("K / C/c")
-  raise "wrong format" unless position.inspect.match?(/^#<.*Position.*K \/ C\/c>$/)
+run_test("includes FEEN string") do
+  position = create_position
+  raise "expected FEEN content" unless position.inspect.include?("8")
+  raise "expected FEEN content" unless position.inspect.include?("C/c")
 end
 
 # ============================================================================
-# INTEGRATION
+# IMMUTABILITY
 # ============================================================================
 
 puts
-puts "Integration:"
+puts "immutability:"
 
-run_test("all components work together") do
-  position = parse_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR 2P/p C/c")
-
-  # Piece placement
-  raise "wrong squares" unless position.squares_count == 64
-  raise "wrong board pieces" unless position.piece_placement.pieces_count == 32
-  raise "wrong dimensions" unless position.piece_placement.dimensions == 2
-
-  # Hands
-  raise "wrong first hand" unless position.hands.first.pieces_count == 2
-  raise "wrong second hand" unless position.hands.second.pieces_count == 1
-
-  # Style turn
-  raise "should be first to move" unless position.style_turn.first_to_move?
-  raise "wrong active style" unless position.style_turn.active_style.abbr == :C
-
-  # Total
-  raise "wrong total pieces" unless position.pieces_count == 35
+run_test("instance is frozen") do
+  position = create_position
+  raise "expected frozen" unless position.frozen?
 end
 
-run_test("can iterate over piece placement") do
-  position = parse_position("K2Q / C/c")
-  tokens = position.piece_placement.to_a
-  raise "wrong token count" unless tokens.size == 3
+run_test("piece_placement is frozen") do
+  position = create_position
+  raise "expected frozen" unless position.piece_placement.frozen?
 end
 
-run_test("can iterate over hands") do
-  position = parse_position("K5 3B2P/ C/c")
-  pieces = []
-  position.hands.first.each { |piece, count| pieces << [piece.to_s, count] }
-  raise "wrong pieces" unless pieces == [["B", 3], ["P", 2]]
+run_test("hands is frozen") do
+  position = create_position
+  raise "expected frozen" unless position.hands.frozen?
+end
+
+run_test("style_turn is frozen") do
+  position = create_position
+  raise "expected frozen" unless position.style_turn.frozen?
 end
 
 # ============================================================================
-# CLASS STRUCTURE
+# REAL-WORLD EXAMPLES
 # ============================================================================
 
 puts
-puts "Class structure:"
+puts "real-world examples:"
 
-run_test("Position is a Class") do
-  raise "wrong type" unless Sashite::Feen::Position.is_a?(Class)
+run_test("Chess initial position structure") do
+  # Simplified: 8 ranks with pieces on 1,2,7,8 and empty on 3-6
+  r = MockPiece.new("r")
+  n = MockPiece.new("n")
+  b = MockPiece.new("b")
+  q = MockPiece.new("q")
+  k = MockPiece.new("k")
+  p_piece = MockPiece.new("p")
+
+  segments = [
+    [r, n, b, q, k, b, n, r],
+    Array.new(8) { p_piece },
+    [8], [8], [8], [8],
+    Array.new(8) { MockPiece.new("P") },
+    [MockPiece.new("R"), MockPiece.new("N"), MockPiece.new("B"), MockPiece.new("Q"),
+     MockPiece.new("K"), MockPiece.new("B"), MockPiece.new("N"), MockPiece.new("R")]
+  ]
+
+  position = Position.new(
+    piece_placement: { segments: segments, separators: ["/"] * 7 },
+    hands: { first: [], second: [] },
+    style_turn: { active: MockStyle.new(:first, :C), inactive: MockStyle.new(:second, :C) }
+  )
+
+  raise "expected 64 squares" unless position.squares_count == 64
+  raise "expected 32 pieces" unless position.pieces_count == 32
+  raise "should start with rnbqkbnr" unless position.to_s.start_with?("rnbqkbnr")
 end
 
-run_test("Position is nested under Sashite::Feen") do
-  raise "wrong nesting" unless Sashite::Feen.const_defined?(:Position)
+run_test("Shogi position with pieces in hand") do
+  position = Position.new(
+    piece_placement: { segments: [[9], [9], [9], [9], [9], [9], [9], [9], [9]], separators: ["/"] * 8 },
+    hands: {
+      first: [{ piece: "P", count: 3 }, { piece: "L", count: 1 }],
+      second: [{ piece: "p", count: 2 }]
+    },
+    style_turn: { active: MockStyle.new(:first, :S), inactive: MockStyle.new(:second, :S) }
+  )
+
+  raise "expected 81 squares" unless position.squares_count == 81
+  raise "expected 6 pieces" unless position.pieces_count == 6
+  raise "should contain S/s" unless position.to_s.include?("S/s")
 end
 
-run_test("PiecePlacement is nested under Position") do
-  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:PiecePlacement)
+run_test("Cross-style game") do
+  position = Position.new(
+    piece_placement: { segments: [[8]], separators: [] },
+    hands: { first: [], second: [] },
+    style_turn: { active: MockStyle.new(:first, :C), inactive: MockStyle.new(:second, :S) }
+  )
+
+  raise "should contain C/s" unless position.to_s.include?("C/s")
 end
 
-run_test("Hands is nested under Position") do
-  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:Hands)
-end
+run_test("3D Raumschach-like position") do
+  # 5x5x5 = 125 squares, represented as 5 layers of 5 ranks
+  segments = []
+  separators = []
 
-run_test("StyleTurn is nested under Position") do
-  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:StyleTurn)
+  5.times do |layer|
+    5.times do |rank|
+      segments << [5]
+      separators << "/" if rank < 4
+    end
+    separators << "//" if layer < 4
+  end
+  separators.pop  # Remove trailing separator
+
+  position = Position.new(
+    piece_placement: { segments: segments, separators: separators },
+    hands: { first: [], second: [] },
+    style_turn: { active: MockStyle.new(:first, :R), inactive: MockStyle.new(:second, :R) }
+  )
+
+  raise "expected 125 squares" unless position.squares_count == 125
+  raise "expected 3D" unless position.piece_placement.dimensions == 3
 end
 
 puts

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "constants"
+require_relative "shared/separators"
 require_relative "position/hands"
 require_relative "position/piece_placement"
 require_relative "position/style_turn"
@@ -17,10 +17,6 @@ module Sashite
     # Instances are immutable (frozen after creation) and thread-safe.
     #
     # @api public
-    #
-    # @example Creating a position via parsing
-    #   position = Sashite::Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-    #   position.to_s  # => "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
     #
     # @example Accessing components
     #   position.piece_placement  # => PiecePlacement
@@ -48,10 +44,11 @@ module Sashite
       # @param hands [Hash] Parsed hands with :first and :second
       # @param style_turn [Hash] Parsed style-turn with :active and :inactive
       # @return [Position] A new frozen instance
+      # @raise [ArgumentError] If any component is invalid
       def initialize(piece_placement:, hands:, style_turn:)
-        @piece_placement = PiecePlacement.new(**piece_placement)
-        @hands = Hands.new(**hands)
-        @style_turn = StyleTurn.new(**style_turn)
+        @piece_placement = PiecePlacement.send(:new, **piece_placement)
+        @hands = Hands.send(:new, **hands)
+        @style_turn = StyleTurn.send(:new, **style_turn)
 
         freeze
       end
@@ -87,7 +84,7 @@ module Sashite
           piece_placement.to_s,
           hands.to_s,
           style_turn.to_s
-        ].join(Constants::FIELD_SEPARATOR)
+        ].join(Separators::FIELD)
       end
 
       # Checks equality with another Position.
@@ -96,10 +93,10 @@ module Sashite
       # @return [Boolean] true if equal
       def ==(other)
         return false unless self.class === other
+        return false unless piece_placement == other.piece_placement
+        return false unless hands == other.hands
 
-        piece_placement == other.piece_placement &&
-          hands == other.hands &&
-          style_turn == other.style_turn
+        style_turn == other.style_turn
       end
 
       alias eql? ==
@@ -108,7 +105,7 @@ module Sashite
       #
       # @return [Integer] Hash code
       def hash
-        [piece_placement, hands, style_turn].hash
+        [self.class, piece_placement, hands, style_turn].hash
       end
 
       # Returns an inspect string for the Position.

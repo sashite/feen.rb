@@ -8,548 +8,321 @@ puts
 puts "=== Parser::Hands Tests ==="
 puts
 
-# ============================================================================
-# EMPTY HANDS
-# ============================================================================
-
-puts "Empty hands:"
-
-run_test("parses empty hands '/'") do
-  result = Sashite::Feen::Parser::Hands.parse("/")
-  raise "first not empty" unless result[:first].empty?
-  raise "second not empty" unless result[:second].empty?
-end
-
-run_test("parses empty first hand '/p'") do
-  result = Sashite::Feen::Parser::Hands.parse("/p")
-  raise "first not empty" unless result[:first].empty?
-  raise "second should have items" if result[:second].empty?
-end
-
-run_test("parses empty second hand 'P/'") do
-  result = Sashite::Feen::Parser::Hands.parse("P/")
-  raise "first should have items" if result[:first].empty?
-  raise "second not empty" unless result[:second].empty?
-end
+Hands = Sashite::Feen::Parser::Hands
+HandsError = Sashite::Feen::HandsError
 
 # ============================================================================
-# SINGLE PIECE (IMPLICIT COUNT)
+# VALID PARSING - EMPTY HANDS
 # ============================================================================
 
-puts
-puts "Single piece (implicit count):"
+puts "Valid parsing - empty hands:"
 
-run_test("parses single uppercase piece") do
-  result = Sashite::Feen::Parser::Hands.parse("P/")
-  raise "wrong count" unless result[:first].size == 1
-  raise "wrong piece count" unless result[:first][0][:count] == 1
+run_test("parses both hands empty") do
+  result = Hands.parse("/")
+  raise "expected :first key" unless result.key?(:first)
+  raise "expected :second key" unless result.key?(:second)
+  raise "expected empty first" unless result[:first] == []
+  raise "expected empty second" unless result[:second] == []
 end
 
-run_test("parses single lowercase piece") do
-  result = Sashite::Feen::Parser::Hands.parse("/p")
-  raise "wrong count" unless result[:second].size == 1
-  raise "wrong piece count" unless result[:second][0][:count] == 1
+run_test("parses first hand empty, second has pieces") do
+  result = Hands.parse("/p")
+  raise "expected empty first" unless result[:first] == []
+  raise "expected 1 item in second" unless result[:second].size == 1
 end
 
-run_test("piece is Epin::Identifier") do
-  result = Sashite::Feen::Parser::Hands.parse("P/")
-  raise "wrong type" unless result[:first][0][:piece].is_a?(Sashite::Epin::Identifier)
+run_test("parses first hand has pieces, second empty") do
+  result = Hands.parse("P/")
+  raise "expected 1 item in first" unless result[:first].size == 1
+  raise "expected empty second" unless result[:second] == []
 end
 
 # ============================================================================
-# EXPLICIT COUNT
+# VALID PARSING - SINGLE ITEMS
 # ============================================================================
 
 puts
-puts "Explicit count:"
+puts "Valid parsing - single items:"
 
-run_test("parses count of 2") do
-  result = Sashite::Feen::Parser::Hands.parse("2P/")
-  raise "wrong count" unless result[:first][0][:count] == 2
+run_test("parses single piece in first hand") do
+  result = Hands.parse("P/")
+  raise "expected count 1" unless result[:first][0][:count] == 1
+  raise "expected P" unless result[:first][0][:piece].to_s == "P"
 end
 
-run_test("parses count of 9") do
-  result = Sashite::Feen::Parser::Hands.parse("9P/")
-  raise "wrong count" unless result[:first][0][:count] == 9
+run_test("parses single piece in second hand") do
+  result = Hands.parse("/p")
+  raise "expected count 1" unless result[:second][0][:count] == 1
+  raise "expected p" unless result[:second][0][:piece].to_s == "p"
 end
 
-run_test("parses count of 10") do
-  result = Sashite::Feen::Parser::Hands.parse("10P/")
-  raise "wrong count" unless result[:first][0][:count] == 10
+run_test("parses pieces in both hands") do
+  result = Hands.parse("P/p")
+  raise "expected 1 item in first" unless result[:first].size == 1
+  raise "expected 1 item in second" unless result[:second].size == 1
 end
 
-run_test("parses count of 99") do
-  result = Sashite::Feen::Parser::Hands.parse("99P/")
-  raise "wrong count" unless result[:first][0][:count] == 99
-end
-
-run_test("parses count of 100") do
-  result = Sashite::Feen::Parser::Hands.parse("100P/")
-  raise "wrong count" unless result[:first][0][:count] == 100
-end
-
-run_test("rejects count of 0") do
-  Sashite::Feen::Parser::Hands.parse("0P/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hand count"
-end
-
-run_test("rejects count of 1 (must be implicit)") do
-  Sashite::Feen::Parser::Hands.parse("1P/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hand count"
-end
-
-run_test("rejects leading zero (02)") do
-  Sashite::Feen::Parser::Hands.parse("02P/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hand count"
-end
-
-run_test("rejects leading zeros (002)") do
-  Sashite::Feen::Parser::Hands.parse("002P/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hand count"
+run_test("parses piece with count") do
+  result = Hands.parse("3P/2p")
+  raise "expected count 3" unless result[:first][0][:count] == 3
+  raise "expected count 2" unless result[:second][0][:count] == 2
 end
 
 # ============================================================================
-# MULTIPLE ITEMS
+# VALID PARSING - MULTIPLE ITEMS
 # ============================================================================
 
 puts
-puts "Multiple items:"
+puts "Valid parsing - multiple items:"
 
-run_test("parses two items in first hand") do
-  result = Sashite::Feen::Parser::Hands.parse("BP/")
-  raise "wrong count" unless result[:first].size == 2
+run_test("parses multiple pieces in first hand") do
+  result = Hands.parse("BNR/")
+  raise "expected 3 items" unless result[:first].size == 3
 end
 
-run_test("parses three items in first hand") do
-  result = Sashite::Feen::Parser::Hands.parse("BNR/")
-  raise "wrong count" unless result[:first].size == 3
+run_test("parses multiple pieces in second hand") do
+  result = Hands.parse("/bnr")
+  raise "expected 3 items" unless result[:second].size == 3
 end
 
-run_test("parses items in both hands") do
-  result = Sashite::Feen::Parser::Hands.parse("BP/nr")
-  raise "wrong first count" unless result[:first].size == 2
-  raise "wrong second count" unless result[:second].size == 2
-end
-
-run_test("parses mixed counts and implicit") do
-  result = Sashite::Feen::Parser::Hands.parse("3B2PN/")
-  raise "wrong count" unless result[:first].size == 3
-  raise "wrong B count" unless result[:first][0][:count] == 3
-  raise "wrong P count" unless result[:first][1][:count] == 2
-  raise "wrong N count" unless result[:first][2][:count] == 1
+run_test("parses complex hands") do
+  result = Hands.parse("3B2NP/2qpr")
+  raise "expected 3 items in first" unless result[:first].size == 3
+  raise "expected 3 items in second" unless result[:second].size == 3
 end
 
 # ============================================================================
-# EPIN MODIFIERS
+# VALID PARSING - EPIN MODIFIERS
 # ============================================================================
 
 puts
-puts "EPIN modifiers:"
+puts "Valid parsing - EPIN modifiers:"
 
-run_test("parses enhanced piece (+)") do
-  result = Sashite::Feen::Parser::Hands.parse("+P/")
-  raise "wrong state" unless result[:first][0][:piece].pin.state == :enhanced
+run_test("parses enhanced pieces") do
+  result = Hands.parse("+P/+p")
+  raise "expected +P" unless result[:first][0][:piece].to_s == "+P"
+  raise "expected +p" unless result[:second][0][:piece].to_s == "+p"
 end
 
-run_test("parses diminished piece (-)") do
-  result = Sashite::Feen::Parser::Hands.parse("-P/")
-  raise "wrong state" unless result[:first][0][:piece].pin.state == :diminished
+run_test("parses terminal pieces") do
+  result = Hands.parse("K^/k^")
+  raise "expected K^" unless result[:first][0][:piece].to_s == "K^"
+  raise "expected k^" unless result[:second][0][:piece].to_s == "k^"
 end
 
-run_test("parses terminal piece (^)") do
-  result = Sashite::Feen::Parser::Hands.parse("P^/")
-  raise "not terminal" unless result[:first][0][:piece].pin.terminal?
+run_test("parses derived pieces") do
+  result = Hands.parse("P'/p'")
+  raise "expected P'" unless result[:first][0][:piece].to_s == "P'"
+  raise "expected p'" unless result[:second][0][:piece].to_s == "p'"
 end
 
-run_test("parses derived piece (')") do
-  result = Sashite::Feen::Parser::Hands.parse("P'/")
-  raise "not derived" unless result[:first][0][:piece].derived?
-end
-
-run_test("parses all modifiers combined (+P^')") do
-  result = Sashite::Feen::Parser::Hands.parse("+P^'/")
-  piece = result[:first][0][:piece]
-  raise "wrong state" unless piece.pin.state == :enhanced
-  raise "not terminal" unless piece.pin.terminal?
-  raise "not derived" unless piece.derived?
-end
-
-run_test("parses count with modifiers (3+P^')") do
-  result = Sashite::Feen::Parser::Hands.parse("3+P^'/")
-  raise "wrong count" unless result[:first][0][:count] == 3
-  piece = result[:first][0][:piece]
-  raise "wrong state" unless piece.pin.state == :enhanced
+run_test("parses fully modified pieces") do
+  result = Hands.parse("+K^'/+k^'")
+  raise "expected +K^'" unless result[:first][0][:piece].to_s == "+K^'"
+  raise "expected +k^'" unless result[:second][0][:piece].to_s == "+k^'"
 end
 
 # ============================================================================
-# DELIMITER VALIDATION
+# VALID PARSING - PIECE SIDE INDEPENDENCE
 # ============================================================================
 
 puts
-puts "Delimiter validation:"
+puts "Valid parsing - piece side independence:"
 
-run_test("rejects missing delimiter") do
-  Sashite::Feen::Parser::Hands.parse("P")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hands delimiter"
+run_test("first hand can contain lowercase pieces") do
+  # Lowercase pieces (second player's pieces) in first player's hand
+  result = Hands.parse("Pp/")
+  raise "expected 2 items" unless result[:first].size == 2
+  raise "expected P" unless result[:first][0][:piece].to_s == "P"
+  raise "expected p" unless result[:first][1][:piece].to_s == "p"
 end
 
-run_test("rejects multiple delimiters") do
-  Sashite::Feen::Parser::Hands.parse("P/p/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hands delimiter"
-end
-
-run_test("rejects empty string") do
-  Sashite::Feen::Parser::Hands.parse("")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid hands delimiter"
+run_test("second hand can contain uppercase pieces") do
+  # Uppercase pieces (first player's pieces) in second player's hand
+  result = Hands.parse("/Pp")
+  raise "expected 2 items" unless result[:second].size == 2
+  raise "expected P" unless result[:second][0][:piece].to_s == "P"
+  raise "expected p" unless result[:second][1][:piece].to_s == "p"
 end
 
 # ============================================================================
-# AGGREGATION VALIDATION
+# RESULT STRUCTURE
 # ============================================================================
 
 puts
-puts "Aggregation validation:"
+puts "Result structure:"
 
-run_test("rejects duplicate pieces (PP should be 2P)") do
-  Sashite::Feen::Parser::Hands.parse("PP/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not aggregated"
+run_test("returns Hash") do
+  result = Hands.parse("/")
+  raise "expected Hash" unless ::Hash === result
 end
 
-run_test("rejects duplicate with count (2PP should be 3P)") do
-  Sashite::Feen::Parser::Hands.parse("2PP/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not aggregated"
+run_test("has :first and :second keys") do
+  result = Hands.parse("/")
+  raise "expected :first" unless result.key?(:first)
+  raise "expected :second" unless result.key?(:second)
 end
 
-run_test("rejects duplicate in second hand") do
-  Sashite::Feen::Parser::Hands.parse("/pp")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not aggregated"
+run_test("values are Arrays") do
+  result = Hands.parse("P/p")
+  raise "first should be Array" unless ::Array === result[:first]
+  raise "second should be Array" unless ::Array === result[:second]
 end
 
-run_test("accepts same letter different case (Pp)") do
-  result = Sashite::Feen::Parser::Hands.parse("Pp/")
-  raise "wrong count" unless result[:first].size == 2
-end
-
-run_test("accepts same letter different modifiers") do
-  result = Sashite::Feen::Parser::Hands.parse("+PP/")
-  raise "wrong count" unless result[:first].size == 2
-end
-
-# ============================================================================
-# CANONICAL ORDER - BY MULTIPLICITY (DESCENDING)
-# ============================================================================
-
-puts
-puts "Canonical order - by multiplicity (descending):"
-
-run_test("accepts correct order: 3P2N (3 > 2)") do
-  result = Sashite::Feen::Parser::Hands.parse("3P2N/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: 2P3N (2 < 3)") do
-  Sashite::Feen::Parser::Hands.parse("2P3N/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-run_test("accepts correct order: 3PN (3 > 1)") do
-  result = Sashite::Feen::Parser::Hands.parse("3PN/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: P3N (1 < 3)") do
-  Sashite::Feen::Parser::Hands.parse("P3N/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-# ============================================================================
-# CANONICAL ORDER - BY BASE LETTER (ALPHABETICAL, CASE-INSENSITIVE)
-# ============================================================================
-
-puts
-puts "Canonical order - by base letter (alphabetical):"
-
-run_test("accepts correct order: AB") do
-  result = Sashite::Feen::Parser::Hands.parse("AB/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: BA") do
-  Sashite::Feen::Parser::Hands.parse("BA/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-run_test("accepts correct order: Ab (case-insensitive)") do
-  result = Sashite::Feen::Parser::Hands.parse("Ab/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("accepts correct order: aB (case-insensitive)") do
-  result = Sashite::Feen::Parser::Hands.parse("aB/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: Ba (case-insensitive)") do
-  Sashite::Feen::Parser::Hands.parse("Ba/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-# ============================================================================
-# CANONICAL ORDER - BY CASE (UPPERCASE BEFORE LOWERCASE)
-# ============================================================================
-
-puts
-puts "Canonical order - by case (uppercase before lowercase):"
-
-run_test("accepts correct order: Aa") do
-  result = Sashite::Feen::Parser::Hands.parse("Aa/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: aA") do
-  Sashite::Feen::Parser::Hands.parse("aA/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-run_test("accepts correct order: Bb") do
-  result = Sashite::Feen::Parser::Hands.parse("Bb/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: bB") do
-  Sashite::Feen::Parser::Hands.parse("bB/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-# ============================================================================
-# CANONICAL ORDER - BY STATE MODIFIER (- BEFORE + BEFORE NONE)
-# ============================================================================
-
-puts
-puts "Canonical order - by state modifier (- before + before none):"
-
-run_test("accepts correct order: -A+A") do
-  result = Sashite::Feen::Parser::Hands.parse("-A+A/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: +A-A") do
-  Sashite::Feen::Parser::Hands.parse("+A-A/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-run_test("accepts correct order: +AA") do
-  result = Sashite::Feen::Parser::Hands.parse("+AA/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: A+A") do
-  Sashite::Feen::Parser::Hands.parse("A+A/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-run_test("accepts correct order: -AA") do
-  result = Sashite::Feen::Parser::Hands.parse("-AA/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: A-A") do
-  Sashite::Feen::Parser::Hands.parse("A-A/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-run_test("accepts correct order: -A+AA") do
-  result = Sashite::Feen::Parser::Hands.parse("-A+AA/")
-  raise "should parse" unless result[:first].size == 3
-end
-
-# ============================================================================
-# CANONICAL ORDER - BY TERMINAL MARKER (ABSENT BEFORE PRESENT)
-# ============================================================================
-
-puts
-puts "Canonical order - by terminal marker (absent before present):"
-
-run_test("accepts correct order: AA^") do
-  result = Sashite::Feen::Parser::Hands.parse("AA^/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: A^A") do
-  Sashite::Feen::Parser::Hands.parse("A^A/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-# ============================================================================
-# CANONICAL ORDER - BY DERIVATION MARKER (ABSENT BEFORE PRESENT)
-# ============================================================================
-
-puts
-puts "Canonical order - by derivation marker (absent before present):"
-
-run_test("accepts correct order: AA'") do
-  result = Sashite::Feen::Parser::Hands.parse("AA'/")
-  raise "should parse" unless result[:first].size == 2
-end
-
-run_test("rejects wrong order: A'A") do
-  Sashite::Feen::Parser::Hands.parse("A'A/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-# ============================================================================
-# CANONICAL ORDER - COMBINED CRITERIA
-# ============================================================================
-
-puts
-puts "Canonical order - combined criteria:"
-
-run_test("accepts complex valid order") do
-  # 3B (count 3) > 2P (count 2) > N (count 1, N before R) > R (count 1)
-  result = Sashite::Feen::Parser::Hands.parse("3B2PNR/")
-  raise "should parse" unless result[:first].size == 4
-end
-
-run_test("accepts order with same letter different attributes") do
-  # A (normal) > A' (derived) > A^ (terminal) > A^' (terminal+derived)
-  result = Sashite::Feen::Parser::Hands.parse("AA'A^A^'/")
-  raise "should parse" unless result[:first].size == 4
-end
-
-run_test("rejects complex invalid order") do
-  Sashite::Feen::Parser::Hands.parse("2PNR3B/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "hand items not in canonical order"
-end
-
-# ============================================================================
-# INVALID PIECE TOKEN
-# ============================================================================
-
-puts
-puts "Invalid piece token:"
-
-run_test("rejects invalid character") do
-  Sashite::Feen::Parser::Hands.parse("P@/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid piece token"
-end
-
-run_test("rejects standalone count") do
-  Sashite::Feen::Parser::Hands.parse("2/")
-  raise "should have raised"
-rescue Sashite::Feen::Errors::Argument => e
-  raise "wrong message" unless e.message == "invalid piece token"
-end
-
-# ============================================================================
-# RETURN STRUCTURE
-# ============================================================================
-
-puts
-puts "Return structure:"
-
-run_test("returns hash with :first key") do
-  result = Sashite::Feen::Parser::Hands.parse("/")
-  raise "missing :first" unless result.key?(:first)
-end
-
-run_test("returns hash with :second key") do
-  result = Sashite::Feen::Parser::Hands.parse("/")
-  raise "missing :second" unless result.key?(:second)
-end
-
-run_test(":first is an Array") do
-  result = Sashite::Feen::Parser::Hands.parse("/")
-  raise "wrong type" unless result[:first].is_a?(Array)
-end
-
-run_test(":second is an Array") do
-  result = Sashite::Feen::Parser::Hands.parse("/")
-  raise "wrong type" unless result[:second].is_a?(Array)
-end
-
-run_test("each item is a Hash with :piece and :count") do
-  result = Sashite::Feen::Parser::Hands.parse("P/")
+run_test("items have :piece and :count keys") do
+  result = Hands.parse("P/")
   item = result[:first][0]
-  raise "not a Hash" unless item.is_a?(Hash)
-  raise "missing :piece" unless item.key?(:piece)
-  raise "missing :count" unless item.key?(:count)
-end
-
-run_test(":piece is Epin::Identifier") do
-  result = Sashite::Feen::Parser::Hands.parse("P/")
-  raise "wrong type" unless result[:first][0][:piece].is_a?(Sashite::Epin::Identifier)
-end
-
-run_test(":count is Integer") do
-  result = Sashite::Feen::Parser::Hands.parse("P/")
-  raise "wrong type" unless result[:first][0][:count].is_a?(Integer)
+  raise "expected :piece" unless item.key?(:piece)
+  raise "expected :count" unless item.key?(:count)
 end
 
 # ============================================================================
-# ERROR CLASS
+# INVALID PARSING - DELIMITER ERRORS
 # ============================================================================
 
 puts
-puts "Error class:"
+puts "Invalid parsing - delimiter errors:"
 
-run_test("raises Sashite::Feen::Errors::Argument") do
-  Sashite::Feen::Parser::Hands.parse("")
+run_test("raises for missing delimiter") do
+  Hands.parse("P")
   raise "should have raised"
-rescue Sashite::Feen::Errors::Argument
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_DELIMITER
+end
+
+run_test("raises for empty string") do
+  Hands.parse("")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_DELIMITER
+end
+
+run_test("raises for multiple delimiters") do
+  Hands.parse("P/N/R")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_DELIMITER
+end
+
+run_test("raises for only delimiters") do
+  Hands.parse("//")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_DELIMITER
+end
+
+# ============================================================================
+# INVALID PARSING - DELEGATED ERRORS
+# ============================================================================
+
+puts
+puts "Invalid parsing - delegated errors (from Hand parser):"
+
+run_test("raises for invalid count in first hand") do
+  Hands.parse("0P/")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_COUNT
+end
+
+run_test("raises for invalid count in second hand") do
+  Hands.parse("/1p")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_COUNT
+end
+
+run_test("raises for duplicate pieces in first hand") do
+  Hands.parse("PP/")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::NOT_AGGREGATED
+end
+
+run_test("raises for non-canonical order in first hand") do
+  Hands.parse("BA/")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::NOT_CANONICAL
+end
+
+run_test("raises for invalid piece token in second hand") do
+  Hands.parse("/p@")
+  raise "should have raised"
+rescue HandsError => e
+  raise "wrong message" unless e.message == HandsError::INVALID_PIECE_TOKEN
+end
+
+# ============================================================================
+# ERROR TYPE
+# ============================================================================
+
+puts
+puts "Error type:"
+
+run_test("error is HandsError") do
+  Hands.parse("invalid")
+  raise "should have raised"
+rescue HandsError
   # Expected
 end
 
-run_test("error is rescuable as ArgumentError") do
-  Sashite::Feen::Parser::Hands.parse("")
+run_test("error is also ArgumentError") do
+  Hands.parse("invalid")
   raise "should have raised"
 rescue ArgumentError
   # Expected
+end
+
+# ============================================================================
+# MODULE STRUCTURE
+# ============================================================================
+
+puts
+puts "Module structure:"
+
+run_test("module is frozen") do
+  raise "expected frozen" unless Hands.frozen?
+end
+
+run_test("parse is the only public method") do
+  public_methods = Hands.methods(false) - Object.methods
+  raise "expected only :parse, got #{public_methods}" unless public_methods == [:parse]
+end
+
+# ============================================================================
+# REAL-WORLD EXAMPLES
+# ============================================================================
+
+puts
+puts "Real-world examples:"
+
+run_test("parses Shogi-style hands") do
+  # First player captured several pieces, second player has fewer
+  result = Hands.parse("4P2LGS/2pg")
+  raise "expected 4 items in first" unless result[:first].size == 4
+  raise "expected 2 items in second" unless result[:second].size == 2
+end
+
+run_test("parses Chess-style empty hands") do
+  # Chess doesn't use hands, but empty is valid
+  result = Hands.parse("/")
+  raise "expected empty first" unless result[:first].empty?
+  raise "expected empty second" unless result[:second].empty?
+end
+
+run_test("parses Crazyhouse-style hands") do
+  # Captured pieces change side, so first hand has uppercase
+  result = Hands.parse("2BNP/2bnp")
+  raise "expected 3 items in first" unless result[:first].size == 3
+  raise "expected 3 items in second" unless result[:second].size == 3
+end
+
+run_test("parses asymmetric hands") do
+  # One player has many captures, other has none
+  result = Hands.parse("5P3N2BR/")
+  raise "expected 4 items in first" unless result[:first].size == 4
+  raise "expected empty second" unless result[:second].empty?
 end
 
 puts

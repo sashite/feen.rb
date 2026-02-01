@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require_relative "../constants"
-
 module Sashite
   module Feen
     class Position
       # Represents player styles and the active player.
       #
-      # StyleTurn encapsulates the parsed data from FEEN Field 3,
+      # StyleTurn encapsulates parsed data from FEEN Field 3,
       # providing access to each player's style and turn information.
       #
       # The active player is the one whose turn it is to move.
@@ -17,31 +15,31 @@ module Sashite
       #
       # Instances are immutable (frozen after creation) and thread-safe.
       #
-      # @api public
+      # This class is an implementation detail of {Position} and should not
+      # be instantiated directly by external code.
       #
-      # @example Querying turn
-      #   style_turn = position.style_turn
-      #   style_turn.first_to_move?   # => true
-      #   style_turn.second_to_move?  # => false
-      #
-      # @example Accessing styles
-      #   style_turn.active_style    # => Sashite::Sin::Identifier (C)
-      #   style_turn.inactive_style  # => Sashite::Sin::Identifier (c)
-      #
-      # @see https://sashite.dev/specs/feen/1.0.0/
+      # @api private
       class StyleTurn
-        # @return [Sashite::Sin::Identifier] Active player's style
+        # Separator between active and inactive styles in FEEN notation.
+        SEPARATOR = "/"
+
+        # @return [Object] Active player's style identifier
         attr_reader :active_style
 
-        # @return [Sashite::Sin::Identifier] Inactive player's style
+        # @return [Object] Inactive player's style identifier
         attr_reader :inactive_style
 
         # Creates a new StyleTurn instance.
         #
-        # @param active [Sashite::Sin::Identifier] Active player's style
-        # @param inactive [Sashite::Sin::Identifier] Inactive player's style
+        # @param active [Object] Active player's style (must respond to :side)
+        # @param inactive [Object] Inactive player's style (must respond to :side)
         # @return [StyleTurn] A new frozen instance
+        # @raise [ArgumentError] If active does not respond to :side
+        # @raise [ArgumentError] If inactive does not respond to :side
         def initialize(active:, inactive:)
+          validate_style!(active, "active")
+          validate_style!(inactive, "inactive")
+
           @active_style = active
           @inactive_style = inactive
 
@@ -50,7 +48,7 @@ module Sashite
 
         # Returns true if the first player is to move.
         #
-        # The first player is identified by an uppercase style token.
+        # The first player is identified by an uppercase style token (side = :first).
         #
         # @return [Boolean] true if first player's turn
         #
@@ -62,7 +60,7 @@ module Sashite
 
         # Returns true if the second player is to move.
         #
-        # The second player is identified by a lowercase style token.
+        # The second player is identified by a lowercase style token (side = :second).
         #
         # @return [Boolean] true if second player's turn
         #
@@ -79,7 +77,7 @@ module Sashite
         # @example
         #   style_turn.to_s  # => "C/c"
         def to_s
-          "#{active_style}#{Constants::SEGMENT_SEPARATOR}#{inactive_style}"
+          "#{active_style}#{SEPARATOR}#{inactive_style}"
         end
 
         # Checks equality with another StyleTurn.
@@ -88,8 +86,9 @@ module Sashite
         # @return [Boolean] true if equal
         def ==(other)
           return false unless self.class === other
+          return false unless active_style == other.active_style
 
-          active_style == other.active_style && inactive_style == other.inactive_style
+          inactive_style == other.inactive_style
         end
 
         alias eql? ==
@@ -98,7 +97,7 @@ module Sashite
         #
         # @return [Integer] Hash code
         def hash
-          [active_style, inactive_style].hash
+          [self.class, active_style, inactive_style].hash
         end
 
         # Returns an inspect string for the StyleTurn.
@@ -107,6 +106,23 @@ module Sashite
         def inspect
           "#<#{self.class} #{self}>"
         end
+
+        private
+
+        # Validates that a style responds to :side.
+        #
+        # @param style [Object] The style to validate
+        # @param name [String] Parameter name for error message
+        # @raise [ArgumentError] If style does not respond to :side
+        def validate_style!(style, name)
+          return if style.respond_to?(:side)
+
+          raise ::ArgumentError, "#{name} must respond to :side"
+        end
+
+        private_class_method :new
+
+        freeze
       end
     end
   end

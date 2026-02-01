@@ -2,8 +2,8 @@
 
 require "sashite/sin"
 
-require_relative "../constants"
-require_relative "../errors"
+require_relative "../shared/separators"
+require_relative "../errors/style_turn_error"
 
 module Sashite
   module Feen
@@ -31,8 +31,6 @@ module Sashite
       # The two tokens MUST have opposite case, ensuring both players
       # are represented.
       #
-      # @api private
-      #
       # @example First player to move (same style)
       #   StyleTurn.parse("C/c")
       #   # => { active: <Sin C>, inactive: <Sin c> }
@@ -46,16 +44,17 @@ module Sashite
       #   # => { active: <Sin C>, inactive: <Sin s> }
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
+      # @api private
       module StyleTurn
         # Parses a FEEN Style-Turn field string.
         #
         # @param input [String] The Style-Turn field string
         # @return [Hash] A hash with :active and :inactive keys containing SIN identifiers
-        # @raise [Errors::Argument] If the input is not valid
+        # @raise [StyleTurnError] If the input is not valid
         def self.parse(input)
           validate_delimiter!(input)
 
-          active_str, inactive_str = input.split(Constants::SEGMENT_SEPARATOR, -1)
+          active_str, inactive_str = input.split(Separators::SEGMENT, -1)
 
           active = parse_style(active_str)
           inactive = parse_style(inactive_str)
@@ -71,22 +70,22 @@ module Sashite
           # Validates that the input contains exactly one delimiter.
           #
           # @param input [String] The input to validate
-          # @raise [Errors::Argument] If delimiter is missing or duplicated
+          # @raise [StyleTurnError] If delimiter is missing or duplicated
           def validate_delimiter!(input)
-            return if input.count(Constants::SEGMENT_SEPARATOR) == 1
+            count = input.count(Separators::SEGMENT)
 
-            raise Errors::Argument, Errors::Argument::Messages::INVALID_STYLE_TURN_DELIMITER
+            raise StyleTurnError, StyleTurnError::INVALID_DELIMITER unless count == 1
           end
 
           # Parses a SIN style token.
           #
           # @param str [String] The string to parse
           # @return [Sashite::Sin::Identifier] The parsed SIN identifier
-          # @raise [Errors::Argument] If SIN parsing fails
+          # @raise [StyleTurnError] If SIN parsing fails
           def parse_style(str)
             ::Sashite::Sin.parse(str)
           rescue ::ArgumentError
-            raise Errors::Argument, Errors::Argument::Messages::INVALID_STYLE_TOKEN
+            raise StyleTurnError, StyleTurnError::INVALID_STYLE_TOKEN
           end
 
           # Validates that the two style tokens have opposite case.
@@ -96,13 +95,19 @@ module Sashite
           #
           # @param active [Sashite::Sin::Identifier] The active player's style
           # @param inactive [Sashite::Sin::Identifier] The inactive player's style
-          # @raise [Errors::Argument] If both tokens have the same case
+          # @raise [StyleTurnError] If both tokens have the same case
           def validate_opposite_case!(active, inactive)
             return if active.side != inactive.side
 
-            raise Errors::Argument, Errors::Argument::Messages::STYLE_TOKENS_SAME_CASE
+            raise StyleTurnError, StyleTurnError::SAME_CASE
           end
         end
+
+        private_class_method :validate_delimiter!,
+                             :parse_style,
+                             :validate_opposite_case!
+
+        freeze
       end
     end
   end

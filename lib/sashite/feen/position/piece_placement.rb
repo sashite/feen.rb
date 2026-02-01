@@ -5,7 +5,7 @@ module Sashite
     class Position
       # Represents board structure and piece occupancy.
       #
-      # PiecePlacement encapsulates the parsed data from FEEN Field 1,
+      # PiecePlacement encapsulates parsed data from FEEN Field 1,
       # providing methods to query board metrics and iterate over squares.
       #
       # The board is represented as a sequence of segments, where each segment
@@ -14,25 +14,15 @@ module Sashite
       #
       # Instances are immutable (frozen after creation) and thread-safe.
       #
-      # @api public
+      # This class is an implementation detail of {Position} and should not
+      # be instantiated directly by external code.
       #
-      # @example Accessing board metrics
-      #   placement = position.piece_placement
-      #   placement.squares_count  # => 64
-      #   placement.pieces_count   # => 32
-      #   placement.dimensions     # => 2
-      #
-      # @example Iterating over squares
-      #   placement.each do |square|
-      #     case square
-      #     when Integer then puts "#{square} empty squares"
-      #     when Sashite::Epin::Identifier then puts "Piece: #{square}"
-      #     end
-      #   end
-      #
-      # @see https://sashite.dev/specs/feen/1.0.0/
+      # @api private
       class PiecePlacement
         include ::Enumerable
+
+        # Empty string used when no separator follows a segment.
+        EMPTY_STRING = ""
 
         # @return [Array<Array>] Board segments, each containing placement tokens
         attr_reader :segments
@@ -42,10 +32,20 @@ module Sashite
 
         # Creates a new PiecePlacement instance.
         #
-        # @param segments [Array<Array>] Parsed segments from PiecePlacement parser
+        # @param segments [Array<Array>] Parsed segments containing tokens
         # @param separators [Array<String>] Separators between segments
         # @return [PiecePlacement] A new frozen instance
+        # @raise [ArgumentError] If segments is not an Array
+        # @raise [ArgumentError] If separators is not an Array
+        # @raise [ArgumentError] If any segment is not an Array
+        # @raise [ArgumentError] If any separator is not a String
         def initialize(segments:, separators:)
+          raise ::ArgumentError, "segments must be an Array, got #{segments.class}" unless ::Array === segments
+          raise ::ArgumentError, "separators must be an Array, got #{separators.class}" unless ::Array === separators
+
+          validate_segments!(segments)
+          validate_separators!(separators)
+
           @segments = segments
           @separators = separators
 
@@ -60,7 +60,7 @@ module Sashite
         #   placement.squares_count  # => 64 (for 8x8 board)
         def squares_count
           segments.sum do |segment|
-            segment.sum { |token| token.is_a?(::Integer) ? token : 1 }
+            segment.sum { |token| ::Integer === token ? token : 1 }
           end
         end
 
@@ -72,7 +72,7 @@ module Sashite
         #   placement.pieces_count  # => 32 (for Chess initial position)
         def pieces_count
           segments.sum do |segment|
-            segment.count { |token| !token.is_a?(::Integer) }
+            segment.count { |token| !(::Integer === token) }
           end
         end
 
@@ -93,19 +93,16 @@ module Sashite
           separators.map(&:length).max + 1
         end
 
-        # Iterates over each square on the board.
+        # Iterates over each placement token on the board.
         #
-        # Yields placement tokens in order: either Integer (empty count)
-        # or Sashite::Epin::Identifier (piece). Separators are not yielded.
+        # Yields tokens in order: either Integer (empty count)
+        # or piece identifier. Separators are not yielded.
         #
-        # @yieldparam square [Integer, Sashite::Epin::Identifier] A placement token
+        # @yieldparam token [Integer, Object] A placement token
         # @return [Enumerator] If no block given
         #
         # @example
-        #   placement.each { |sq| puts sq }
-        #
-        # @example Getting an enumerator
-        #   placement.each.to_a
+        #   placement.each { |token| puts token }
         def each(&block)
           return enum_for(:each) unless block
 
@@ -123,7 +120,7 @@ module Sashite
         def to_s
           segments.map.with_index do |segment, index|
             segment_str = segment.map(&:to_s).join
-            separator = separators[index] || ""
+            separator = separators[index] || EMPTY_STRING
             "#{segment_str}#{separator}"
           end.join
         end
@@ -134,8 +131,9 @@ module Sashite
         # @return [Boolean] true if equal
         def ==(other)
           return false unless self.class === other
+          return false unless segments == other.segments
 
-          segments == other.segments && separators == other.separators
+          separators == other.separators
         end
 
         alias eql? ==
@@ -144,7 +142,7 @@ module Sashite
         #
         # @return [Integer] Hash code
         def hash
-          [segments, separators].hash
+          [self.class, segments, separators].hash
         end
 
         # Returns an inspect string for the PiecePlacement.
@@ -153,6 +151,36 @@ module Sashite
         def inspect
           "#<#{self.class} #{self}>"
         end
+
+        private
+
+        # Validates that all segments are Arrays.
+        #
+        # @param segments [Array] The segments to validate
+        # @raise [ArgumentError] If any segment is not an Array
+        def validate_segments!(segments)
+          segments.each_with_index do |segment, index|
+            unless ::Array === segment
+              raise ::ArgumentError, "segment at index #{index} must be an Array, got #{segment.class}"
+            end
+          end
+        end
+
+        # Validates that all separators are Strings.
+        #
+        # @param separators [Array] The separators to validate
+        # @raise [ArgumentError] If any separator is not a String
+        def validate_separators!(separators)
+          separators.each_with_index do |separator, index|
+            unless ::String === separator
+              raise ::ArgumentError, "separator at index #{index} must be a String, got #{separator.class}"
+            end
+          end
+        end
+
+        private_class_method :new
+
+        freeze
       end
     end
   end

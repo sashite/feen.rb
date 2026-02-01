@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
-require_relative "constants"
-require_relative "errors"
-require_relative "parser/hands"
+require_relative "shared/limits"
+require_relative "shared/separators"
+require_relative "errors/parse_error"
+require_relative "errors/cardinality_error"
 require_relative "parser/piece_placement"
+require_relative "parser/hands"
 require_relative "parser/style_turn"
 
 module Sashite
@@ -20,7 +22,8 @@ module Sashite
     # - {Parser::Hands} for Field 2
     # - {Parser::StyleTurn} for Field 3
     #
-    # @api private
+    # After parsing all fields, it validates cross-field constraints:
+    # - Cardinality: total pieces ≤ total squares
     #
     # @example Parsing a valid FEEN string
     #   Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
@@ -34,6 +37,7 @@ module Sashite
     #   # => false
     #
     # @see https://sashite.dev/specs/feen/1.0.0/
+    # @api private
     module Parser
       # Number of fields in a valid FEEN string.
       FIELD_COUNT = 3
@@ -42,11 +46,11 @@ module Sashite
       #
       # @param input [String] The FEEN string to parse
       # @return [Hash] A hash with :piece_placement, :hands, and :style_turn keys
-      # @raise [Errors::Argument] If the input is not a valid FEEN string
+      # @raise [ParseError] If the input is not a valid FEEN string
       def self.parse(input)
         validate_length!(input)
 
-        fields = input.split(Constants::FIELD_SEPARATOR, -1)
+        fields = input.split(Separators::FIELD, -1)
         validate_field_count!(fields)
 
         piece_placement_str, hands_str, style_turn_str = fields
@@ -55,7 +59,7 @@ module Sashite
         hands = Hands.parse(hands_str)
         style_turn = StyleTurn.parse(style_turn_str)
 
-        validate_piece_count!(piece_placement, hands)
+        validate_cardinality!(piece_placement, hands)
 
         { piece_placement:, hands:, style_turn: }
       end
@@ -65,7 +69,7 @@ module Sashite
       # @param input [String] The FEEN string to validate
       # @return [Boolean] true if valid, false otherwise
       def self.valid?(input)
-        return false unless input.is_a?(::String)
+        return false unless ::String === input
 
         parse(input)
         true
@@ -79,38 +83,48 @@ module Sashite
         # Validates the input string length.
         #
         # @param input [String] The input to validate
-        # @raise [Errors::Argument] If input exceeds maximum length
+        # @raise [ParseError] If input exceeds maximum length
         def validate_length!(input)
-          return if input.bytesize <= Constants::MAX_STRING_LENGTH
+          return if input.bytesize <= Limits::MAX_STRING_LENGTH
 
-          raise Errors::Argument, Errors::Argument::Messages::INPUT_TOO_LONG
+          raise ParseError, ParseError::INPUT_TOO_LONG
         end
 
         # Validates that there are exactly 3 fields.
         #
         # @param fields [Array<String>] The split fields
-        # @raise [Errors::Argument] If field count is not 3
+        # @raise [ParseError] If field count is not 3
         def validate_field_count!(fields)
           return if fields.size == FIELD_COUNT
 
-          raise Errors::Argument, Errors::Argument::Messages::INVALID_FIELD_COUNT
+          raise ParseError, ParseError::INVALID_FIELD_COUNT
         end
 
         # Validates that total pieces don't exceed board capacity.
         #
         # @param piece_placement [Hash] Parsed piece placement
         # @param hands [Hash] Parsed hands
-        # @raise [Errors::Argument] If too many pieces for board size
-        def validate_piece_count!(piece_placement, hands)
-          board_pieces = count_board_pieces(piece_placement[:segments])
-          hand_pieces = count_hand_pieces(hands)
-          total_pieces = board_pieces + hand_pieces
-
-          total_squares = count_total_squares(piece_placement[:segments])
+        # @raise [CardinalityError] If too many pieces for board size
+        def validate_cardinality!(piece_placement, hands)
+          total_squares = count_squares(piece_placement[:segments])
+          total_pieces = count_board_pieces(piece_placement[:segments]) +
+                         count_hand_pieces(hands)
 
           return if total_pieces <= total_squares
 
-          raise Errors::Argument, Errors::Argument::Messages::TOO_MANY_PIECES
+          raise CardinalityError, CardinalityError::TOO_MANY_PIECES
+        end
+
+        # Counts total squares on the board.
+        #
+        # @param segments [Array<Array>] The board segments
+        # @return [Integer] Total number of squares
+        def count_squares(segments)
+          segments.sum do |segment|
+            segment.sum do |token|
+              ::Integer === token ? token : 1
+            end
+          end
         end
 
         # Counts pieces on the board.
@@ -119,7 +133,7 @@ module Sashite
         # @return [Integer] Number of pieces
         def count_board_pieces(segments)
           segments.sum do |segment|
-            segment.count { |token| !token.is_a?(::Integer) }
+            segment.count { |token| !(::Integer === token) }
           end
         end
 
@@ -132,19 +146,16 @@ module Sashite
           second_count = hands[:second].sum { |item| item[:count] }
           first_count + second_count
         end
-
-        # Counts total squares on the board.
-        #
-        # @param segments [Array<Array>] The board segments
-        # @return [Integer] Total number of squares
-        def count_total_squares(segments)
-          segments.sum do |segment|
-            segment.sum do |token|
-              token.is_a?(::Integer) ? token : 1
-            end
-          end
-        end
       end
+
+      private_class_method :validate_length!,
+                           :validate_field_count!,
+                           :validate_cardinality!,
+                           :count_squares,
+                           :count_board_pieces,
+                           :count_hand_pieces
+
+      freeze
     end
   end
 end

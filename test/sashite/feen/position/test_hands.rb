@@ -2,18 +2,13 @@
 # frozen_string_literal: true
 
 require_relative "../../../helper"
-require_relative "../../../../lib/sashite/feen/parser/hands"
 require_relative "../../../../lib/sashite/feen/position/hands"
 
-puts
-puts "=== Position::Hands Tests ==="
-puts
+Hands = Sashite::Feen::Position::Hands
 
-# Helper to create Hands from FEEN hands string
-def parse_hands(input)
-  parsed = Sashite::Feen::Parser::Hands.parse(input)
-  Sashite::Feen::Position::Hands.new(**parsed)
-end
+puts
+puts "=== Hands Tests ==="
+puts
 
 # ============================================================================
 # INITIALIZATION
@@ -21,88 +16,74 @@ end
 
 puts "Initialization:"
 
-run_test("creates instance from parsed data") do
-  hands = parse_hands("/")
-  raise "wrong type" unless hands.is_a?(Sashite::Feen::Position::Hands)
+run_test("can be created with empty hands") do
+  hands = Hands.send(:new, first: [], second: [])
+  raise "expected Hands instance" unless Hands === hands
 end
 
-run_test("creates instance with pieces in first hand") do
-  hands = parse_hands("P/")
-  raise "first should not be empty" if hands.first.empty?
-  raise "second should be empty" unless hands.second.empty?
+run_test("can be created with default empty hands") do
+  hands = Hands.send(:new)
+  raise "expected Hands instance" unless Hands === hands
 end
 
-run_test("creates instance with pieces in second hand") do
-  hands = parse_hands("/p")
-  raise "first should be empty" unless hands.first.empty?
-  raise "second should not be empty" if hands.second.empty?
+run_test("can be created with items") do
+  hands = Hands.send(:new,
+    first: [{ piece: "P", count: 2 }],
+    second: [{ piece: "p", count: 1 }]
+  )
+  raise "expected Hands instance" unless Hands === hands
 end
 
-run_test("creates instance with pieces in both hands") do
-  hands = parse_hands("P/p")
-  raise "first should not be empty" if hands.first.empty?
-  raise "second should not be empty" if hands.second.empty?
+run_test("new is private") do
+  begin
+    Hands.new
+    raise "should have raised NoMethodError"
+  rescue ::NoMethodError
+    # Expected
+  end
 end
+
+# ============================================================================
+# IMMUTABILITY
+# ============================================================================
+
+puts
+puts "Immutability:"
 
 run_test("instance is frozen") do
-  hands = parse_hands("/")
-  raise "should be frozen" unless hands.frozen?
+  hands = Hands.send(:new)
+  raise "expected frozen" unless hands.frozen?
+end
+
+run_test("class is frozen") do
+  raise "expected class to be frozen" unless Hands.frozen?
 end
 
 # ============================================================================
-# FIRST ACCESSOR
-# ============================================================================
-
-puts
-puts "first accessor:"
-
-run_test("returns Hand instance") do
-  hands = parse_hands("/")
-  raise "wrong type" unless hands.first.is_a?(Sashite::Feen::Position::Hands::Hand)
-end
-
-run_test("returns empty Hand for empty first") do
-  hands = parse_hands("/p")
-  raise "should be empty" unless hands.first.empty?
-end
-
-run_test("returns populated Hand for first with pieces") do
-  hands = parse_hands("3B2P/")
-  raise "should not be empty" if hands.first.empty?
-  raise "wrong size" unless hands.first.size == 2
-end
-
-run_test("first Hand has correct pieces") do
-  hands = parse_hands("3B2P/")
-  raise "wrong pieces_count" unless hands.first.pieces_count == 5
-end
-
-# ============================================================================
-# SECOND ACCESSOR
+# FIRST AND SECOND ACCESSORS
 # ============================================================================
 
 puts
-puts "second accessor:"
+puts "first and second accessors:"
 
-run_test("returns Hand instance") do
-  hands = parse_hands("/")
-  raise "wrong type" unless hands.second.is_a?(Sashite::Feen::Position::Hands::Hand)
+run_test("first returns Hand instance") do
+  hands = Hands.send(:new)
+  raise "expected Hand" unless hands.first.is_a?(Sashite::Feen::Position::Hand)
 end
 
-run_test("returns empty Hand for empty second") do
-  hands = parse_hands("P/")
-  raise "should be empty" unless hands.second.empty?
+run_test("second returns Hand instance") do
+  hands = Hands.send(:new)
+  raise "expected Hand" unless hands.second.is_a?(Sashite::Feen::Position::Hand)
 end
 
-run_test("returns populated Hand for second with pieces") do
-  hands = parse_hands("/3b2p")
-  raise "should not be empty" if hands.second.empty?
-  raise "wrong size" unless hands.second.size == 2
+run_test("first contains first player's items") do
+  hands = Hands.send(:new, first: [{ piece: "P", count: 3 }], second: [])
+  raise "expected 3 pieces" unless hands.first.pieces_count == 3
 end
 
-run_test("second Hand has correct pieces") do
-  hands = parse_hands("/3b2p")
-  raise "wrong pieces_count" unless hands.second.pieces_count == 5
+run_test("second contains second player's items") do
+  hands = Hands.send(:new, first: [], second: [{ piece: "p", count: 2 }])
+  raise "expected 2 pieces" unless hands.second.pieces_count == 2
 end
 
 # ============================================================================
@@ -110,39 +91,29 @@ end
 # ============================================================================
 
 puts
-puts "pieces_count:"
+puts "pieces_count method:"
 
 run_test("returns 0 for empty hands") do
-  hands = parse_hands("/")
-  raise "wrong count" unless hands.pieces_count == 0
+  hands = Hands.send(:new)
+  raise "expected 0, got #{hands.pieces_count}" unless hands.pieces_count == 0
 end
 
-run_test("returns count for first hand only") do
-  hands = parse_hands("3P/")
-  raise "wrong count" unless hands.pieces_count == 3
+run_test("returns count from first hand only") do
+  hands = Hands.send(:new, first: [{ piece: "P", count: 5 }], second: [])
+  raise "expected 5, got #{hands.pieces_count}" unless hands.pieces_count == 5
 end
 
-run_test("returns count for second hand only") do
-  hands = parse_hands("/3p")
-  raise "wrong count" unless hands.pieces_count == 3
+run_test("returns count from second hand only") do
+  hands = Hands.send(:new, first: [], second: [{ piece: "p", count: 3 }])
+  raise "expected 3, got #{hands.pieces_count}" unless hands.pieces_count == 3
 end
 
-run_test("returns sum of both hands") do
-  hands = parse_hands("3P/2p")
-  raise "wrong count" unless hands.pieces_count == 5
-end
-
-run_test("sums across multiple items in both hands") do
-  hands = parse_hands("3B2PNR/2qp")
-  # First: 3 + 2 + 1 + 1 = 7
-  # Second: 2 + 1 = 3
-  # Total: 10
-  raise "wrong count" unless hands.pieces_count == 10
-end
-
-run_test("handles complex hands") do
-  hands = parse_hands("99P/99p")
-  raise "wrong count" unless hands.pieces_count == 198
+run_test("returns sum from both hands") do
+  hands = Hands.send(:new,
+    first: [{ piece: "P", count: 2 }, { piece: "N", count: 1 }],
+    second: [{ piece: "p", count: 3 }]
+  )
+  raise "expected 6, got #{hands.pieces_count}" unless hands.pieces_count == 6
 end
 
 # ============================================================================
@@ -150,44 +121,34 @@ end
 # ============================================================================
 
 puts
-puts "to_s:"
+puts "to_s method:"
 
-run_test("serializes empty hands as '/'") do
-  hands = parse_hands("/")
-  raise "wrong string" unless hands.to_s == "/"
+run_test("returns '/' for empty hands") do
+  hands = Hands.send(:new)
+  raise "expected '/', got #{hands.to_s.inspect}" unless hands.to_s == "/"
 end
 
-run_test("serializes first hand only") do
-  hands = parse_hands("P/")
-  raise "wrong string" unless hands.to_s == "P/"
+run_test("returns first hand with separator for first only") do
+  hands = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  raise "expected '2P/', got #{hands.to_s.inspect}" unless hands.to_s == "2P/"
 end
 
-run_test("serializes second hand only") do
-  hands = parse_hands("/p")
-  raise "wrong string" unless hands.to_s == "/p"
+run_test("returns separator with second hand for second only") do
+  hands = Hands.send(:new, first: [], second: [{ piece: "p", count: 1 }])
+  raise "expected '/p', got #{hands.to_s.inspect}" unless hands.to_s == "/p"
 end
 
-run_test("serializes both hands") do
-  hands = parse_hands("P/p")
-  raise "wrong string" unless hands.to_s == "P/p"
+run_test("returns both hands with separator") do
+  hands = Hands.send(:new,
+    first: [{ piece: "B", count: 2 }, { piece: "N", count: 1 }],
+    second: [{ piece: "q", count: 2 }]
+  )
+  raise "expected '2BN/2q', got #{hands.to_s.inspect}" unless hands.to_s == "2BN/2q"
 end
 
-run_test("serializes complex hands") do
-  hands = parse_hands("3B2PNR/2qp")
-  raise "wrong string" unless hands.to_s == "3B2PNR/2qp"
-end
-
-run_test("serializes hands with modifiers") do
-  hands = parse_hands("+P^'/+p^'")
-  raise "wrong string" unless hands.to_s == "+P^'/+p^'"
-end
-
-run_test("round-trip preserves original") do
-  inputs = ["/", "P/", "/p", "P/p", "3B2PNR/2qp", "+P^'/+p^'"]
-  inputs.each do |input|
-    hands = parse_hands(input)
-    raise "round-trip failed for '#{input}'" unless hands.to_s == input
-  end
+run_test("returns String type") do
+  hands = Hands.send(:new)
+  raise "expected String" unless ::String === hands.to_s
 end
 
 # ============================================================================
@@ -198,40 +159,43 @@ puts
 puts "Equality:"
 
 run_test("equal hands are ==") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B2P/p")
-  raise "should be equal" unless h1 == h2
+  hands1 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  hands2 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  raise "expected equal" unless hands1 == hands2
 end
 
-run_test("different first hands are not ==") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B3P/p")
-  raise "should not be equal" if h1 == h2
+run_test("equal hands are eql?") do
+  hands1 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  hands2 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  raise "expected eql?" unless hands1.eql?(hands2)
 end
 
-run_test("different second hands are not ==") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B2P/2p")
-  raise "should not be equal" if h1 == h2
+run_test("different first hands are not equal") do
+  hands1 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  hands2 = Hands.send(:new, first: [{ piece: "N", count: 2 }], second: [])
+  raise "expected not equal" if hands1 == hands2
+end
+
+run_test("different second hands are not equal") do
+  hands1 = Hands.send(:new, first: [], second: [{ piece: "p", count: 1 }])
+  hands2 = Hands.send(:new, first: [], second: [{ piece: "n", count: 1 }])
+  raise "expected not equal" if hands1 == hands2
 end
 
 run_test("empty hands are equal") do
-  h1 = parse_hands("/")
-  h2 = parse_hands("/")
-  raise "should be equal" unless h1 == h2
+  hands1 = Hands.send(:new)
+  hands2 = Hands.send(:new)
+  raise "expected equal" unless hands1 == hands2
 end
 
-run_test("== returns false for non-Hands") do
-  hands = parse_hands("P/p")
-  raise "should not be equal to string" if hands == "P/p"
-  raise "should not be equal to nil" if hands == nil
-  raise "should not be equal to array" if hands == []
+run_test("not equal to nil") do
+  hands = Hands.send(:new)
+  raise "expected not equal to nil" if hands == nil
 end
 
-run_test("eql? is aliased to ==") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B2P/p")
-  raise "eql? should work" unless h1.eql?(h2)
+run_test("not equal to other types") do
+  hands = Hands.send(:new, first: [{ piece: "P", count: 1 }], second: [])
+  raise "expected not equal to Hash" if hands == { first: [{ piece: "P", count: 1 }], second: [] }
 end
 
 # ============================================================================
@@ -242,28 +206,17 @@ puts
 puts "Hash:"
 
 run_test("equal hands have same hash") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B2P/p")
-  raise "hashes should be equal" unless h1.hash == h2.hash
-end
-
-run_test("different hands have different hash") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B2P/2p")
-  raise "hashes should differ" if h1.hash == h2.hash
-end
-
-run_test("empty hands have same hash") do
-  h1 = parse_hands("/")
-  h2 = parse_hands("/")
-  raise "hashes should be equal" unless h1.hash == h2.hash
+  hands1 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  hands2 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  raise "expected same hash" unless hands1.hash == hands2.hash
 end
 
 run_test("can be used as hash key") do
-  h1 = parse_hands("3B2P/p")
-  h2 = parse_hands("3B2P/p")
-  hash = { h1 => "value" }
-  raise "should find by equal key" unless hash[h2] == "value"
+  hands1 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  hands2 = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+
+  hash = { hands1 => "value" }
+  raise "expected to find by equal key" unless hash[hands2] == "value"
 end
 
 # ============================================================================
@@ -273,80 +226,20 @@ end
 puts
 puts "Inspect:"
 
-run_test("inspect includes class name") do
-  hands = parse_hands("P/p")
-  raise "should include class" unless hands.inspect.include?("Hands")
+run_test("returns inspect string") do
+  hands = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [])
+  result = hands.inspect
+  raise "expected String" unless ::String === result
+  raise "expected to include class name" unless result.include?("Hands")
 end
 
-run_test("inspect includes string representation") do
-  hands = parse_hands("3B2P/p")
-  raise "should include to_s" unless hands.inspect.include?("3B2P/p")
-end
-
-run_test("inspect for empty hands") do
-  hands = parse_hands("/")
-  raise "should include class" unless hands.inspect.include?("Hands")
-  raise "should include separator" unless hands.inspect.include?("/")
-end
-
-run_test("inspect format is #<Class string>") do
-  hands = parse_hands("P/p")
-  raise "wrong format" unless hands.inspect.match?(/^#<.*Hands.*P\/p>$/)
-end
-
-# ============================================================================
-# INTEGRATION WITH HAND
-# ============================================================================
-
-puts
-puts "Integration with Hand:"
-
-run_test("first hand iteration works") do
-  hands = parse_hands("3B2P/")
-  pieces = []
-  hands.first.each { |piece, _| pieces << piece.to_s }
-  raise "wrong pieces" unless pieces == ["B", "P"]
-end
-
-run_test("second hand iteration works") do
-  hands = parse_hands("/3b2p")
-  pieces = []
-  hands.second.each { |piece, _| pieces << piece.to_s }
-  raise "wrong pieces" unless pieces == ["b", "p"]
-end
-
-run_test("can access individual counts") do
-  hands = parse_hands("3B2P/5q")
-  raise "wrong B count" unless hands.first.items[0][:count] == 3
-  raise "wrong P count" unless hands.first.items[1][:count] == 2
-  raise "wrong q count" unless hands.second.items[0][:count] == 5
-end
-
-run_test("Hand objects are frozen") do
-  hands = parse_hands("P/p")
-  raise "first should be frozen" unless hands.first.frozen?
-  raise "second should be frozen" unless hands.second.frozen?
-end
-
-# ============================================================================
-# CLASS STRUCTURE
-# ============================================================================
-
-puts
-puts "Class structure:"
-
-run_test("Hands is a Class") do
-  raise "wrong type" unless Sashite::Feen::Position::Hands.is_a?(Class)
-end
-
-run_test("Hands is nested under Position") do
-  raise "wrong nesting" unless Sashite::Feen::Position.const_defined?(:Hands)
-end
-
-run_test("Hand is nested under Hands") do
-  raise "wrong nesting" unless Sashite::Feen::Position::Hands.const_defined?(:Hand)
+run_test("inspect includes first and second") do
+  hands = Hands.send(:new, first: [{ piece: "P", count: 2 }], second: [{ piece: "p", count: 1 }])
+  result = hands.inspect
+  raise "expected to include 'first'" unless result.include?("first")
+  raise "expected to include 'second'" unless result.include?("second")
 end
 
 puts
-puts "All Position::Hands tests passed!"
+puts "All Hands tests passed!"
 puts

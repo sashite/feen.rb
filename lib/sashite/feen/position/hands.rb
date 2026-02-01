@@ -1,33 +1,25 @@
 # frozen_string_literal: true
 
-require_relative "hands/hand"
-require_relative "../constants"
+require_relative "hand"
 
 module Sashite
   module Feen
     class Position
       # Represents off-board pieces held by both players.
       #
-      # Hands encapsulates the parsed data from FEEN Field 2,
+      # Hands aggregates two Hand instances, one for each player,
       # providing access to each player's hand and aggregate metrics.
       #
       # Instances are immutable (frozen after creation) and thread-safe.
       #
-      # @api public
+      # This class is an implementation detail of {Position} and should not
+      # be instantiated directly by external code.
       #
-      # @example Accessing hands
-      #   hands = position.hands
-      #   hands.first.pieces_count   # => 5
-      #   hands.second.pieces_count  # => 3
-      #   hands.pieces_count         # => 8
-      #
-      # @example Iterating over a hand
-      #   hands.first.each do |piece, count|
-      #     puts "#{count}x #{piece}"
-      #   end
-      #
-      # @see https://sashite.dev/specs/feen/1.0.0/
+      # @api private
       class Hands
+        # Separator between first and second hands in FEEN notation.
+        SEPARATOR = "/"
+
         # @return [Hand] First player's hand
         attr_reader :first
 
@@ -36,12 +28,21 @@ module Sashite
 
         # Creates a new Hands instance.
         #
-        # @param first [Array<Hash>] First player's hand items
-        # @param second [Array<Hash>] Second player's hand items
+        # @param first [Array<Hash>] First player's hand items (default: empty)
+        # @param second [Array<Hash>] Second player's hand items (default: empty)
         # @return [Hands] A new frozen instance
-        def initialize(first:, second:)
-          @first = Hand.new(first)
-          @second = Hand.new(second)
+        #
+        # @example Empty hands
+        #   Hands.new(first: [], second: [])
+        #
+        # @example With pieces
+        #   Hands.new(
+        #     first: [{ piece: epin_p, count: 2 }],
+        #     second: [{ piece: epin_n, count: 1 }]
+        #   )
+        def initialize(first: [], second: [])
+          @first = Hand.send(:new, first)
+          @second = Hand.send(:new, second)
 
           freeze
         end
@@ -58,22 +59,25 @@ module Sashite
 
         # Returns the canonical FEEN string representation.
         #
-        # @return [String] Canonical hands string (e.g., "2PN/p")
+        # @return [String] Canonical hands string (e.g., "2BNR/p")
         #
         # @example
-        #   hands.to_s  # => "2PN/p"
+        #   hands.to_s  # => "2BNR/p"
         def to_s
-          "#{first}#{Constants::SEGMENT_SEPARATOR}#{second}"
+          "#{first}#{SEPARATOR}#{second}"
         end
 
         # Checks equality with another Hands.
+        #
+        # Two Hands are equal if both their first and second hands are equal.
         #
         # @param other [Object] The object to compare
         # @return [Boolean] true if equal
         def ==(other)
           return false unless self.class === other
+          return false unless first == other.first
 
-          first == other.first && second == other.second
+          second == other.second
         end
 
         alias eql? ==
@@ -82,15 +86,19 @@ module Sashite
         #
         # @return [Integer] Hash code
         def hash
-          [first, second].hash
+          [self.class, first, second].hash
         end
 
         # Returns an inspect string for the Hands.
         #
         # @return [String] Inspect representation
         def inspect
-          "#<#{self.class} #{self}>"
+          "#<#{self.class} first=#{first.inspect} second=#{second.inspect}>"
         end
+
+        private_class_method :new
+
+        freeze
       end
     end
   end

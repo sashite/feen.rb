@@ -14,10 +14,11 @@ Gem::Specification.new do |spec|
   DESC
 
   spec.homepage               = "https://github.com/sashite/feen.rb"
-  spec.license                = "MIT"
+  spec.license                = "Apache-2.0"
   spec.files                  = ::Dir["LICENSE.md", "README.md", "lib/**/*"]
   spec.required_ruby_version  = ">= 3.2.0"
 
+  spec.add_dependency "qi", "~> 11.0.0"
   spec.add_dependency "sashite-epin", "~> 2.2.1"
   spec.add_dependency "sashite-sin", "~> 3.1.0"
 

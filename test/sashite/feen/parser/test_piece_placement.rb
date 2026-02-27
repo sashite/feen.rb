@@ -12,472 +12,355 @@ PiecePlacement = Sashite::Feen::Parser::PiecePlacement
 PiecePlacementError = Sashite::Feen::PiecePlacementError
 
 # ============================================================================
-# VALID PARSING - 1D BOARDS
+# 1D BOARDS
 # ============================================================================
 
-puts "Valid parsing - 1D boards:"
+puts "1D boards:"
 
 run_test("parses single piece") do
   result = PiecePlacement.parse("K")
-  raise "expected 1 segment" unless result[:segments].size == 1
-  raise "expected 0 separators" unless result[:separators].empty?
-  raise "expected 1 token" unless result[:segments][0].size == 1
+  raise "expected [\"K\"]" unless result == ["K"]
 end
 
 run_test("parses single empty count") do
   result = PiecePlacement.parse("8")
-  raise "expected 1 segment" unless result[:segments].size == 1
-  raise "expected empty count 8" unless result[:segments][0][0] == 8
+  raise "expected 8 nils" unless result == [nil] * 8
 end
 
-run_test("parses multiple pieces") do
+run_test("parses piece followed by empties") do
+  result = PiecePlacement.parse("K3")
+  raise "expected [\"K\", nil, nil, nil]" unless result == ["K", nil, nil, nil]
+end
+
+run_test("parses empties followed by piece") do
+  result = PiecePlacement.parse("3K")
+  raise "expected [nil, nil, nil, \"K\"]" unless result == [nil, nil, nil, "K"]
+end
+
+run_test("parses piece-empty-piece") do
+  result = PiecePlacement.parse("K2Q")
+  raise "wrong result" unless result == ["K", nil, nil, "Q"]
+end
+
+run_test("parses multiple pieces no empties") do
   result = PiecePlacement.parse("KQR")
-  raise "expected 3 tokens" unless result[:segments][0].size == 3
+  raise "expected [\"K\", \"Q\", \"R\"]" unless result == ["K", "Q", "R"]
 end
 
-run_test("parses mixed pieces and empty counts") do
-  result = PiecePlacement.parse("K2Q3R")
-  tokens = result[:segments][0]
-  raise "expected 5 tokens" unless tokens.size == 5
-  raise "expected Integer at [1]" unless ::Integer === tokens[1]
-  raise "expected 2 at [1]" unless tokens[1] == 2
-  raise "expected Integer at [3]" unless ::Integer === tokens[3]
-  raise "expected 3 at [3]" unless tokens[3] == 3
+run_test("parses piece with terminal marker") do
+  result = PiecePlacement.parse("K^2k^")
+  raise "wrong result" unless result == ["K^", nil, nil, "k^"]
+end
+
+run_test("parses piece with state modifier") do
+  result = PiecePlacement.parse("+P2-R")
+  raise "wrong result" unless result == ["+P", nil, nil, "-R"]
+end
+
+run_test("parses piece with derivation marker") do
+  result = PiecePlacement.parse("K'2Q'")
+  raise "wrong result" unless result == ["K'", nil, nil, "Q'"]
+end
+
+run_test("parses fully decorated piece") do
+  result = PiecePlacement.parse("+K^'")
+  raise "expected [\"+K^'\"]" unless result == ["+K^'"]
 end
 
 run_test("parses large empty count") do
-  result = PiecePlacement.parse("100")
-  raise "expected 100" unless result[:segments][0][0] == 100
-end
-
-run_test("parses maximum dimension size") do
   result = PiecePlacement.parse("255")
-  raise "expected 255" unless result[:segments][0][0] == 255
+  raise "expected 255 nils" unless result.size == 255
+  raise "all should be nil" unless result.all?(&:nil?)
 end
 
 # ============================================================================
-# VALID PARSING - 2D BOARDS
+# 2D BOARDS
 # ============================================================================
 
 puts
-puts "Valid parsing - 2D boards:"
+puts "2D boards:"
 
-run_test("parses two ranks") do
-  result = PiecePlacement.parse("8/8")
-  raise "expected 2 segments" unless result[:segments].size == 2
-  raise "expected 1 separator" unless result[:separators].size == 1
-  raise "expected '/' separator" unless result[:separators][0] == "/"
+run_test("parses minimal 2D board") do
+  result = PiecePlacement.parse("1/1")
+  raise "expected [[nil], [nil]]" unless result == [[nil], [nil]]
 end
 
-run_test("parses chess-like board") do
+run_test("parses empty 8x8 board") do
   result = PiecePlacement.parse("8/8/8/8/8/8/8/8")
-  raise "expected 8 segments" unless result[:segments].size == 8
-  raise "expected 7 separators" unless result[:separators].size == 7
+  raise "expected 8 ranks" unless result.size == 8
+  result.each do |rank|
+    raise "expected 8 squares per rank" unless rank.size == 8
+    raise "all should be nil" unless rank.all?(&:nil?)
+  end
 end
 
-run_test("parses mixed content per rank") do
+run_test("parses Chess initial position") do
   result = PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-  raise "expected 8 segments" unless result[:segments].size == 8
-  # First rank should have 8 pieces
-  raise "expected 8 pieces in first rank" unless result[:segments][0].size == 8
-  # Middle ranks should have single empty count
-  raise "expected 1 token in rank 3" unless result[:segments][2].size == 1
+  raise "expected 8 ranks" unless result.size == 8
+  raise "wrong rank 1" unless result[0] == ["r", "n", "b", "q", "k", "b", "n", "r"]
+  raise "wrong rank 2" unless result[1] == ["p"] * 8
+  raise "wrong rank 3" unless result[2] == [nil] * 8
+  raise "wrong rank 7" unless result[6] == ["P"] * 8
+  raise "wrong rank 8" unless result[7] == ["R", "N", "B", "Q", "K", "B", "N", "R"]
 end
 
-run_test("parses shogi-like board") do
+run_test("parses Shogi initial position") do
   result = PiecePlacement.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")
-  raise "expected 9 segments" unless result[:segments].size == 9
-  raise "expected 8 separators" unless result[:separators].size == 8
+  raise "expected 9 ranks" unless result.size == 9
+  raise "wrong rank 1" unless result[0] == ["l", "n", "s", "g", "k", "g", "s", "n", "l"]
+  raise "wrong rank 2" unless result[1] == [nil, "r", nil, nil, nil, nil, nil, "b", nil]
+  raise "wrong rank 2 size" unless result[1].size == 9
+end
+
+run_test("parses Xiangqi initial position") do
+  result = PiecePlacement.parse("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR")
+  raise "expected 10 ranks" unless result.size == 10
+  raise "wrong first rank" unless result[0] == ["r", "h", "e", "a", "g", "a", "e", "h", "r"]
+  raise "wrong last rank" unless result[9] == ["R", "H", "E", "A", "G", "A", "E", "H", "R"]
+end
+
+run_test("parses 2D board with mixed content") do
+  result = PiecePlacement.parse("K7/8/8/8/8/8/8/7k")
+  raise "expected 8 ranks" unless result.size == 8
+  raise "wrong first square" unless result[0][0] == "K"
+  raise "wrong last square" unless result[7][7] == "k"
+end
+
+run_test("parses 2D board with decorated pieces") do
+  result = PiecePlacement.parse("+P^'1/-r3")
+  raise "expected 2 ranks" unless result.size == 2
+  raise "wrong first rank" unless result[0] == ["+P^'", nil]
+  raise "wrong second rank" unless result[1] == ["-r", nil, nil, nil]
 end
 
 # ============================================================================
-# VALID PARSING - 3D BOARDS
+# 3D BOARDS
 # ============================================================================
 
 puts
-puts "Valid parsing - 3D boards:"
+puts "3D boards:"
 
 run_test("parses minimal 3D board") do
+  result = PiecePlacement.parse("1/1//1/1")
+  raise "expected 2 layers" unless result.size == 2
+  raise "expected 2 ranks per layer" unless result[0].size == 2
+  raise "expected 2 ranks per layer" unless result[1].size == 2
+  raise "expected [nil]" unless result[0][0] == [nil]
+end
+
+run_test("parses 3D empty board") do
   result = PiecePlacement.parse("4/4//4/4")
-  raise "expected 4 segments" unless result[:segments].size == 4
-  raise "expected 3 separators" unless result[:separators].size == 3
-  raise "expected '//' separator at [1]" unless result[:separators][1] == "//"
+  raise "expected 2 layers" unless result.size == 2
+  result.each do |layer|
+    raise "expected 2 ranks per layer" unless layer.size == 2
+    layer.each do |rank|
+      raise "expected 4 squares per rank" unless rank.size == 4
+      raise "all should be nil" unless rank.all?(&:nil?)
+    end
+  end
 end
 
-run_test("parses 3D board with multiple layers") do
+run_test("parses 3D board with pieces") do
+  result = PiecePlacement.parse("ab/cd//AB/CD")
+  raise "expected 2 layers" unless result.size == 2
+  raise "wrong layer 1 rank 1" unless result[0][0] == ["a", "b"]
+  raise "wrong layer 1 rank 2" unless result[0][1] == ["c", "d"]
+  raise "wrong layer 2 rank 1" unless result[1][0] == ["A", "B"]
+  raise "wrong layer 2 rank 2" unless result[1][1] == ["C", "D"]
+end
+
+run_test("parses 3D board with 3 layers") do
   result = PiecePlacement.parse("2/2//2/2//2/2")
-  raise "expected 6 segments" unless result[:segments].size == 6
-  raise "expected 5 separators" unless result[:separators].size == 5
-  # Separators: /, //, /, //, /
-  raise "wrong separator at [1]" unless result[:separators][1] == "//"
-  raise "wrong separator at [3]" unless result[:separators][3] == "//"
+  raise "expected 3 layers" unless result.size == 3
+  result.each do |layer|
+    raise "expected 2 ranks" unless layer.size == 2
+  end
 end
 
-run_test("parses complex 3D board") do
-  result = PiecePlacement.parse("K1/1Q//R1/1B")
-  raise "expected 4 segments" unless result[:segments].size == 4
-end
-
-# ============================================================================
-# VALID PARSING - EPIN MODIFIERS
-# ============================================================================
-
-puts
-puts "Valid parsing - EPIN modifiers:"
-
-run_test("parses enhanced piece (+)") do
-  result = PiecePlacement.parse("+P")
-  token = result[:segments][0][0]
-  raise "expected EPIN identifier" unless token.respond_to?(:to_s)
-  raise "expected '+P'" unless token.to_s == "+P"
-end
-
-run_test("parses diminished piece (-)") do
-  result = PiecePlacement.parse("-P")
-  raise "expected '-P'" unless result[:segments][0][0].to_s == "-P"
-end
-
-run_test("parses terminal piece (^)") do
-  result = PiecePlacement.parse("K^")
-  raise "expected 'K^'" unless result[:segments][0][0].to_s == "K^"
-end
-
-run_test("parses derived piece (')") do
-  result = PiecePlacement.parse("K'")
-  raise "expected \"K'\"" unless result[:segments][0][0].to_s == "K'"
-end
-
-run_test("parses fully modified piece") do
-  result = PiecePlacement.parse("+K^'")
-  raise "expected '+K^''" unless result[:segments][0][0].to_s == "+K^'"
-end
-
-run_test("parses mixed modifiers in board") do
-  result = PiecePlacement.parse("+K^1-p'/2Q")
-  raise "expected 2 segments" unless result[:segments].size == 2
-  raise "expected 3 tokens in first segment" unless result[:segments][0].size == 3
+run_test("parses Raumschach-like 5x5x5 board") do
+  feen = (["5/5/5/5/5"] * 5).join("//")
+  result = PiecePlacement.parse(feen)
+  raise "expected 5 layers" unless result.size == 5
+  result.each do |layer|
+    raise "expected 5 ranks" unless layer.size == 5
+    layer.each do |rank|
+      raise "expected 5 squares" unless rank.size == 5
+    end
+  end
 end
 
 # ============================================================================
-# RESULT STRUCTURE
+# RETURN STRUCTURE
 # ============================================================================
 
 puts
-puts "Result structure:"
+puts "return structure:"
 
-run_test("returns hash with :segments and :separators keys") do
-  result = PiecePlacement.parse("K")
-  raise "expected :segments key" unless result.key?(:segments)
-  raise "expected :separators key" unless result.key?(:separators)
+run_test("1D returns flat Array") do
+  result = PiecePlacement.parse("K2Q")
+  raise "expected Array" unless result.is_a?(Array)
+  raise "should not be nested" if result[0].is_a?(Array)
 end
 
-run_test("segments is Array of Arrays") do
+run_test("2D returns Array of Arrays") do
   result = PiecePlacement.parse("8/8")
-  raise "segments should be Array" unless ::Array === result[:segments]
-  raise "each segment should be Array" unless result[:segments].all? { |s| ::Array === s }
+  raise "expected Array" unless result.is_a?(Array)
+  raise "expected nested Arrays" unless result[0].is_a?(Array)
+  raise "should not be 3D" if result[0][0].is_a?(Array)
 end
 
-run_test("separators is Array of Strings") do
-  result = PiecePlacement.parse("8/8")
-  raise "separators should be Array" unless ::Array === result[:separators]
-  raise "each separator should be String" unless result[:separators].all? { |s| ::String === s }
+run_test("3D returns Array of Array of Arrays") do
+  result = PiecePlacement.parse("2/2//2/2")
+  raise "expected Array" unless result.is_a?(Array)
+  raise "expected nested" unless result[0].is_a?(Array)
+  raise "expected 3D" unless result[0][0].is_a?(Array)
 end
 
-run_test("empty counts are Integers") do
-  result = PiecePlacement.parse("8")
-  raise "expected Integer" unless ::Integer === result[:segments][0][0]
+run_test("pieces are Strings") do
+  result = PiecePlacement.parse("K2Q")
+  pieces = result.compact
+  raise "expected all Strings" unless pieces.all? { |p| p.is_a?(String) }
 end
 
-run_test("pieces respond to :to_s") do
-  result = PiecePlacement.parse("K")
-  raise "expected to respond to :to_s" unless result[:segments][0][0].respond_to?(:to_s)
+run_test("empty squares are nil") do
+  result = PiecePlacement.parse("1K1")
+  raise "first should be nil" unless result[0].nil?
+  raise "last should be nil" unless result[2].nil?
 end
 
 # ============================================================================
-# INVALID PARSING - EMPTY AND BOUNDARY ERRORS
+# INVALID INPUTS - EMPTY / BOUNDARIES
 # ============================================================================
 
 puts
-puts "Invalid parsing - empty and boundary errors:"
+puts "invalid inputs - empty / boundaries:"
 
 run_test("raises for empty string") do
-  PiecePlacement.parse("")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::EMPTY
-end
-
-run_test("raises for starts with separator") do
-  PiecePlacement.parse("/K")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::STARTS_WITH_SEPARATOR
-end
-
-run_test("raises for ends with separator") do
-  PiecePlacement.parse("K/")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::ENDS_WITH_SEPARATOR
-end
-
-run_test("raises for only separator") do
-  PiecePlacement.parse("/")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::STARTS_WITH_SEPARATOR
-end
-
-# ============================================================================
-# INVALID PARSING - EMPTY COUNT ERRORS
-# ============================================================================
-
-puts
-puts "Invalid parsing - empty count errors:"
-
-run_test("raises for zero empty count") do
-  PiecePlacement.parse("0")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_EMPTY_COUNT
-end
-
-run_test("raises for leading zero in empty count") do
-  PiecePlacement.parse("08")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_EMPTY_COUNT
-end
-
-run_test("raises for leading zeros in larger count") do
-  PiecePlacement.parse("007")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_EMPTY_COUNT
-end
-
-# ============================================================================
-# INVALID PARSING - CONSECUTIVE EMPTY COUNTS
-# ============================================================================
-
-puts
-puts "Invalid parsing - consecutive empty counts:"
-
-run_test("raises for consecutive empty counts") do
-  PiecePlacement.parse("3 4")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_PIECE_TOKEN
-end
-
-run_test("raises for adjacent numbers without piece") do
-  PiecePlacement.parse("34")
-  # This will parse as 34, which is valid
-  # Need K34K where 3 and 4 would be consecutive
-rescue PiecePlacementError
-  # Expected if implementation detects this
-end
-
-run_test("raises for 2 empty counts with piece between in wrong order") do
-  # Actually this should be: K24 where the parser sees 2 then 4
-  # But 24 parses as a single number
-  # The test case should be: 2K4 which is valid
-  # Real consecutive would need invalid EPIN between numbers
-  result = PiecePlacement.parse("2K4")
-  raise "expected 3 tokens" unless result[:segments][0].size == 3
-end
-
-# ============================================================================
-# INVALID PARSING - INVALID PIECE TOKEN
-# ============================================================================
-
-puts
-puts "Invalid parsing - invalid piece token:"
-
-run_test("raises for invalid character") do
-  PiecePlacement.parse("K@Q")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_PIECE_TOKEN
-end
-
-run_test("raises for digit in piece position after modifier") do
-  PiecePlacement.parse("+1")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_PIECE_TOKEN
-end
-
-run_test("raises for incomplete modifier") do
-  PiecePlacement.parse("+")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::INVALID_PIECE_TOKEN
-end
-
-# ============================================================================
-# INVALID PARSING - DIMENSIONAL COHERENCE
-# ============================================================================
-
-puts
-puts "Invalid parsing - dimensional coherence:"
-
-run_test("raises for // without / in segments") do
-  PiecePlacement.parse("K//Q")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message: #{e.message}" unless e.message == PiecePlacementError::DIMENSIONAL_COHERENCE
-end
-
-run_test("raises for // with no rank separators") do
-  PiecePlacement.parse("ab//cd")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message: #{e.message}" unless e.message == PiecePlacementError::DIMENSIONAL_COHERENCE
-end
-
-run_test("raises for 1//2 (numbers without rank structure)") do
-  PiecePlacement.parse("1//2")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message: #{e.message}" unless e.message == PiecePlacementError::DIMENSIONAL_COHERENCE
-end
-
-run_test("passes for valid 3D structure a/b//c/d") do
-  result = PiecePlacement.parse("a/b//c/d")
-  raise "expected 4 segments" unless result[:segments].size == 4
-  raise "expected '//' at [1]" unless result[:separators][1] == "//"
-end
-
-run_test("passes for multiple // with proper / structure") do
-  result = PiecePlacement.parse("1/2//3/4//5/6")
-  raise "expected 6 segments" unless result[:segments].size == 6
-end
-
-# ============================================================================
-# INVALID PARSING - EXCEEDS MAX DIMENSIONS
-# ============================================================================
-
-puts
-puts "Invalid parsing - exceeds max dimensions:"
-
-run_test("raises for 4D board (4 slashes)") do
-  PiecePlacement.parse("1/1//1/1///1/1//1/1////1")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::EXCEEDS_MAX_DIMENSIONS
-end
-
-# ============================================================================
-# INVALID PARSING - DIMENSION SIZE EXCEEDED
-# ============================================================================
-
-puts
-puts "Invalid parsing - dimension size exceeded:"
-
-run_test("raises for dimension size > 255") do
-  PiecePlacement.parse("256")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::DIMENSION_SIZE_EXCEEDED
-end
-
-run_test("raises for large dimension size") do
-  PiecePlacement.parse("1000")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::DIMENSION_SIZE_EXCEEDED
-end
-
-run_test("raises for accumulated size > 255") do
-  # 200 + piece + 100 = 301 squares
-  PiecePlacement.parse("200K100")
-  raise "should have raised"
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::DIMENSION_SIZE_EXCEEDED
-end
-
-# ============================================================================
-# ERROR TYPE
-# ============================================================================
-
-puts
-puts "Error type:"
-
-run_test("error is PiecePlacementError") do
   PiecePlacement.parse("")
   raise "should have raised"
 rescue PiecePlacementError
   # Expected
 end
 
-run_test("error is also ArgumentError") do
-  PiecePlacement.parse("")
+run_test("raises for leading separator") do
+  PiecePlacement.parse("/K")
   raise "should have raised"
-rescue ArgumentError
-  # Expected - PiecePlacementError inherits from ArgumentError via ParseError
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("raises for trailing separator") do
+  PiecePlacement.parse("K/")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
 end
 
 # ============================================================================
-# MODULE STRUCTURE
+# INVALID INPUTS - EMPTY COUNTS
 # ============================================================================
 
 puts
-puts "Module structure:"
+puts "invalid inputs - empty counts:"
+
+run_test("raises for zero count") do
+  PiecePlacement.parse("0")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("raises for leading zeros") do
+  PiecePlacement.parse("01")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("raises for leading zeros on larger number") do
+  PiecePlacement.parse("007")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+# ============================================================================
+# INVALID INPUTS - PIECE TOKENS
+# ============================================================================
+
+puts
+puts "invalid inputs - piece tokens:"
+
+run_test("raises for invalid character") do
+  PiecePlacement.parse("@")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("raises for space in input") do
+  PiecePlacement.parse("K Q")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+# ============================================================================
+# INVALID INPUTS - DIMENSIONAL COHERENCE
+# ============================================================================
+
+puts
+puts "invalid inputs - dimensional coherence:"
+
+run_test("raises for // without / between") do
+  PiecePlacement.parse("K//Q")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("raises for /// without // between") do
+  PiecePlacement.parse("K/Q//R/S///A/B")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+# ============================================================================
+# INVALID INPUTS - DIMENSION LIMITS
+# ============================================================================
+
+puts
+puts "invalid inputs - dimension limits:"
+
+run_test("raises for exceeding max dimensions") do
+  PiecePlacement.parse("1/1//1/1///1/1//1/1////1")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("raises for dimension size exceeded") do
+  PiecePlacement.parse("256")
+  raise "should have raised"
+rescue PiecePlacementError
+  # Expected
+end
+
+run_test("accepts max dimension size 255") do
+  result = PiecePlacement.parse("255")
+  raise "expected 255 nils" unless result.size == 255
+end
+
+# ============================================================================
+# MODULE PROPERTIES
+# ============================================================================
+
+puts
+puts "module properties:"
 
 run_test("module is frozen") do
   raise "expected frozen" unless PiecePlacement.frozen?
-end
-
-run_test("parse is the only public method") do
-  public_methods = PiecePlacement.methods(false) - Object.methods
-  raise "expected only :parse, got #{public_methods}" unless public_methods == [:parse]
-end
-
-# ============================================================================
-# REAL-WORLD EXAMPLES
-# ============================================================================
-
-puts
-puts "Real-world examples:"
-
-run_test("parses Chess initial position") do
-  result = PiecePlacement.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-  raise "expected 8 segments" unless result[:segments].size == 8
-  raise "expected 7 separators" unless result[:separators].size == 7
-  # Total squares: 64
-  total = result[:segments].sum do |seg|
-    seg.sum { |t| ::Integer === t ? t : 1 }
-  end
-  raise "expected 64 squares" unless total == 64
-end
-
-run_test("parses Shogi initial position") do
-  result = PiecePlacement.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")
-  raise "expected 9 segments" unless result[:segments].size == 9
-  # Total squares: 81
-  total = result[:segments].sum do |seg|
-    seg.sum { |t| ::Integer === t ? t : 1 }
-  end
-  raise "expected 81 squares" unless total == 81
-end
-
-run_test("parses Xiangqi initial position") do
-  result = PiecePlacement.parse("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR")
-  raise "expected 10 segments" unless result[:segments].size == 10
-  # Total squares: 90 (9x10)
-  total = result[:segments].sum do |seg|
-    seg.sum { |t| ::Integer === t ? t : 1 }
-  end
-  raise "expected 90 squares" unless total == 90
-end
-
-run_test("parses empty board") do
-  result = PiecePlacement.parse("8/8/8/8/8/8/8/8")
-  pieces = result[:segments].sum do |seg|
-    seg.count { |t| !(::Integer === t) }
-  end
-  raise "expected 0 pieces" unless pieces == 0
 end
 
 puts

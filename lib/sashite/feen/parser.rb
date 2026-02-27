@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "qi"
+
 require_relative "shared/limits"
 require_relative "shared/separators"
 require_relative "errors/parse_error"
@@ -18,19 +20,19 @@ module Sashite
     #
     # This parser validates the overall structure and delegates field-specific
     # parsing to specialized sub-parsers:
-    # - {Parser::PiecePlacement} for Field 1
-    # - {Parser::Hands} for Field 2
-    # - {Parser::StyleTurn} for Field 3
+    # - {Parser::PiecePlacement} for Field 1 → board array
+    # - {Parser::Hands} for Field 2 → hands hash
+    # - {Parser::StyleTurn} for Field 3 → styles hash + turn
     #
-    # After parsing all fields, it validates cross-field constraints:
-    # - Cardinality: total pieces ≤ total squares
+    # After parsing all fields, it validates cross-field constraints
+    # (cardinality: total pieces <= total squares) and assembles a Qi::Position.
     #
     # @example Parsing a valid FEEN string
-    #   Parser.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-    #   # => { piece_placement: {...}, hands: {...}, style_turn: {...} }
+    #   Parser.parse("rnbqk^bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK^BNR / C/c")
+    #   # => #<Qi::Position ...>
     #
     # @example Validation without exception
-    #   Parser.valid?("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
+    #   Parser.valid?("rnbqk^bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK^BNR / C/c")
     #   # => true
     #
     #   Parser.valid?("invalid")
@@ -42,10 +44,10 @@ module Sashite
       # Number of fields in a valid FEEN string.
       FIELD_COUNT = 3
 
-      # Parses a FEEN string into its components.
+      # Parses a FEEN string into a Qi::Position.
       #
       # @param input [String] The FEEN string to parse
-      # @return [Hash] A hash with :piece_placement, :hands, and :style_turn keys
+      # @return [Qi::Position] An immutable position object
       # @raise [ParseError] If the input is not a valid FEEN string
       def self.parse(input)
         validate_length!(input)
@@ -55,13 +57,13 @@ module Sashite
 
         piece_placement_str, hands_str, style_turn_str = fields
 
-        piece_placement = PiecePlacement.parse(piece_placement_str)
+        board = PiecePlacement.parse(piece_placement_str)
         hands = Hands.parse(hands_str)
         style_turn = StyleTurn.parse(style_turn_str)
 
-        validate_cardinality!(piece_placement, hands)
+        validate_cardinality!(board, hands)
 
-        { piece_placement:, hands:, style_turn: }
+        ::Qi.new(board, hands, style_turn[:styles], style_turn[:turn])
       end
 
       # Validates a FEEN string without raising an exception.
@@ -102,58 +104,29 @@ module Sashite
 
         # Validates that total pieces don't exceed board capacity.
         #
-        # @param piece_placement [Hash] Parsed piece placement
-        # @param hands [Hash] Parsed hands
+        # Operates on the board array (nested 1D-3D with String/nil)
+        # and the hands hash (flat arrays of EPIN strings).
+        #
+        # @param board [Array] Nested board array
+        # @param hands [Hash] Hands with :first and :second arrays
         # @raise [CardinalityError] If too many pieces for board size
-        def validate_cardinality!(piece_placement, hands)
-          total_squares = count_squares(piece_placement[:segments])
-          total_pieces = count_board_pieces(piece_placement[:segments]) +
-                         count_hand_pieces(hands)
+        def validate_cardinality!(board, hands)
+          flat = board.flatten
+
+          total_squares = flat.size
+          total_pieces = flat.count { |sq| !sq.nil? } +
+                         hands[:first].size +
+                         hands[:second].size
 
           return if total_pieces <= total_squares
 
           raise CardinalityError, CardinalityError::TOO_MANY_PIECES
         end
-
-        # Counts total squares on the board.
-        #
-        # @param segments [Array<Array>] The board segments
-        # @return [Integer] Total number of squares
-        def count_squares(segments)
-          segments.sum do |segment|
-            segment.sum do |token|
-              ::Integer === token ? token : 1
-            end
-          end
-        end
-
-        # Counts pieces on the board.
-        #
-        # @param segments [Array<Array>] The board segments
-        # @return [Integer] Number of pieces
-        def count_board_pieces(segments)
-          segments.sum do |segment|
-            segment.count { |token| !(::Integer === token) }
-          end
-        end
-
-        # Counts pieces in hands.
-        #
-        # @param hands [Hash] The hands data
-        # @return [Integer] Total pieces in both hands
-        def count_hand_pieces(hands)
-          first_count = hands[:first].sum { |item| item[:count] }
-          second_count = hands[:second].sum { |item| item[:count] }
-          first_count + second_count
-        end
       end
 
       private_class_method :validate_length!,
                            :validate_field_count!,
-                           :validate_cardinality!,
-                           :count_squares,
-                           :count_board_pieces,
-                           :count_hand_pieces
+                           :validate_cardinality!
 
       freeze
     end

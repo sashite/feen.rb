@@ -5,37 +5,45 @@ require_relative "../shared/separators"
 module Sashite
   module Feen
     module Dumper
-      # Serializer for FEEN Style-Turn field (Field 3).
+      # Serializer for the FEEN Style-Turn field (Field 3).
       #
-      # Converts structured style-turn data into a canonical FEEN string.
-      # Format: <ACTIVE-STYLE>/<INACTIVE-STYLE>
+      # Converts Qi::Position's styles and turn into the canonical
+      # FEEN Style-Turn string:
       #
-      # Input format:
-      # - active: The active player's style (must respond to #to_s)
-      # - inactive: The inactive player's style (must respond to #to_s)
+      #   <ACTIVE-STYLE>/<INACTIVE-STYLE>
       #
-      # @example First player to move (same style)
-      #   Dumper::StyleTurn.dump(active: "C", inactive: "c")
+      # The active style (left of /) corresponds to the player whose
+      # turn it is. The mapping from Qi fields is:
+      #
+      # - turn :first  → active = styles[:first],  inactive = styles[:second]
+      # - turn :second → active = styles[:second], inactive = styles[:first]
+      #
+      # @example First player to move
+      #   StyleTurn.dump({ first: "C", second: "c" }, :first)
       #   # => "C/c"
       #
-      # @example Second player to move (same style)
-      #   Dumper::StyleTurn.dump(active: "c", inactive: "C")
+      # @example Second player to move
+      #   StyleTurn.dump({ first: "C", second: "c" }, :second)
       #   # => "c/C"
       #
       # @example Cross-style game
-      #   Dumper::StyleTurn.dump(active: "C", inactive: "s")
+      #   StyleTurn.dump({ first: "C", second: "s" }, :first)
       #   # => "C/s"
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
       module StyleTurn
-        # Serializes style-turn data to a FEEN string.
+        # Serializes styles and turn to a FEEN Style-Turn field string.
         #
-        # @param active [#to_s] Active player's style
-        # @param inactive [#to_s] Inactive player's style
-        # @return [String] Canonical FEEN style-turn string
-        def self.dump(active:, inactive:)
-          "#{active}#{Separators::SEGMENT}#{inactive}"
+        # @param styles [Hash] Hash with :first and :second SIN token strings
+        # @param turn [Symbol] :first or :second
+        # @return [String] Canonical Style-Turn field string
+        def self.dump(styles, turn)
+          if turn == :first
+            "#{styles[:first]}#{Separators::SEGMENT}#{styles[:second]}"
+          else
+            "#{styles[:second]}#{Separators::SEGMENT}#{styles[:first]}"
+          end
         end
 
         freeze

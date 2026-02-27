@@ -9,39 +9,39 @@ module Sashite
   module Feen
     # Serializer for FEEN (Field Expression Encoding Notation) strings.
     #
-    # Converts structured position data into a canonical FEEN string.
+    # Converts a Qi::Position into a canonical FEEN string.
     # A FEEN string consists of three fields separated by single ASCII spaces:
     #
     #   <PIECE-PLACEMENT> <HANDS> <STYLE-TURN>
     #
     # This module orchestrates the three sub-dumpers:
-    # - {Dumper::PiecePlacement} for Field 1
-    # - {Dumper::Hands} for Field 2
-    # - {Dumper::StyleTurn} for Field 3
+    # - {Dumper::PiecePlacement} for Field 1 (board → piece placement)
+    # - {Dumper::Hands} for Field 2 (hands → hands field)
+    # - {Dumper::StyleTurn} for Field 3 (styles + turn → style-turn field)
     #
-    # @example Dumping a complete position
-    #   Dumper.dump(
-    #     piece_placement: { segments: [[8], [8], ...], separators: ["/", "/", ...] },
-    #     hands: { first: [], second: [] },
-    #     style_turn: { active: "C", inactive: "c" }
+    # @example Dumping a Qi::Position
+    #   position = Qi.new(
+    #     Array.new(8) { Array.new(8) },
+    #     { first: [], second: [] },
+    #     { first: "C", second: "c" },
+    #     :first
     #   )
+    #   Dumper.dump(position)
     #   # => "8/8/8/8/8/8/8/8 / C/c"
     #
     # @see https://sashite.dev/specs/feen/1.0.0/
     # @api private
     module Dumper
-      # Serializes position data to a FEEN string.
+      # Serializes a Qi::Position to a canonical FEEN string.
       #
-      # @param piece_placement [Hash] Piece placement with :segments and :separators
-      # @param hands [Hash] Hands with :first and :second
-      # @param style_turn [Hash] Style-turn with :active and :inactive
+      # @param position [Qi::Position] The position to serialize
       # @return [String] Canonical FEEN string
-      def self.dump(piece_placement:, hands:, style_turn:)
-        piece_placement_str = PiecePlacement.dump(**piece_placement)
-        hands_str = Hands.dump(**hands)
-        style_turn_str = StyleTurn.dump(**style_turn)
+      def self.dump(position)
+        piece_placement_str = PiecePlacement.dump(position.board)
+        hands_str = Hands.dump(position.hands)
+        style_turn_str = StyleTurn.dump(position.styles, position.turn)
 
-        [piece_placement_str, hands_str, style_turn_str].join(Separators::FIELD)
+        "#{piece_placement_str}#{Separators::FIELD}#{hands_str}#{Separators::FIELD}#{style_turn_str}"
       end
 
       freeze

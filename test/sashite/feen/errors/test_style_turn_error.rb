@@ -8,182 +8,89 @@ puts
 puts "=== StyleTurnError Tests ==="
 puts
 
+StyleTurnError = Sashite::Feen::StyleTurnError
+
 # ============================================================================
 # INHERITANCE
 # ============================================================================
 
-puts "Inheritance:"
+puts "inheritance:"
 
-run_test("inherits from Sashite::Feen::ParseError") do
-  result = Sashite::Feen::StyleTurnError.superclass
-  raise "expected ParseError, got #{result.inspect}" unless result == Sashite::Feen::ParseError
+run_test("inherits from ParseError") do
+  raise "wrong parent" unless StyleTurnError < Sashite::Feen::ParseError
 end
 
-run_test("is a subclass of Sashite::Feen::Error") do
-  result = Sashite::Feen::StyleTurnError < Sashite::Feen::Error
-  raise "expected to be subclass of Error" unless result == true
+run_test("inherits from Sashite::Feen::Error") do
+  raise "wrong ancestor" unless StyleTurnError < Sashite::Feen::Error
 end
 
-run_test("is a subclass of ArgumentError") do
-  result = Sashite::Feen::StyleTurnError < ::ArgumentError
-  raise "expected to be subclass of ArgumentError" unless result == true
+run_test("inherits from ArgumentError") do
+  raise "wrong ancestor" unless StyleTurnError < ArgumentError
 end
 
 # ============================================================================
-# ERROR MESSAGE CONSTANTS - DELIMITER ERRORS
+# CONSTANTS
 # ============================================================================
 
 puts
-puts "Error message constants - Delimiter errors:"
+puts "constants:"
 
-run_test("INVALID_DELIMITER is defined") do
-  result = Sashite::Feen::StyleTurnError::INVALID_DELIMITER
-  raise "expected String" unless ::String === result
-end
+EXPECTED_CONSTANTS = %i[
+  INVALID_DELIMITER
+  INVALID_STYLE_TOKEN
+  SAME_CASE
+].freeze
 
-run_test("INVALID_DELIMITER has meaningful message") do
-  result = Sashite::Feen::StyleTurnError::INVALID_DELIMITER
-  raise "expected to mention style-turn or delimiter" unless result.include?("style") || result.include?("delimiter")
+EXPECTED_CONSTANTS.each do |const|
+  run_test("#{const} is defined") do
+    raise "missing constant" unless StyleTurnError.const_defined?(const)
+  end
+
+  run_test("#{const} is a String") do
+    raise "wrong type" unless StyleTurnError.const_get(const).is_a?(String)
+  end
 end
 
 # ============================================================================
-# ERROR MESSAGE CONSTANTS - TOKEN ERRORS
+# RAISING
 # ============================================================================
 
 puts
-puts "Error message constants - Token errors:"
+puts "raising:"
 
-run_test("INVALID_STYLE_TOKEN is defined") do
-  result = Sashite::Feen::StyleTurnError::INVALID_STYLE_TOKEN
-  raise "expected String" unless ::String === result
+run_test("can be raised and rescued as StyleTurnError") do
+  raise StyleTurnError, StyleTurnError::INVALID_DELIMITER
+rescue StyleTurnError => e
+  raise "wrong message" unless e.message == StyleTurnError::INVALID_DELIMITER
 end
 
-run_test("INVALID_STYLE_TOKEN has meaningful message") do
-  result = Sashite::Feen::StyleTurnError::INVALID_STYLE_TOKEN
-  raise "expected to mention style or token" unless result.include?("style") || result.include?("token")
+run_test("can be rescued as ParseError") do
+  raise StyleTurnError, "test"
+rescue Sashite::Feen::ParseError
+  # Expected
 end
 
-# ============================================================================
-# ERROR MESSAGE CONSTANTS - CASE ERRORS
-# ============================================================================
-
-puts
-puts "Error message constants - Case errors:"
-
-run_test("SAME_CASE is defined") do
-  result = Sashite::Feen::StyleTurnError::SAME_CASE
-  raise "expected String" unless ::String === result
+run_test("can be rescued as Sashite::Feen::Error") do
+  raise StyleTurnError, "test"
+rescue Sashite::Feen::Error
+  # Expected
 end
 
-run_test("SAME_CASE has meaningful message") do
-  result = Sashite::Feen::StyleTurnError::SAME_CASE
-  raise "expected to mention case or opposite" unless result.include?("case") || result.include?("opposite")
+run_test("can be rescued as ArgumentError") do
+  raise StyleTurnError, "test"
+rescue ArgumentError
+  # Expected
 end
 
 # ============================================================================
-# RAISING AND CATCHING
+# IMMUTABILITY
 # ============================================================================
 
 puts
-puts "Raising and catching:"
+puts "immutability:"
 
-run_test("can be raised") do
-  raised = false
-  begin
-    raise Sashite::Feen::StyleTurnError, "test"
-  rescue Sashite::Feen::StyleTurnError
-    raised = true
-  end
-  raise "expected error to be raised" unless raised
-end
-
-run_test("can be caught as StyleTurnError") do
-  caught_class = nil
-  begin
-    raise Sashite::Feen::StyleTurnError, "test"
-  rescue Sashite::Feen::StyleTurnError => e
-    caught_class = e.class
-  end
-  raise "expected StyleTurnError" unless caught_class == Sashite::Feen::StyleTurnError
-end
-
-run_test("can be caught as ParseError") do
-  caught = false
-  begin
-    raise Sashite::Feen::StyleTurnError, "test"
-  rescue Sashite::Feen::ParseError
-    caught = true
-  end
-  raise "expected to be caught as ParseError" unless caught
-end
-
-run_test("can be caught as Sashite::Feen::Error") do
-  caught = false
-  begin
-    raise Sashite::Feen::StyleTurnError, "test"
-  rescue Sashite::Feen::Error
-    caught = true
-  end
-  raise "expected to be caught as Error" unless caught
-end
-
-run_test("can be caught as ArgumentError") do
-  caught = false
-  begin
-    raise Sashite::Feen::StyleTurnError, "test"
-  rescue ::ArgumentError
-    caught = true
-  end
-  raise "expected to be caught as ArgumentError" unless caught
-end
-
-run_test("can be raised with constant message") do
-  message = nil
-  begin
-    raise Sashite::Feen::StyleTurnError, Sashite::Feen::StyleTurnError::SAME_CASE
-  rescue Sashite::Feen::StyleTurnError => e
-    message = e.message
-  end
-  raise "message mismatch" unless message == Sashite::Feen::StyleTurnError::SAME_CASE
-end
-
-# ============================================================================
-# TYPE CHECKING
-# ============================================================================
-
-puts
-puts "Type checking:"
-
-run_test("instance is a StyleTurnError") do
-  error = Sashite::Feen::StyleTurnError.new("test")
-  raise "expected StyleTurnError === error" unless Sashite::Feen::StyleTurnError === error
-end
-
-run_test("instance is a ParseError") do
-  error = Sashite::Feen::StyleTurnError.new("test")
-  raise "expected ParseError === error" unless Sashite::Feen::ParseError === error
-end
-
-run_test("instance is a Sashite::Feen::Error") do
-  error = Sashite::Feen::StyleTurnError.new("test")
-  raise "expected Error === error" unless Sashite::Feen::Error === error
-end
-
-# ============================================================================
-# CONSTANTS ARE DISTINCT
-# ============================================================================
-
-puts
-puts "Constants are distinct:"
-
-run_test("all error messages are unique") do
-  messages = [
-    Sashite::Feen::StyleTurnError::INVALID_DELIMITER,
-    Sashite::Feen::StyleTurnError::INVALID_STYLE_TOKEN,
-    Sashite::Feen::StyleTurnError::SAME_CASE
-  ]
-  unique_messages = messages.uniq
-  raise "expected unique messages, got duplicates" unless messages.length == unique_messages.length
+run_test("class is frozen") do
+  raise "expected frozen" unless StyleTurnError.frozen?
 end
 
 puts

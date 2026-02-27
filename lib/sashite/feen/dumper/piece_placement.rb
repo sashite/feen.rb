@@ -5,94 +5,106 @@ require_relative "../shared/separators"
 module Sashite
   module Feen
     module Dumper
-      # Serializer for FEEN Piece Placement field (Field 1).
+      # Serializer for the FEEN Piece Placement field (Field 1).
       #
-      # Converts structured board data into a canonical FEEN string.
-      # Handles canonicalization of empty counts (merging consecutive empties).
+      # Converts a Qi::Position board (nested Array of String/nil) into
+      # the canonical FEEN Piece Placement string with:
+      # - Run-length encoding for consecutive empty squares (nil)
+      # - Dimensional separators ("/" for ranks, "//" for layers, etc.)
       #
-      # Input format:
-      # - segments: Array of Arrays containing placement tokens
-      #   - Integer tokens represent empty square counts
-      #   - Other tokens (pieces) must respond to #to_s
-      # - separators: Array of Strings ("/" for ranks, "//" for layers, etc.)
+      # == Board Structures
       #
-      # @example Basic usage
-      #   Dumper::PiecePlacement.dump(
-      #     segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
-      #     separators: ["/", "/", "/", "/", "/", "/", "/"]
-      #   )
+      # - 1D: flat Array         → "K^2k^"
+      # - 2D: Array of Arrays    → "8/8/8/8/8/8/8/8"
+      # - 3D: Array³             → "ab/cd//AB/CD"
+      #
+      # @example 1D board
+      #   PiecePlacement.dump(["K^", nil, nil, "k^"])
+      #   # => "K^2k^"
+      #
+      # @example 2D empty board
+      #   PiecePlacement.dump(Array.new(8) { Array.new(8) })
       #   # => "8/8/8/8/8/8/8/8"
       #
-      # @example With pieces
-      #   Dumper::PiecePlacement.dump(
-      #     segments: [["r", "n", "b", "q", "k", "b", "n", "r"]],
-      #     separators: []
-      #   )
-      #   # => "rnbqkbnr"
-      #
-      # @example Canonicalization (merges consecutive empties)
-      #   Dumper::PiecePlacement.dump(
-      #     segments: [[3, 2, "K", 1, 1]],
-      #     separators: []
-      #   )
-      #   # => "5K2"
+      # @example 3D board
+      #   PiecePlacement.dump([[["a","b"],["c","d"]],[["A","B"],["C","D"]]])
+      #   # => "ab/cd//AB/CD"
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
       module PiecePlacement
-        # Serializes piece placement data to a FEEN string.
+        # Serializes a board array to a FEEN Piece Placement field string.
         #
-        # @param segments [Array<Array>] Board segments with tokens
-        # @param separators [Array<String>] Separators between segments
-        # @return [String] Canonical FEEN piece placement string
-        def self.dump(segments:, separators:)
-          segments.map.with_index do |segment, index|
-            segment_str = dump_segment(segment)
-            separator = index < separators.size ? separators[index] : ""
-            "#{segment_str}#{separator}"
-          end.join
+        # @param board [Array] Nested board array (1D, 2D, or 3D)
+        # @return [String] Canonical Piece Placement field string
+        def self.dump(board)
+          serialize(board, depth(board))
         end
 
         class << self
           private
 
-          # Serializes a single segment to a string.
+          # Determines the dimensionality of the board.
           #
-          # Canonicalizes by merging consecutive empty counts.
+          # - 1D: board[0] is not an Array (flat list of squares)
+          # - 2D: board[0] is an Array but board[0][0] is not
+          # - 3D: board[0][0] is an Array
           #
-          # @param segment [Array] Segment tokens
-          # @return [String] Serialized segment
-          def dump_segment(segment)
-            canonicalize(segment).map(&:to_s).join
+          # @param board [Array] The board to inspect
+          # @return [Integer] Dimensionality (1, 2, or 3)
+          def depth(board)
+            return 1 unless ::Array === board[0]
+            return 2 unless ::Array === board[0][0]
+
+            3
           end
 
-          # Canonicalizes a segment by merging consecutive empty counts.
+          # Recursively serializes a board structure at a given dimension level.
           #
-          # @param segment [Array] Segment tokens
-          # @return [Array] Canonicalized tokens
-          def canonicalize(segment)
-            result = []
-            pending_empty = 0
+          # @param structure [Array] Board structure at current level
+          # @param dim [Integer] Current dimensionality
+          # @return [String] Serialized string
+          def serialize(structure, dim)
+            if dim == 1
+              dump_rank(structure)
+            else
+              separator = Separators::SEGMENT * (dim - 1)
 
-            segment.each do |token|
-              if ::Integer === token
-                pending_empty += token
+              structure.map { |sub| serialize(sub, dim - 1) }.join(separator)
+            end
+          end
+
+          # Serializes a single rank (flat array of String/nil) with
+          # run-length encoding for consecutive empty squares.
+          #
+          # @param rank [Array<String, nil>] Flat rank array
+          # @return [String] Serialized rank string
+          def dump_rank(rank)
+            result = String.new
+            empty_count = 0
+
+            rank.each do |square|
+              if square.nil?
+                empty_count += 1
               else
-                if pending_empty > 0
-                  result << pending_empty
-                  pending_empty = 0
+                if empty_count > 0
+                  result << empty_count.to_s
+                  empty_count = 0
                 end
-                result << token
+
+                result << square
               end
             end
 
-            result << pending_empty if pending_empty > 0
+            result << empty_count.to_s if empty_count > 0
 
             result
           end
         end
 
-        private_class_method :dump_segment, :canonicalize
+        private_class_method :depth,
+                             :serialize,
+                             :dump_rank
 
         freeze
       end

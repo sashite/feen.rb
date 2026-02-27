@@ -3,6 +3,7 @@
 
 require_relative "../../helper"
 require_relative "../../../lib/sashite/feen/dumper"
+require "qi"
 
 puts
 puts "=== Dumper Tests ==="
@@ -10,221 +11,183 @@ puts
 
 Dumper = Sashite::Feen::Dumper
 
-# ============================================================================
-# BASIC DUMPING - MINIMAL POSITIONS
-# ============================================================================
-
-puts "Basic dumping - minimal positions:"
-
-run_test("dumps minimal position") do
-  result = Dumper.dump(
-    piece_placement: { segments: [["K"]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected 'K / C/c', got #{result.inspect}" unless result == "K / C/c"
-end
-
-run_test("dumps empty board position") do
-  result = Dumper.dump(
-    piece_placement: { segments: [[8]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected '8 / C/c', got #{result.inspect}" unless result == "8 / C/c"
+# Helper to build a Qi::Position
+def qi(board, hands: { first: [], second: [] }, styles: { first: "C", second: "c" }, turn: :first)
+  Qi.new(board, hands, styles, turn)
 end
 
 # ============================================================================
-# BASIC DUMPING - CHESS POSITIONS
+# MINIMAL POSITIONS
+# ============================================================================
+
+puts "minimal positions:"
+
+run_test("dumps minimal 1D position") do
+  position = qi(["K"])
+  result = Dumper.dump(position)
+  raise "expected 'K / C/c'" unless result == "K / C/c"
+end
+
+run_test("dumps empty 1D board") do
+  position = qi(Array.new(8))
+  result = Dumper.dump(position)
+  raise "expected '8 / C/c'" unless result == "8 / C/c"
+end
+
+# ============================================================================
+# 2D POSITIONS
 # ============================================================================
 
 puts
-puts "Basic dumping - Chess positions:"
+puts "2D positions:"
+
+run_test("dumps empty 8x8 board") do
+  position = qi(Array.new(8) { Array.new(8) })
+  result = Dumper.dump(position)
+  raise "expected '8/8/8/8/8/8/8/8 / C/c'" unless result == "8/8/8/8/8/8/8/8 / C/c"
+end
 
 run_test("dumps Chess initial position") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: [
-        ["r", "n", "b", "q", "k", "b", "n", "r"],
-        ["p", "p", "p", "p", "p", "p", "p", "p"],
-        [8],
-        [8],
-        [8],
-        [8],
-        ["P", "P", "P", "P", "P", "P", "P", "P"],
-        ["R", "N", "B", "Q", "K", "B", "N", "R"]
-      ],
-      separators: ["/", "/", "/", "/", "/", "/", "/"]
-    },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected Chess initial" unless result == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
+  board = [
+    ["r", "n", "b", "q", "k", "b", "n", "r"],
+    ["p", "p", "p", "p", "p", "p", "p", "p"],
+    Array.new(8), Array.new(8), Array.new(8), Array.new(8),
+    ["P", "P", "P", "P", "P", "P", "P", "P"],
+    ["R", "N", "B", "Q", "K", "B", "N", "R"]
+  ]
+  position = qi(board)
+  result = Dumper.dump(position)
+  raise "expected Chess FEEN" unless result == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c"
 end
-
-run_test("dumps Chess position with second to move") do
-  result = Dumper.dump(
-    piece_placement: { segments: [["K", 6, "k"]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "c", inactive: "C" }
-  )
-  raise "expected 'K6k / c/C'" unless result == "K6k / c/C"
-end
-
-# ============================================================================
-# BASIC DUMPING - SHOGI POSITIONS
-# ============================================================================
-
-puts
-puts "Basic dumping - Shogi positions:"
 
 run_test("dumps Shogi initial position") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: [
-        ["l", "n", "s", "g", "k", "g", "s", "n", "l"],
-        [1, "r", 5, "b", 1],
-        ["p", "p", "p", "p", "p", "p", "p", "p", "p"],
-        [9],
-        [9],
-        [9],
-        ["P", "P", "P", "P", "P", "P", "P", "P", "P"],
-        [1, "B", 5, "R", 1],
-        ["L", "N", "S", "G", "K", "G", "S", "N", "L"]
-      ],
-      separators: ["/", "/", "/", "/", "/", "/", "/", "/"]
-    },
-    hands: { first: [], second: [] },
-    style_turn: { active: "S", inactive: "s" }
-  )
-  raise "expected Shogi initial" unless result == "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
-end
-
-run_test("dumps Shogi position with hands") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: [[9], [9], [9], [9], [9], [9], [9], [9], [9]],
-      separators: ["/", "/", "/", "/", "/", "/", "/", "/"]
-    },
-    hands: {
-      first: [{ piece: "P", count: 3 }, { piece: "L", count: 2 }],
-      second: [{ piece: "p", count: 2 }]
-    },
-    style_turn: { active: "S", inactive: "s" }
-  )
-  raise "expected Shogi with hands" unless result == "9/9/9/9/9/9/9/9/9 3P2L/2p S/s"
+  board = [
+    ["l", "n", "s", "g", "k", "g", "s", "n", "l"],
+    [nil, "r", nil, nil, nil, nil, nil, "b", nil],
+    ["p", "p", "p", "p", "p", "p", "p", "p", "p"],
+    Array.new(9), Array.new(9), Array.new(9),
+    ["P", "P", "P", "P", "P", "P", "P", "P", "P"],
+    [nil, "B", nil, nil, nil, nil, nil, "R", nil],
+    ["L", "N", "S", "G", "K", "G", "S", "N", "L"]
+  ]
+  position = qi(board, styles: { first: "S", second: "s" })
+  result = Dumper.dump(position)
+  raise "expected Shogi FEEN" unless result == "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
 end
 
 # ============================================================================
-# POSITIONS WITH HANDS
+# 3D POSITIONS
 # ============================================================================
 
 puts
-puts "Positions with hands:"
+puts "3D positions:"
 
-run_test("dumps position with first hand only") do
-  result = Dumper.dump(
-    piece_placement: { segments: [[8]], separators: [] },
-    hands: {
-      first: [{ piece: "P", count: 2 }],
-      second: []
-    },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected '8 2P/ C/c'" unless result == "8 2P/ C/c"
-end
-
-run_test("dumps position with second hand only") do
-  result = Dumper.dump(
-    piece_placement: { segments: [[8]], separators: [] },
-    hands: {
-      first: [],
-      second: [{ piece: "n", count: 1 }]
-    },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected '8 /n C/c'" unless result == "8 /n C/c"
-end
-
-run_test("dumps position with both hands") do
-  result = Dumper.dump(
-    piece_placement: { segments: [[8]], separators: [] },
-    hands: {
-      first: [{ piece: "B", count: 3 }, { piece: "N", count: 1 }],
-      second: [{ piece: "q", count: 2 }]
-    },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected '8 3BN/2q C/c'" unless result == "8 3BN/2q C/c"
-end
-
-# ============================================================================
-# MULTI-DIMENSIONAL BOARDS
-# ============================================================================
-
-puts
-puts "Multi-dimensional boards:"
-
-run_test("dumps 1D board") do
-  result = Dumper.dump(
-    piece_placement: { segments: [["K", 2, "Q", 3, "R"]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected 'K2Q3R / C/c'" unless result == "K2Q3R / C/c"
-end
-
-run_test("dumps 3D board") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: [[4], [4], [4], [4]],
-      separators: ["/", "//", "/"]
-    },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
-  )
+run_test("dumps 3D empty board") do
+  board = [
+    [Array.new(4), Array.new(4)],
+    [Array.new(4), Array.new(4)]
+  ]
+  position = qi(board)
+  result = Dumper.dump(position)
   raise "expected '4/4//4/4 / C/c'" unless result == "4/4//4/4 / C/c"
 end
 
-# ============================================================================
-# CROSS-STYLE GAMES
-# ============================================================================
-
-puts
-puts "Cross-style games:"
-
-run_test("dumps Chess vs Shogi") do
-  result = Dumper.dump(
-    piece_placement: { segments: [["K", 6, "k"]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "s" }
-  )
-  raise "expected 'K6k / C/s'" unless result == "K6k / C/s"
-end
-
-run_test("dumps Xiangqi vs Go") do
-  result = Dumper.dump(
-    piece_placement: { segments: [[9]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "X", inactive: "g" }
-  )
-  raise "expected '9 / X/g'" unless result == "9 / X/g"
+run_test("dumps 3D board with pieces") do
+  board = [
+    [["a", "b"], ["c", "d"]],
+    [["A", "B"], ["C", "D"]]
+  ]
+  position = qi(board)
+  result = Dumper.dump(position)
+  raise "expected 'ab/cd//AB/CD / C/c'" unless result == "ab/cd//AB/CD / C/c"
 end
 
 # ============================================================================
-# CANONICALIZATION
+# HANDS
 # ============================================================================
 
 puts
-puts "Canonicalization:"
+puts "hands:"
 
-run_test("canonicalizes consecutive empty counts") do
-  result = Dumper.dump(
-    piece_placement: { segments: [[2, 3, "K", 1, 2]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
+run_test("dumps empty hands") do
+  position = qi(["K"])
+  result = Dumper.dump(position)
+  raise "should contain ' / '" unless result.include?(" / ")
+end
+
+run_test("dumps first hand with pieces") do
+  position = qi(Array.new(8), hands: { first: ["P", "P", "N"], second: [] })
+  result = Dumper.dump(position)
+  raise "expected '8 2PN/ C/c'" unless result == "8 2PN/ C/c"
+end
+
+run_test("dumps both hands with pieces") do
+  position = qi(Array.new(8), hands: { first: ["P", "P", "N"], second: ["p"] })
+  result = Dumper.dump(position)
+  raise "expected '8 2PN/p C/c'" unless result == "8 2PN/p C/c"
+end
+
+run_test("dumps complex hands") do
+  position = qi(
+    Array.new(8) { Array.new(8) },
+    hands: { first: ["B", "B", "B", "P", "P", "N", "R"], second: ["q", "q", "p"] }
   )
-  raise "expected '5K3 / C/c' (merged empties)" unless result == "5K3 / C/c"
+  result = Dumper.dump(position)
+  raise "expected '...3B2PNR/2qp...'" unless result.include?("3B2PNR/2qp")
+end
+
+# ============================================================================
+# STYLES AND TURN
+# ============================================================================
+
+puts
+puts "styles and turn:"
+
+run_test("dumps first player to move") do
+  position = qi(["K"], turn: :first)
+  result = Dumper.dump(position)
+  raise "should end with 'C/c'" unless result.end_with?("C/c")
+end
+
+run_test("dumps second player to move") do
+  position = qi(["K"], turn: :second)
+  result = Dumper.dump(position)
+  raise "should end with 'c/C'" unless result.end_with?("c/C")
+end
+
+run_test("dumps cross-style game") do
+  position = qi(["K"], styles: { first: "C", second: "s" }, turn: :first)
+  result = Dumper.dump(position)
+  raise "should end with 'C/s'" unless result.end_with?("C/s")
+end
+
+run_test("dumps cross-style with second to move") do
+  position = qi(["K"], styles: { first: "C", second: "s" }, turn: :second)
+  result = Dumper.dump(position)
+  raise "should end with 's/C'" unless result.end_with?("s/C")
+end
+
+# ============================================================================
+# FORMAT - THREE FIELDS
+# ============================================================================
+
+puts
+puts "format:"
+
+run_test("result has exactly 3 space-separated fields") do
+  position = qi(["K"])
+  result = Dumper.dump(position)
+  fields = result.split(" ", -1)
+  raise "expected 3 fields, got #{fields.size}" unless fields.size == 3
+end
+
+run_test("fields are non-empty") do
+  position = qi(["K"])
+  result = Dumper.dump(position)
+  fields = result.split(" ", -1)
+  fields.each_with_index do |field, i|
+    raise "field #{i} is empty" if field.empty?
+  end
 end
 
 # ============================================================================
@@ -232,95 +195,23 @@ end
 # ============================================================================
 
 puts
-puts "Return type:"
+puts "return type:"
 
-run_test("returns String") do
-  result = Dumper.dump(
-    piece_placement: { segments: [["K"]], separators: [] },
-    hands: { first: [], second: [] },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected String" unless ::String === result
+run_test("returns a String") do
+  position = qi(["K"])
+  result = Dumper.dump(position)
+  raise "expected String" unless result.is_a?(String)
 end
 
 # ============================================================================
-# MODULE STRUCTURE
+# MODULE PROPERTIES
 # ============================================================================
 
 puts
-puts "Module structure:"
+puts "module properties:"
 
 run_test("module is frozen") do
   raise "expected frozen" unless Dumper.frozen?
-end
-
-run_test("dump is the only public method") do
-  public_methods = Dumper.methods(false) - Object.methods
-  raise "expected only :dump, got #{public_methods}" unless public_methods == [:dump]
-end
-
-run_test("sub-modules are accessible") do
-  raise "missing PiecePlacement" unless defined?(Dumper::PiecePlacement)
-  raise "missing Hands" unless defined?(Dumper::Hands)
-  raise "missing StyleTurn" unless defined?(Dumper::StyleTurn)
-end
-
-# ============================================================================
-# REAL-WORLD EXAMPLES
-# ============================================================================
-
-puts
-puts "Real-world examples:"
-
-run_test("dumps Xiangqi initial position") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: [
-        ["r", "h", "e", "a", "g", "a", "e", "h", "r"],
-        [9],
-        [1, "c", 5, "c", 1],
-        ["p", 1, "p", 1, "p", 1, "p", 1, "p"],
-        [9],
-        [9],
-        ["P", 1, "P", 1, "P", 1, "P", 1, "P"],
-        [1, "C", 5, "C", 1],
-        [9],
-        ["R", "H", "E", "A", "G", "A", "E", "H", "R"]
-      ],
-      separators: ["/", "/", "/", "/", "/", "/", "/", "/", "/"]
-    },
-    hands: { first: [], second: [] },
-    style_turn: { active: "X", inactive: "x" }
-  )
-  raise "expected Xiangqi initial" unless result == "rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR / X/x"
-end
-
-run_test("dumps Go empty board") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: Array.new(19) { [19] },
-      separators: Array.new(18) { "/" }
-    },
-    hands: { first: [], second: [] },
-    style_turn: { active: "G", inactive: "g" }
-  )
-  expected = (["19"] * 19).join("/") + " / G/g"
-  raise "expected Go 19x19 empty" unless result == expected
-end
-
-run_test("dumps Crazyhouse mid-game") do
-  result = Dumper.dump(
-    piece_placement: {
-      segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
-      separators: ["/", "/", "/", "/", "/", "/", "/"]
-    },
-    hands: {
-      first: [{ piece: "Q", count: 1 }, { piece: "P", count: 3 }],
-      second: [{ piece: "n", count: 2 }, { piece: "p", count: 1 }]
-    },
-    style_turn: { active: "C", inactive: "c" }
-  )
-  raise "expected Crazyhouse" unless result == "8/8/8/8/8/8/8/8 Q3P/2np C/c"
 end
 
 puts

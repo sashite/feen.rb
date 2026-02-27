@@ -9,7 +9,9 @@
 
 ## Overview
 
-This library implements the [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/).
+This library implements the [FEEN Specification v1.0.0](https://sashite.dev/specs/feen/1.0.0/), providing serialization and deserialization of board game positions between FEEN strings and [`Qi::Position`](https://github.com/sashite/qi.rb) objects.
+
+FEEN is a rule-agnostic, canonical position encoding for two-player, turn-based board games built on the [Sashité Game Protocol](https://sashite.dev/game-protocol/). A FEEN string encodes exactly three fields: **piece placement** (board structure and occupancy), **hands** (off-board pieces), and **style–turn** (player styles and active player).
 
 ### Implementation Constraints
 
@@ -17,7 +19,7 @@ This library implements the [FEEN Specification v1.0.0](https://sashite.dev/spec
 |------------|-------|-----------|
 | Max string length | 4096 | Sufficient for realistic board positions |
 | Max board dimensions | 3 | Sufficient for 1D, 2D, 3D boards |
-| Max dimension size | 255 | Fits in 8-bit integer; covers 256×256×256 boards |
+| Max dimension size | 255 | Fits in 8-bit integer; covers 255×255×255 boards |
 
 These constraints enable bounded memory usage and safe parsing.
 
@@ -37,39 +39,62 @@ gem install sashite-feen
 ## Dependencies
 
 ```ruby
-gem "sashite-epin"  # Extended Piece Identifier Notation
-gem "sashite-sin"   # Style Identifier Notation
+gem "qi", "~> 11.0"     # Position model
+gem "sashite-epin"       # Extended Piece Identifier Notation
+gem "sashite-sin"        # Style Identifier Notation
 ```
 
 ## Usage
 
-### Parsing (String → Position)
+### Parsing (FEEN String → Qi::Position)
 
-Convert a FEEN string into a `Position` object.
+Convert a FEEN string into a `Qi::Position` object.
 
 ```ruby
 require "sashite/feen"
 
-# Standard parsing (raises on error)
+# Parse a Shōgi starting position
 position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
 
-# Access components
-position.piece_placement  # => PiecePlacement
-position.hands            # => Hands
-position.style_turn       # => StyleTurn
+# The result is a Qi::Position
+position.board
+# => [["l", "n", "s", "g", "k^", "g", "s", "n", "l"],
+#     [nil, "r", nil, nil, nil, nil, nil, "b", nil],
+#     ["p", "p", "p", "p", "p", "p", "p", "p", "p"],
+#     [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+#     [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+#     [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+#     ["P", "P", "P", "P", "P", "P", "P", "P", "P"],
+#     [nil, "B", nil, nil, nil, nil, nil, "R", nil],
+#     ["L", "N", "S", "G", "K^", "G", "S", "N", "L"]]
 
-# Invalid input raises ParseError
+position.hands   # => { first: [], second: [] }
+position.styles  # => { first: "S", second: "s" }
+position.turn    # => :first
+
+# Invalid input raises an error
 Sashite::Feen.parse("invalid")  # => raises Sashite::Feen::ParseError
 ```
 
-### Formatting (Position → String)
+### Dumping (Qi::Position → FEEN String)
 
-Convert a `Position` back to a canonical FEEN string.
+Convert a `Qi::Position` back to a canonical FEEN string.
 
 ```ruby
-# Round-trip serialization
+# From an existing Qi::Position
 position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
-position.to_s  # => "8/8/8/8/8/8/8/8 / C/c"
+Sashite::Feen.dump(position)
+# => "8/8/8/8/8/8/8/8 / C/c"
+
+# From a Qi::Position built manually
+position = Qi.new(
+  [["K^", nil, nil, nil, nil, nil, nil, "k^"]],
+  { first: [], second: [] },
+  { first: "C", second: "c" },
+  :first
+)
+Sashite::Feen.dump(position)
+# => "K^6k^ / C/c"
 ```
 
 ### Validation
@@ -85,89 +110,78 @@ Sashite::Feen.valid?("invalid")                # => false
 Sashite::Feen.valid?(nil)                      # => false
 ```
 
-### Dumping (Structured Data → String)
+### Round-trip Examples
 
-Serialize structured position data directly to a FEEN string.
+FEEN parsing and dumping are perfect inverses — any valid FEEN string round-trips through `Qi::Position` without loss.
 
 ```ruby
-# Dump an empty Chess board
-Sashite::Feen.dump(
-  piece_placement: {
-    segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
-    separators: ["/", "/", "/", "/", "/", "/", "/"]
-  },
-  hands: { first: [], second: [] },
-  style_turn: { active: "C", inactive: "c" }
+# Chess starting position
+feen = "-rnbqk^bn-r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/-RNBQK^BN-R / C/c"
+position = Sashite::Feen.parse(feen)
+Sashite::Feen.dump(position) == feen  # => true
+
+# Xiangqi starting position
+feen = "rheag^aehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAG^AEHR / X/x"
+position = Sashite::Feen.parse(feen)
+Sashite::Feen.dump(position) == feen  # => true
+```
+
+### Hands
+
+Pieces in hand are represented as flat arrays in `Qi::Position`. FEEN automatically handles aggregation (for serialization) and expansion (for parsing).
+
+```ruby
+# Shōgi mid-game with captured pieces
+feen = "lnsgk^gsnl/1r5b1/pppp1pppp/9/9/9/PPPP1PPPP/1B5R1/LNSGK^GSNL P/p S/s"
+position = Sashite::Feen.parse(feen)
+
+position.hands
+# => { first: ["P"], second: ["p"] }
+
+# Multiple identical pieces are aggregated in FEEN
+position = Qi.new(
+  [[nil, nil, nil], [nil, "K^", nil], [nil, nil, nil]],
+  { first: ["P", "P", "B"], second: ["p"] },
+  { first: "S", second: "s" },
+  :first
 )
-# => "8/8/8/8/8/8/8/8 / C/c"
-
-# Dump a position with pieces and hands
-Sashite::Feen.dump(
-  piece_placement: {
-    segments: [["K", 6, "k"]],
-    separators: []
-  },
-  hands: {
-    first: [{ piece: "P", count: 2 }],
-    second: [{ piece: "p", count: 1 }]
-  },
-  style_turn: { active: "S", inactive: "s" }
-)
-# => "K6k 2P/p S/s"
+Sashite::Feen.dump(position)
+# => "3/1K^1/3 2PB/p S/s"
 ```
 
-### Accessing Piece Placement
+### Multi-dimensional Boards
+
+`Qi::Position` supports 1D, 2D, and 3D boards natively.
 
 ```ruby
-position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
+# 1D board
+feen = "k^+p4+PK^ / C/c"
+position = Sashite::Feen.parse(feen)
+position.board
+# => ["k^", "+p", nil, nil, nil, nil, "+P", "K^"]
 
-position.piece_placement.squares_count  # => 81
-position.piece_placement.pieces_count   # => 40
-position.piece_placement.dimensions     # => 2
-
-# Iterate over squares
-position.piece_placement.each do |square|
-  case square
-  when Integer then puts "#{square} empty squares"
-  when Sashite::Epin::Identifier then puts "Piece: #{square}"
-  end
-end
+# 3D board (2 layers × 2 ranks × 2 files)
+feen = "ab/cd//AB/CD / G/g"
+position = Sashite::Feen.parse(feen)
+position.board
+# => [[["a", "b"], ["c", "d"]],
+#     [["A", "B"], ["C", "D"]]]
 ```
 
-### Accessing Hands
+### Style–Turn Mapping
+
+The FEEN style–turn field maps directly to `Qi::Position`'s `styles` and `turn` fields.
 
 ```ruby
-position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 3P2B/3p2b C/c")
-
-position.hands.first.pieces_count   # => 5
-position.hands.second.pieces_count  # => 5
-position.hands.first.empty?         # => false
-
-# Iterate over hand items
-position.hands.first.each do |piece, count|
-  puts "#{count}x #{piece}"
-end
-```
-
-### Accessing Style–Turn
-
-```ruby
+# First player to move (uppercase style is active)
 position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+position.styles  # => { first: "C", second: "c" }
+position.turn    # => :first
 
-position.style_turn.active_style    # => Sashite::Sin::Identifier (C)
-position.style_turn.inactive_style  # => Sashite::Sin::Identifier (c)
-position.style_turn.first_to_move?  # => true
-position.style_turn.second_to_move? # => false
-```
-
-### Aggregate Queries
-
-```ruby
-position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
-
-# Board metrics
-position.squares_count  # => 81
-position.pieces_count   # => 40 (board + hands)
+# Second player to move (lowercase style is active)
+position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / c/C")
+position.styles  # => { first: "C", second: "c" }
+position.turn    # => :second
 ```
 
 ## API Reference
@@ -175,11 +189,12 @@ position.pieces_count   # => 40 (board + hands)
 ### Module Methods
 
 ```ruby
-# Parses a FEEN string into a Position.
+# Parses a FEEN string into a Qi::Position.
+# Pieces on the board are EPIN token strings; empty squares are nil.
 # Raises ParseError (or subclass) if the string is not valid.
 #
 # @param feen_string [String] FEEN string
-# @return [Position]
+# @return [Qi::Position]
 # @raise [ParseError] if invalid
 def Sashite::Feen.parse(feen_string)
 
@@ -190,158 +205,14 @@ def Sashite::Feen.parse(feen_string)
 # @return [Boolean]
 def Sashite::Feen.valid?(feen_string)
 
-# Serializes structured position data to a FEEN string.
-# Does not validate input; assumes caller provides valid data.
+# Serializes a Qi::Position to a canonical FEEN string.
+# Board pieces must be valid EPIN token strings.
+# Style values must be valid SIN token strings.
 #
-# @param piece_placement [Hash] with :segments and :separators
-# @param hands [Hash] with :first and :second (arrays of {piece:, count:})
-# @param style_turn [Hash] with :active and :inactive (SIN strings)
+# @param position [Qi::Position] Position to serialize
 # @return [String] Canonical FEEN string
-def Sashite::Feen.dump(piece_placement:, hands:, style_turn:)
-```
-
-### Position
-
-```ruby
-# Position represents a complete FEEN position.
-# Instances are immutable and created only via Feen.parse.
-class Sashite::Feen::Position
-  # Returns the piece placement component.
-  # @return [PiecePlacement]
-  def piece_placement
-
-  # Returns the hands component.
-  # @return [Hands]
-  def hands
-
-  # Returns the style-turn component.
-  # @return [StyleTurn]
-  def style_turn
-
-  # Returns the total number of squares on the board.
-  # @return [Integer]
-  def squares_count
-
-  # Returns the total number of pieces (board + hands).
-  # @return [Integer]
-  def pieces_count
-
-  # Returns the canonical FEEN string.
-  # @return [String]
-  def to_s
-end
-```
-
-### PiecePlacement
-
-```ruby
-# PiecePlacement represents board structure and occupancy.
-class Sashite::Feen::Position::PiecePlacement
-  include Enumerable
-
-  # Returns the total number of squares.
-  # @return [Integer]
-  def squares_count
-
-  # Returns the number of pieces on the board.
-  # @return [Integer]
-  def pieces_count
-
-  # Returns the board dimensionality (1, 2, or 3).
-  # @return [Integer]
-  def dimensions
-
-  # Iterates over each square (empty counts or pieces).
-  # @yieldparam square [Integer, Sashite::Epin::Identifier]
-  # @return [Enumerator] if no block given
-  def each
-
-  # Returns the canonical string representation.
-  # @return [String]
-  def to_s
-end
-```
-
-### Hands
-
-```ruby
-# Hands represents off-board pieces for both players.
-class Sashite::Feen::Position::Hands
-  # Returns the first player's hand.
-  # @return [Hand]
-  def first
-
-  # Returns the second player's hand.
-  # @return [Hand]
-  def second
-
-  # Returns the total pieces in both hands.
-  # @return [Integer]
-  def pieces_count
-
-  # Returns the canonical string representation.
-  # @return [String]
-  def to_s
-end
-```
-
-### Hand
-
-```ruby
-# Hand represents a single player's off-board pieces.
-# This is an internal class; instances are accessed via Hands#first and Hands#second.
-class Sashite::Feen::Position::Hands::Hand
-  include Enumerable
-
-  # Returns true if the hand contains no pieces.
-  # @return [Boolean]
-  def empty?
-
-  # Returns the number of distinct piece types.
-  # @return [Integer]
-  def size
-
-  # Returns the total number of pieces.
-  # @return [Integer]
-  def pieces_count
-
-  # Iterates over each piece type and its count.
-  # @yieldparam piece [Sashite::Epin::Identifier]
-  # @yieldparam count [Integer]
-  # @return [Enumerator] if no block given
-  def each
-
-  # Returns the canonical string representation.
-  # @return [String]
-  def to_s
-end
-```
-
-### StyleTurn
-
-```ruby
-# StyleTurn represents player styles and the active player.
-class Sashite::Feen::Position::StyleTurn
-  # Returns the active player's style.
-  # @return [Sashite::Sin::Identifier]
-  def active_style
-
-  # Returns the inactive player's style.
-  # @return [Sashite::Sin::Identifier]
-  def inactive_style
-
-  # Returns true if first player is to move.
-  # @return [Boolean]
-  def first_to_move?
-
-  # Returns true if second player is to move.
-  # @return [Boolean]
-  def second_to_move?
-
-  # Returns the canonical string representation.
-  # @return [String]
-  def to_s
-end
+# @raise [ArgumentError] if position contains invalid tokens
+def Sashite::Feen.dump(position)
 ```
 
 ### Constants
@@ -419,11 +290,11 @@ end
 ## Design Principles
 
 - **Spec conformance**: Strict adherence to FEEN v1.0.0
-- **Pure composition**: Delegates to EPIN and SIN for token handling
-- **Canonical output**: `to_s` always produces canonical form
-- **Immutable positions**: Frozen instances prevent mutation
+- **Qi integration**: Parses to and dumps from `Qi::Position`, the shared position model across Sashité libraries
+- **Pure composition**: Delegates to EPIN and SIN for token handling, Qi for position modeling
+- **Canonical output**: `dump` always produces canonical form
 - **Structured errors**: Hierarchical error classes for precise handling
-- **Ruby idioms**: `valid?` predicate, `to_s` conversion, Enumerable support
+- **Ruby idioms**: `valid?` predicate, `parse`/`dump` symmetry, `ArgumentError` for invalid input
 - **Defensive limits**: Bounded memory usage via configurable constraints
 
 ## Related Specifications

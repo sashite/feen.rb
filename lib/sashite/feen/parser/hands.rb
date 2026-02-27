@@ -23,13 +23,16 @@ module Sashite
       # Hand's associated Side. A piece with Piece Side `first` may be
       # located in the Second Player Hand, and vice versa.
       #
+      # Returns a hash with :first and :second keys, each containing a
+      # flat array of EPIN token strings, ready for Qi::Position.
+      #
       # @example Parsing empty hands
       #   Hands.parse("/")
       #   # => { first: [], second: [] }
       #
       # @example Parsing hands with pieces
       #   Hands.parse("2PN/p")
-      #   # => { first: [...], second: [...] }
+      #   # => { first: ["P", "P", "N"], second: ["p"] }
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
@@ -37,7 +40,7 @@ module Sashite
         # Parses a FEEN Hands field string.
         #
         # @param input [String] The Hands field string
-        # @return [Hash] A hash with :first and :second keys
+        # @return [Hash] A hash with :first and :second keys (arrays of EPIN strings)
         # @raise [HandsError] If the input is not valid
         def self.parse(input)
           validate_delimiter!(input)

@@ -25,27 +25,29 @@ module Sashite
       # == Token Types
       #
       # Within each segment, content is a concatenation of placement tokens:
-      # - Empty-count token: a base-10 integer (≥ 1, no leading zeros)
+      # - Empty-count token: a base-10 integer (>= 1, no leading zeros)
       # - Piece token: a valid EPIN identifier
       #
-      # == Canonical Form
+      # == Return Value
       #
-      # The parser enforces canonical form requirements:
-      # - No empty segments (rejected by boundary validation)
-      # - No consecutive empty-count tokens (must be merged)
-      # - Dimensional coherence (separator depth matches structure)
+      # Returns a nested Array representing the board, ready for Qi::Position:
+      # - 1D: flat Array of String/nil (e.g. ["K^", nil, nil, "k^"])
+      # - 2D: Array of rank Arrays (e.g. [[nil, nil], ["K^", nil]])
+      # - 3D: Array of layer Arrays of rank Arrays
       #
-      # @example Parsing a simple 1D board
+      # Pieces are EPIN token strings, empty squares are nil.
+      #
+      # @example Parsing a 1D board
       #   PiecePlacement.parse("K2Q")
-      #   # => { segments: [[<K>, 2, <Q>]], separators: [] }
+      #   # => ["K", nil, nil, "Q"]
       #
       # @example Parsing a 2D board (Chess-like)
       #   PiecePlacement.parse("8/8/8/8/8/8/8/8")
-      #   # => { segments: [[8], [8], ...], separators: ["/", "/", ...] }
+      #   # => [[nil]*8, [nil]*8, ..., [nil]*8]
       #
       # @example Parsing a 3D board
-      #   PiecePlacement.parse("4/4//4/4")
-      #   # => { segments: [[4], [4], [4], [4]], separators: ["/", "//", "/"] }
+      #   PiecePlacement.parse("ab/cd//AB/CD")
+      #   # => [[["a","b"],["c","d"]],[["A","B"],["C","D"]]]
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
@@ -53,7 +55,7 @@ module Sashite
         # Parses a FEEN Piece Placement field string.
         #
         # @param input [String] The Piece Placement field string
-        # @return [Hash] A hash with :segments and :separators keys
+        # @return [Array] A nested board array of EPIN strings and nil
         # @raise [PiecePlacementError] If the input is not valid
         def self.parse(input)
           validate_not_empty!(input)
@@ -65,7 +67,7 @@ module Sashite
           validate_dimensional_coherence!(separators)
           validate_dimension_sizes!(segments)
 
-          { segments:, separators: }
+          build_board(segments, separators)
         end
 
         class << self
@@ -113,7 +115,7 @@ module Sashite
           # we always start and end with a segment.
           #
           # @param input [String] The input to parse
-          # @return [Array(Array<Array>, Array<String>)] Segments and separators
+          # @return [Array(Array<Array>, Array<Integer>)] Segments and separator depths
           def extract_segments_and_separators(input)
             segments = []
             separators = []
@@ -124,8 +126,8 @@ module Sashite
               segments << segment
 
               if pos < input.bytesize
-                separator, pos = parse_separator(input, pos)
-                separators << separator
+                depth, pos = parse_separator(input, pos)
+                separators << depth
               end
             end
 
@@ -211,7 +213,7 @@ module Sashite
           # Validates an empty-count string.
           #
           # Rejects:
-          # - "0" (count must be ≥ 1)
+          # - "0" (count must be >= 1)
           # - "00", "01", "007", etc. (leading zeros forbidden)
           #
           # @param count_str [String] The count string to validate
@@ -228,10 +230,11 @@ module Sashite
           #
           # The parser manually extracts the maximal EPIN-like substring,
           # then delegates validation to the sashite-epin library.
+          # Returns the raw EPIN string for performance.
           #
           # @param str [String] The string to parse
           # @param pos [Integer] Starting position
-          # @return [Array(Sashite::Epin::Identifier, Integer)] The parsed EPIN and new position
+          # @return [Array(String, Integer)] The EPIN token string and new position
           # @raise [PiecePlacementError] If EPIN parsing fails
           def parse_piece(str, pos)
             start_pos = pos
@@ -261,32 +264,31 @@ module Sashite
             epin_str = str.byteslice(start_pos, pos - start_pos)
 
             begin
-              piece = ::Sashite::Epin.parse(epin_str)
+              ::Sashite::Epin.parse(epin_str)
             rescue ::ArgumentError
               raise PiecePlacementError, PiecePlacementError::INVALID_PIECE_TOKEN
             end
 
-            [piece, pos]
+            [epin_str, pos]
           end
 
           # Parses a separator group (one or more slashes).
           #
           # Consumes all consecutive slashes as a single separator.
-          # The length indicates the dimensional boundary:
-          # - "/" = rank boundary (1D)
-          # - "//" = layer boundary (2D)
-          # - "///" = cube boundary (3D)
+          # Returns the depth (number of slashes) which indicates the
+          # dimensional boundary:
+          # - 1 = rank boundary (1D)
+          # - 2 = layer boundary (2D)
+          # - 3 = cube boundary (3D)
           #
           # @param str [String] The string to parse
           # @param pos [Integer] Starting position
-          # @return [Array(String, Integer)] The separator string and new position
+          # @return [Array(Integer, Integer)] The separator depth and new position
           def parse_separator(str, pos)
             start_pos = pos
             pos += 1 while pos < str.bytesize && str.getbyte(pos) == Ascii::SLASH
 
-            separator = str.byteslice(start_pos, pos - start_pos)
-
-            [separator, pos]
+            [pos - start_pos, pos]
           end
 
           # ------------------------------------------------------------------
@@ -300,8 +302,8 @@ module Sashite
           # 1. validate_boundaries! rejects strings starting/ending with "/"
           # 2. parse_separator consumes ALL consecutive slashes as one separator
           #
-          # Therefore "//" is parsed as a single 2-character separator, not
-          # as two "/" separators with an empty segment between them.
+          # Therefore "//" is parsed as a single separator of depth 2, not
+          # as two separators with an empty segment between them.
           #
           # Kept as a safeguard in case the parsing logic is modified.
           #
@@ -317,19 +319,19 @@ module Sashite
 
           # Validates dimensional coherence of separators.
           #
-          # A separator of length N indicates a boundary at dimension N.
-          # This requires that structures separated by N-length separators
-          # contain separators of length N-1, ensuring proper dimensional hierarchy.
+          # A separator of depth N indicates a boundary at dimension N.
+          # This requires that structures separated by depth-N separators
+          # contain separators of depth N-1, ensuring proper dimensional hierarchy.
           #
           # Example: "a/b//c/d" is valid (3D with proper 2D structure)
           # Example: "a//b" is invalid (3D without 2D structure between)
           #
-          # @param separators [Array<String>] The separators to validate
+          # @param separators [Array<Integer>] The separator depths to validate
           # @raise [PiecePlacementError] If dimensional coherence is violated
           def validate_dimensional_coherence!(separators)
             return if separators.empty?
 
-            max_depth = separators.map(&:length).max
+            max_depth = separators.max
 
             if max_depth > Limits::MAX_DIMENSIONS
               raise PiecePlacementError, PiecePlacementError::EXCEEDS_MAX_DIMENSIONS
@@ -343,37 +345,27 @@ module Sashite
           # Validates that separator hierarchy is properly structured.
           #
           # For a valid N-dimensional board:
-          # - Between "//" separators, there must be "/" separators
-          # - Between "///" separators, there must be "//" separators
+          # - Between depth-2 separators, there must be depth-1 separators
+          # - Between depth-3 separators, there must be depth-2 separators
           #
-          # @param separators [Array<String>] The separators to validate
+          # @param separators [Array<Integer>] The separator depths to validate
           # @param max_depth [Integer] Maximum separator depth
           # @raise [PiecePlacementError] If hierarchy is invalid
           def validate_separator_hierarchy!(separators, max_depth)
-            # For each dimension level from max down to 2,
-            # verify that between separators of that depth (including boundaries),
-            # there exist separators of depth-1
             (2..max_depth).each do |depth|
-              lower_sep = Separators::SEGMENT * (depth - 1)
-
-              # Find indices where separators have length >= depth
+              # Find indices where separators have depth >= current level
               boundary_indices = [-1] +
-                separators.each_index.select { |i| separators[i].length >= depth } +
+                separators.each_index.select { |i| separators[i] >= depth } +
                 [separators.length]
 
               boundary_indices.each_cons(2) do |left, right|
-                # Range of separator indices between these boundaries (exclusive)
                 range_start = left + 1
                 range_end = right - 1
 
-                # Check if there's at least one lower-level separator in this range
                 has_lower = (range_start..range_end).any? do |i|
-                  separators[i] == lower_sep
+                  separators[i] == depth - 1
                 end
 
-                # If range is non-empty but lacks required lower-level separator,
-                # or if range is empty (no separators between boundaries),
-                # that's a dimensional coherence violation
                 unless has_lower
                   raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
                 end
@@ -409,6 +401,86 @@ module Sashite
               ::Integer === token ? token : 1
             end
           end
+
+          # ------------------------------------------------------------------
+          # Board Construction
+          # ------------------------------------------------------------------
+
+          # Builds a nested board array from parsed segments and separators.
+          #
+          # Expands each segment into a flat rank array (pieces as EPIN
+          # strings, empty squares as nil), then nests ranks into layers
+          # and higher dimensions based on separator depths.
+          #
+          # @param segments [Array<Array>] Parsed segments (Integer/String tokens)
+          # @param separators [Array<Integer>] Separator depths
+          # @return [Array] Nested board array
+          def build_board(segments, separators)
+            ranks = segments.map { |seg| expand_segment(seg) }
+
+            # 1D: single segment, no separators
+            return ranks[0] if separators.empty?
+
+            max_depth = separators.max
+
+            # 2D: all separators are depth-1
+            return ranks if max_depth == 1
+
+            # 3D+: recursively nest by separator depth
+            nest(ranks, separators, max_depth)
+          end
+
+          # Expands a segment of tokens into a flat rank array.
+          #
+          # Integer tokens become runs of nil (empty squares).
+          # String tokens remain as EPIN piece identifiers.
+          #
+          # @param segment [Array<Integer, String>] Segment tokens
+          # @return [Array<String, nil>] Flat rank array
+          def expand_segment(segment)
+            result = []
+
+            segment.each do |token|
+              if ::Integer === token
+                token.times { result << nil }
+              else
+                result << token
+              end
+            end
+
+            result
+          end
+
+          # Recursively nests rank arrays into higher-dimensional structures.
+          #
+          # Splits ranks at separators of the given depth, then recursively
+          # processes each group at the next lower depth.
+          #
+          # @param ranks [Array<Array>] Flat list of expanded rank arrays
+          # @param separators [Array<Integer>] Separator depths between ranks
+          # @param depth [Integer] Current grouping depth
+          # @return [Array] Nested array structure
+          def nest(ranks, separators, depth)
+            return ranks if depth <= 1
+
+            groups = []
+            group_ranks = [ranks[0]]
+            group_seps = []
+
+            separators.each_with_index do |sep_depth, i|
+              if sep_depth >= depth
+                groups << nest(group_ranks, group_seps, depth - 1)
+                group_ranks = [ranks[i + 1]]
+                group_seps = []
+              else
+                group_seps << sep_depth
+                group_ranks << ranks[i + 1]
+              end
+            end
+
+            groups << nest(group_ranks, group_seps, depth - 1)
+            groups
+          end
         end
 
         private_class_method :validate_not_empty!,
@@ -424,7 +496,10 @@ module Sashite
                              :validate_dimensional_coherence!,
                              :validate_separator_hierarchy!,
                              :validate_dimension_sizes!,
-                             :segment_size
+                             :segment_size,
+                             :build_board,
+                             :expand_segment,
+                             :nest
 
         freeze
       end

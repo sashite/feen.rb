@@ -16,17 +16,20 @@ module Sashite
       #
       # Where:
       # - <piece> is a valid EPIN token
-      # - <count> is an optional multiplicity (≥ 2 if present, absent = 1)
+      # - <count> is an optional multiplicity (>= 2 if present, absent = 1)
       #
       # Hand items MUST be in canonical order:
-      # 1. By multiplicity – descending (larger counts first)
-      # 2. By base letter – case-insensitive alphabetical order
-      # 3. By letter case – uppercase before lowercase
-      # 4. By state modifier – `-` before `+` before none
-      # 5. By terminal marker – absent before present
-      # 6. By derivation marker – absent before present
+      # 1. By multiplicity -- descending (larger counts first)
+      # 2. By base letter -- case-insensitive alphabetical order
+      # 3. By letter case -- uppercase before lowercase
+      # 4. By state modifier -- `-` before `+` before none
+      # 5. By terminal marker -- absent before present
+      # 6. By derivation marker -- absent before present
       #
       # Additionally, identical EPIN tokens MUST be aggregated (not repeated).
+      #
+      # Returns a flat array of EPIN token strings, with each piece repeated
+      # according to its multiplicity, ready for Qi::Position hands.
       #
       # @example Parsing an empty hand
       #   Hand.parse("")
@@ -34,15 +37,15 @@ module Sashite
       #
       # @example Parsing a hand with pieces
       #   Hand.parse("2PNR")
-      #   # => [{ piece: <P>, count: 2 }, { piece: <N>, count: 1 }, { piece: <R>, count: 1 }]
+      #   # => ["P", "P", "N", "R"]
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
       module Hand
-        # Parses a single hand string into an array of hand items.
+        # Parses a single hand string into a flat array of EPIN token strings.
         #
         # @param input [String] The hand string to parse
-        # @return [Array<Hash>] Array of hand items with :piece and :count keys
+        # @return [Array<String>] Flat array of EPIN token strings
         # @raise [HandsError] If the input is not valid
         def self.parse(input)
           return [] if input.empty?
@@ -52,7 +55,7 @@ module Sashite
           validate_aggregation!(items)
           validate_canonical_order!(items)
 
-          items
+          expand(items)
         end
 
         class << self
@@ -60,8 +63,10 @@ module Sashite
 
           # Extracts hand items from the input string.
           #
+          # Each item is a two-element array [count, piece_string].
+          #
           # @param input [String] The hand string to parse
-          # @return [Array<Hash>] Array of hand items
+          # @return [Array<Array(Integer, String)>] Array of [count, piece] pairs
           def extract_items(input)
             items = []
             pos = 0
@@ -69,7 +74,7 @@ module Sashite
             while pos < input.bytesize
               count, pos = extract_count(input, pos)
               piece, pos = extract_piece(input, pos)
-              items << { piece:, count: }
+              items << [count, piece]
             end
 
             items
@@ -112,13 +117,16 @@ module Sashite
             raise HandsError, HandsError::INVALID_COUNT
           end
 
-          # Extracts and parses an EPIN token starting at pos.
+          # Extracts and validates an EPIN token starting at pos.
+          #
+          # Returns the raw EPIN string rather than an Identifier object
+          # for performance. Validation is delegated to sashite-epin.
           #
           # EPIN structure: [+-]?[A-Za-z]\^?'?
           #
           # @param str [String] The string to extract from
           # @param pos [Integer] Starting position
-          # @return [Array(Sashite::Epin::Identifier, Integer)] The parsed EPIN and new position
+          # @return [Array(String, Integer)] The EPIN token string and new position
           # @raise [HandsError] If EPIN parsing fails
           def extract_piece(str, pos)
             start_pos = pos
@@ -148,43 +156,41 @@ module Sashite
             epin_str = str.byteslice(start_pos, pos - start_pos)
 
             begin
-              piece = ::Sashite::Epin.parse(epin_str)
+              ::Sashite::Epin.parse(epin_str)
             rescue ::ArgumentError
               raise HandsError, HandsError::INVALID_PIECE_TOKEN
             end
 
-            [piece, pos]
+            [epin_str, pos]
           end
 
           # Validates that identical pieces are aggregated.
           #
-          # @param items [Array<Hash>] The hand items to validate
+          # @param items [Array<Array(Integer, String)>] The hand items to validate
           # @raise [HandsError] If duplicate pieces found
           def validate_aggregation!(items)
             return if items.size <= 1
 
             seen = {}
 
-            items.each do |item|
-              key = item[:piece].to_s
+            items.each do |_count, piece|
+              raise HandsError, HandsError::NOT_AGGREGATED if seen[piece]
 
-              raise HandsError, HandsError::NOT_AGGREGATED if seen[key]
-
-              seen[key] = true
+              seen[piece] = true
             end
           end
 
           # Validates that hand items are in canonical order.
           #
-          # @param items [Array<Hash>] The hand items to validate
+          # @param items [Array<Array(Integer, String)>] The hand items to validate
           # @raise [HandsError] If items are not in canonical order
           def validate_canonical_order!(items)
             return if items.size <= 1
 
-            items.each_cons(2) do |item_a, item_b|
-              comparison = compare_items(item_a, item_b)
+            items.each_cons(2) do |(count_a, piece_a), (count_b, piece_b)|
+              cmp = compare_items(count_a, piece_a, count_b, piece_b)
 
-              raise HandsError, HandsError::NOT_CANONICAL if comparison >= 0
+              raise HandsError, HandsError::NOT_CANONICAL if cmp >= 0
             end
           end
 
@@ -192,117 +198,123 @@ module Sashite
           #
           # Returns negative if a < b, zero if a == b, positive if a > b.
           #
-          # Ordering rules:
-          # 1. By multiplicity – descending (larger counts first)
-          # 2. By base letter – case-insensitive alphabetical order
-          # 3. By letter case – uppercase before lowercase
-          # 4. By state modifier – `-` before `+` before none
-          # 5. By terminal marker – absent before present
-          # 6. By derivation marker – absent before present
-          #
-          # @param item_a [Hash] First hand item
-          # @param item_b [Hash] Second hand item
+          # @param count_a [Integer] First item count
+          # @param piece_a [String] First item EPIN string
+          # @param count_b [Integer] Second item count
+          # @param piece_b [String] Second item EPIN string
           # @return [Integer] Comparison result
-          def compare_items(item_a, item_b)
-            # 1. By multiplicity – descending
-            cmp = item_b[:count] <=> item_a[:count]
+          def compare_items(count_a, piece_a, count_b, piece_b)
+            # 1. By multiplicity -- descending
+            cmp = count_b <=> count_a
             return cmp unless cmp == 0
 
-            compare_pieces(item_a[:piece], item_b[:piece])
+            compare_pieces(piece_a, piece_b)
           end
 
-          # Compares two EPIN pieces according to canonical ordering.
+          # Compares two EPIN strings according to canonical ordering.
           #
-          # @param piece_a [Sashite::Epin::Identifier] First piece
-          # @param piece_b [Sashite::Epin::Identifier] Second piece
+          # Ordering rules (after multiplicity):
+          # 2. By base letter -- case-insensitive alphabetical order
+          # 3. By letter case -- uppercase before lowercase
+          # 4. By state modifier -- `-` before `+` before none
+          # 5. By terminal marker -- absent before present
+          # 6. By derivation marker -- absent before present
+          #
+          # @param str_a [String] First EPIN string
+          # @param str_b [String] Second EPIN string
           # @return [Integer] Comparison result
-          def compare_pieces(piece_a, piece_b)
-            str_a = piece_a.to_s
-            str_b = piece_b.to_s
+          def compare_pieces(str_a, str_b)
+            state_a, letter_a, terminal_a, derived_a = decompose(str_a)
+            state_b, letter_b, terminal_b, derived_b = decompose(str_b)
 
-            # Extract components from EPIN strings
-            comp_a = extract_components(str_a)
-            comp_b = extract_components(str_b)
-
-            # 2. By base letter – case-insensitive alphabetical
-            cmp = comp_a[:letter].downcase <=> comp_b[:letter].downcase
+            # 2. By base letter -- case-insensitive alphabetical
+            cmp = (letter_a | 0x20) <=> (letter_b | 0x20)
             return cmp unless cmp == 0
 
-            # 3. By letter case – uppercase before lowercase
-            cmp = case_order(comp_a[:letter]) <=> case_order(comp_b[:letter])
+            # 3. By letter case -- uppercase before lowercase
+            cmp = case_rank(letter_a) <=> case_rank(letter_b)
             return cmp unless cmp == 0
 
-            # 4. By state modifier – `-` before `+` before none
-            cmp = state_order(comp_a[:state]) <=> state_order(comp_b[:state])
+            # 4. By state modifier -- `-` before `+` before none
+            cmp = state_a <=> state_b
             return cmp unless cmp == 0
 
-            # 5. By terminal marker – absent before present
-            cmp = marker_order(comp_a[:terminal]) <=> marker_order(comp_b[:terminal])
+            # 5. By terminal marker -- absent before present
+            cmp = terminal_a <=> terminal_b
             return cmp unless cmp == 0
 
-            # 6. By derivation marker – absent before present
-            marker_order(comp_a[:derived]) <=> marker_order(comp_b[:derived])
+            # 6. By derivation marker -- absent before present
+            derived_a <=> derived_b
           end
 
-          # Extracts components from an EPIN string.
+          # Decomposes an EPIN string into sortable numeric components.
+          #
+          # Returns four integers for direct comparison:
+          # - state: 0 = diminished, 1 = enhanced, 2 = normal
+          # - letter: raw byte value (for case-insensitive: use `| 0x20`)
+          # - terminal: 0 = absent, 1 = present
+          # - derived: 0 = absent, 1 = present
           #
           # @param str [String] EPIN string
-          # @return [Hash] Components: :state, :letter, :terminal, :derived
-          def extract_components(str)
+          # @return [Array(Integer, Integer, Integer, Integer)] Sortable components
+          def decompose(str)
             pos = 0
+            byte = str.getbyte(pos)
 
             # State modifier
-            state = :normal
-            if str[pos] == "+" || str[pos] == "-"
-              state = str[pos] == "-" ? :diminished : :enhanced
+            if byte == Ascii::MINUS
+              state = 0
               pos += 1
+              byte = str.getbyte(pos)
+            elsif byte == Ascii::PLUS
+              state = 1
+              pos += 1
+              byte = str.getbyte(pos)
+            else
+              state = 2
             end
 
             # Letter
-            letter = str[pos]
+            letter = byte
             pos += 1
+            byte = str.getbyte(pos)
 
             # Terminal marker
-            terminal = false
-            if str[pos] == "^"
-              terminal = true
+            if byte == Ascii::CARET
+              terminal = 1
               pos += 1
+              byte = str.getbyte(pos)
+            else
+              terminal = 0
             end
 
             # Derivation marker
-            derived = str[pos] == "'"
+            derived = byte == Ascii::APOSTROPHE ? 1 : 0
 
-            { state:, letter:, terminal:, derived: }
+            [state, letter, terminal, derived]
           end
 
-          # Returns sort order for letter case (uppercase = 0, lowercase = 1).
+          # Returns sort rank for letter case.
+          # Uppercase = 0 (first), lowercase = 1 (second).
           #
-          # @param letter [String] Single letter
-          # @return [Integer] Sort order value
-          def case_order(letter)
-            letter == letter.upcase ? 0 : 1
+          # @param byte [Integer] Letter byte value
+          # @return [Integer] Sort rank
+          def case_rank(byte)
+            Ascii.uppercase?(byte) ? 0 : 1
           end
 
-          # Returns sort order for state modifier.
-          # Order: diminished (-) = 0, enhanced (+) = 1, normal = 2
+          # Expands aggregated items into a flat array of EPIN strings.
           #
-          # @param state [Symbol] :diminished, :enhanced, or :normal
-          # @return [Integer] Sort order value
-          def state_order(state)
-            case state
-            when :diminished then 0
-            when :enhanced then 1
-            else 2
+          # @param items [Array<Array(Integer, String)>] Aggregated [count, piece] pairs
+          # @return [Array<String>] Flat array with each piece repeated by count
+          def expand(items)
+            result = []
+
+            items.each do |count, piece|
+              count.times { result << piece }
             end
-          end
 
-          # Returns sort order for boolean marker.
-          # Order: absent (false) = 0, present (true) = 1
-          #
-          # @param present [Boolean] Marker presence
-          # @return [Integer] Sort order value
-          def marker_order(present)
-            present ? 1 : 0
+            result
           end
         end
 
@@ -314,10 +326,9 @@ module Sashite
                              :validate_canonical_order!,
                              :compare_items,
                              :compare_pieces,
-                             :extract_components,
-                             :case_order,
-                             :state_order,
-                             :marker_order
+                             :decompose,
+                             :case_rank,
+                             :expand
 
         freeze
       end

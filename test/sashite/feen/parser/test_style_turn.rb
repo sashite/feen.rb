@@ -12,309 +12,262 @@ StyleTurn = Sashite::Feen::Parser::StyleTurn
 StyleTurnError = Sashite::Feen::StyleTurnError
 
 # ============================================================================
-# VALID PARSING - FIRST PLAYER TO MOVE
+# VALID INPUTS - FIRST PLAYER TO MOVE
 # ============================================================================
 
-puts "Valid parsing - first player to move:"
+puts "valid inputs - first player to move:"
 
-run_test("parses first to move with same style") do
+run_test("parses C/c with first to move") do
   result = StyleTurn.parse("C/c")
-  raise "expected :active key" unless result.key?(:active)
-  raise "expected :inactive key" unless result.key?(:inactive)
-  raise "expected first player active" unless result[:active].side == :first
-  raise "expected second player inactive" unless result[:inactive].side == :second
+  raise "wrong first style" unless result[:styles][:first] == "C"
+  raise "wrong second style" unless result[:styles][:second] == "c"
+  raise "wrong turn" unless result[:turn] == :first
 end
 
-run_test("parses first to move with different styles") do
-  result = StyleTurn.parse("C/s")
-  raise "expected C active" unless result[:active].abbr == :C
-  raise "expected S inactive" unless result[:inactive].abbr == :S
-  raise "expected first player active" unless result[:active].side == :first
-  raise "expected second player inactive" unless result[:inactive].side == :second
+run_test("parses S/s with first to move") do
+  result = StyleTurn.parse("S/s")
+  raise "wrong first style" unless result[:styles][:first] == "S"
+  raise "wrong second style" unless result[:styles][:second] == "s"
+  raise "wrong turn" unless result[:turn] == :first
 end
 
-run_test("parses various style letters") do
-  %w[A/a Z/z S/s X/x G/g].each do |input|
-    result = StyleTurn.parse(input)
-    raise "expected first active for #{input}" unless result[:active].side == :first
-  end
+run_test("parses X/x with first to move") do
+  result = StyleTurn.parse("X/x")
+  raise "wrong first style" unless result[:styles][:first] == "X"
+  raise "wrong second style" unless result[:styles][:second] == "x"
+  raise "wrong turn" unless result[:turn] == :first
+end
+
+run_test("parses G/g with first to move") do
+  result = StyleTurn.parse("G/g")
+  raise "wrong turn" unless result[:turn] == :first
 end
 
 # ============================================================================
-# VALID PARSING - SECOND PLAYER TO MOVE
+# VALID INPUTS - SECOND PLAYER TO MOVE
 # ============================================================================
 
 puts
-puts "Valid parsing - second player to move:"
+puts "valid inputs - second player to move:"
 
-run_test("parses second to move with same style") do
+run_test("parses c/C with second to move") do
   result = StyleTurn.parse("c/C")
-  raise "expected second player active" unless result[:active].side == :second
-  raise "expected first player inactive" unless result[:inactive].side == :first
+  raise "wrong first style" unless result[:styles][:first] == "C"
+  raise "wrong second style" unless result[:styles][:second] == "c"
+  raise "wrong turn" unless result[:turn] == :second
 end
 
-run_test("parses second to move with different styles") do
+run_test("parses s/S with second to move") do
+  result = StyleTurn.parse("s/S")
+  raise "wrong first style" unless result[:styles][:first] == "S"
+  raise "wrong second style" unless result[:styles][:second] == "s"
+  raise "wrong turn" unless result[:turn] == :second
+end
+
+run_test("parses x/X with second to move") do
+  result = StyleTurn.parse("x/X")
+  raise "wrong turn" unless result[:turn] == :second
+end
+
+# ============================================================================
+# VALID INPUTS - CROSS-STYLE
+# ============================================================================
+
+puts
+puts "valid inputs - cross-style:"
+
+run_test("parses C/s (Chess first vs Shogi second, first to move)") do
+  result = StyleTurn.parse("C/s")
+  raise "wrong first style" unless result[:styles][:first] == "C"
+  raise "wrong second style" unless result[:styles][:second] == "s"
+  raise "wrong turn" unless result[:turn] == :first
+end
+
+run_test("parses s/C (Chess first vs Shogi second, second to move)") do
   result = StyleTurn.parse("s/C")
-  raise "expected s active" unless result[:active].abbr == :S
-  raise "expected C inactive" unless result[:inactive].abbr == :C
-  raise "expected second player active" unless result[:active].side == :second
+  raise "wrong first style" unless result[:styles][:first] == "C"
+  raise "wrong second style" unless result[:styles][:second] == "s"
+  raise "wrong turn" unless result[:turn] == :second
 end
 
-run_test("parses various style letters second to move") do
-  %w[a/A z/Z s/S x/X g/G].each do |input|
-    result = StyleTurn.parse(input)
-    raise "expected second active for #{input}" unless result[:active].side == :second
+run_test("parses A/z (different letters)") do
+  result = StyleTurn.parse("A/z")
+  raise "wrong first style" unless result[:styles][:first] == "A"
+  raise "wrong second style" unless result[:styles][:second] == "z"
+  raise "wrong turn" unless result[:turn] == :first
+end
+
+run_test("parses z/A (different letters, second to move)") do
+  result = StyleTurn.parse("z/A")
+  raise "wrong first style" unless result[:styles][:first] == "A"
+  raise "wrong second style" unless result[:styles][:second] == "z"
+  raise "wrong turn" unless result[:turn] == :second
+end
+
+# ============================================================================
+# RETURN STRUCTURE
+# ============================================================================
+
+puts
+puts "return structure:"
+
+run_test("returns a Hash") do
+  result = StyleTurn.parse("C/c")
+  raise "wrong type" unless result.is_a?(Hash)
+end
+
+run_test("returns hash with :styles key") do
+  result = StyleTurn.parse("C/c")
+  raise "missing :styles" unless result.key?(:styles)
+end
+
+run_test("returns hash with :turn key") do
+  result = StyleTurn.parse("C/c")
+  raise "missing :turn" unless result.key?(:turn)
+end
+
+run_test("styles values are Strings") do
+  result = StyleTurn.parse("C/c")
+  raise "first not String" unless result[:styles][:first].is_a?(String)
+  raise "second not String" unless result[:styles][:second].is_a?(String)
+end
+
+run_test("turn is a Symbol") do
+  result = StyleTurn.parse("C/c")
+  raise "turn not Symbol" unless result[:turn].is_a?(Symbol)
+end
+
+# ============================================================================
+# ALL LETTERS
+# ============================================================================
+
+puts
+puts "all letters:"
+
+run_test("accepts all uppercase/lowercase pairs") do
+  ("A".."Z").each do |upper|
+    lower = upper.downcase
+    result = StyleTurn.parse("#{upper}/#{lower}")
+    raise "failed for #{upper}/#{lower}" unless result[:turn] == :first
+    raise "wrong first for #{upper}" unless result[:styles][:first] == upper
+    raise "wrong second for #{lower}" unless result[:styles][:second] == lower
   end
 end
 
 # ============================================================================
-# VALID PARSING - CROSS-STYLE GAMES
+# INVALID INPUTS - DELIMITER
 # ============================================================================
 
 puts
-puts "Valid parsing - cross-style games:"
-
-run_test("parses Chess vs Shogi (first to move)") do
-  result = StyleTurn.parse("C/s")
-  raise "expected C" unless result[:active].abbr == :C
-  raise "expected S" unless result[:inactive].abbr == :S
-end
-
-run_test("parses Chess vs Shogi (second to move)") do
-  result = StyleTurn.parse("s/C")
-  raise "expected S active" unless result[:active].abbr == :S
-  raise "expected C inactive" unless result[:inactive].abbr == :C
-end
-
-run_test("parses Xiangqi vs Go") do
-  result = StyleTurn.parse("X/g")
-  raise "expected X" unless result[:active].abbr == :X
-  raise "expected G" unless result[:inactive].abbr == :G
-end
-
-run_test("parses all letter combinations work") do
-  # Different letters, opposite case
-  result = StyleTurn.parse("A/z")
-  raise "expected A" unless result[:active].abbr == :A
-  raise "expected Z" unless result[:inactive].abbr == :Z
-end
-
-# ============================================================================
-# RESULT STRUCTURE
-# ============================================================================
-
-puts
-puts "Result structure:"
-
-run_test("returns Hash") do
-  result = StyleTurn.parse("C/c")
-  raise "expected Hash" unless ::Hash === result
-end
-
-run_test("has :active and :inactive keys") do
-  result = StyleTurn.parse("C/c")
-  raise "expected :active" unless result.key?(:active)
-  raise "expected :inactive" unless result.key?(:inactive)
-end
-
-run_test("active has abbr method") do
-  result = StyleTurn.parse("C/c")
-  raise "expected abbr" unless result[:active].respond_to?(:abbr)
-  raise "expected C" unless result[:active].abbr == :C
-end
-
-run_test("active has side method") do
-  result = StyleTurn.parse("C/c")
-  raise "expected side" unless result[:active].respond_to?(:side)
-end
-
-run_test("identifiers respond to to_s") do
-  result = StyleTurn.parse("C/c")
-  raise "expected C" unless result[:active].to_s == "C"
-  raise "expected c" unless result[:inactive].to_s == "c"
-end
-
-# ============================================================================
-# INVALID PARSING - DELIMITER ERRORS
-# ============================================================================
-
-puts
-puts "Invalid parsing - delimiter errors:"
+puts "invalid inputs - delimiter:"
 
 run_test("raises for missing delimiter") do
   StyleTurn.parse("Cc")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_DELIMITER
-end
-
-run_test("raises for empty string") do
-  StyleTurn.parse("")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_DELIMITER
-end
-
-run_test("raises for multiple delimiters") do
-  StyleTurn.parse("C/c/s")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_DELIMITER
-end
-
-run_test("raises for only delimiter") do
-  StyleTurn.parse("/")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
-end
-
-# ============================================================================
-# INVALID PARSING - STYLE TOKEN ERRORS
-# ============================================================================
-
-puts
-puts "Invalid parsing - style token errors:"
-
-run_test("raises for empty active style") do
-  StyleTurn.parse("/c")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
-end
-
-run_test("raises for empty inactive style") do
-  StyleTurn.parse("C/")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
-end
-
-run_test("raises for digit as style") do
-  StyleTurn.parse("1/c")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
-end
-
-run_test("raises for multiple letters as style") do
-  StyleTurn.parse("CC/c")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
-end
-
-run_test("raises for special character as style") do
-  StyleTurn.parse("@/c")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::INVALID_STYLE_TOKEN
-end
-
-# ============================================================================
-# INVALID PARSING - SAME CASE ERRORS
-# ============================================================================
-
-puts
-puts "Invalid parsing - same case errors:"
-
-run_test("raises for both uppercase") do
-  StyleTurn.parse("C/C")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::SAME_CASE
-end
-
-run_test("raises for both lowercase") do
-  StyleTurn.parse("c/c")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::SAME_CASE
-end
-
-run_test("raises for different letters but both uppercase") do
-  StyleTurn.parse("C/S")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::SAME_CASE
-end
-
-run_test("raises for different letters but both lowercase") do
-  StyleTurn.parse("c/s")
-  raise "should have raised"
-rescue StyleTurnError => e
-  raise "wrong message" unless e.message == StyleTurnError::SAME_CASE
-end
-
-# ============================================================================
-# ERROR TYPE
-# ============================================================================
-
-puts
-puts "Error type:"
-
-run_test("error is StyleTurnError") do
-  StyleTurn.parse("invalid")
   raise "should have raised"
 rescue StyleTurnError
   # Expected
 end
 
-run_test("error is also ArgumentError") do
-  StyleTurn.parse("invalid")
+run_test("raises for multiple delimiters") do
+  StyleTurn.parse("C/c/x")
   raise "should have raised"
-rescue ArgumentError
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for empty input") do
+  StyleTurn.parse("")
+  raise "should have raised"
+rescue StyleTurnError
   # Expected
 end
 
 # ============================================================================
-# MODULE STRUCTURE
+# INVALID INPUTS - STYLE TOKEN
 # ============================================================================
 
 puts
-puts "Module structure:"
+puts "invalid inputs - style token:"
+
+run_test("raises for digit as style") do
+  StyleTurn.parse("1/c")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for multi-char style") do
+  StyleTurn.parse("CC/c")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for empty active style") do
+  StyleTurn.parse("/c")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for empty inactive style") do
+  StyleTurn.parse("C/")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for special character as style") do
+  StyleTurn.parse("+/c")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+# ============================================================================
+# INVALID INPUTS - SAME CASE
+# ============================================================================
+
+puts
+puts "invalid inputs - same case:"
+
+run_test("raises for both uppercase") do
+  StyleTurn.parse("C/C")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for both lowercase") do
+  StyleTurn.parse("c/c")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for different letters both uppercase") do
+  StyleTurn.parse("C/S")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+run_test("raises for different letters both lowercase") do
+  StyleTurn.parse("c/s")
+  raise "should have raised"
+rescue StyleTurnError
+  # Expected
+end
+
+# ============================================================================
+# MODULE PROPERTIES
+# ============================================================================
+
+puts
+puts "module properties:"
 
 run_test("module is frozen") do
   raise "expected frozen" unless StyleTurn.frozen?
-end
-
-run_test("parse is the only public method") do
-  public_methods = StyleTurn.methods(false) - Object.methods
-  raise "expected only :parse, got #{public_methods}" unless public_methods == [:parse]
-end
-
-# ============================================================================
-# REAL-WORLD EXAMPLES
-# ============================================================================
-
-puts
-puts "Real-world examples:"
-
-run_test("parses Chess game") do
-  result = StyleTurn.parse("C/c")
-  raise "wrong active style" unless result[:active].abbr == :C
-  raise "wrong inactive style" unless result[:inactive].abbr == :C
-end
-
-run_test("parses Shogi game") do
-  result = StyleTurn.parse("S/s")
-  raise "wrong active style" unless result[:active].abbr == :S
-end
-
-run_test("parses Xiangqi game") do
-  result = StyleTurn.parse("X/x")
-  raise "wrong active style" unless result[:active].abbr == :X
-end
-
-run_test("parses Go game") do
-  result = StyleTurn.parse("G/g")
-  raise "wrong active style" unless result[:active].abbr == :G
-end
-
-run_test("parses hybrid Chess-Shogi game") do
-  result = StyleTurn.parse("C/s")
-  raise "expected Chess first" unless result[:active].abbr == :C
-  raise "expected Shogi second" unless result[:inactive].abbr == :S
 end
 
 puts

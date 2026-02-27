@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "qi"
 require "sashite/epin"
 require "sashite/sin"
 
@@ -11,10 +12,12 @@ require_relative "feen/errors/style_turn_error"
 require_relative "feen/errors/cardinality_error"
 require_relative "feen/parser"
 require_relative "feen/dumper"
-require_relative "feen/position"
 
 module Sashite
   # FEEN (Field Expression Encoding Notation) implementation for Ruby.
+  #
+  # Provides serialization and deserialization of board game positions
+  # between FEEN strings and Qi::Position objects.
   #
   # FEEN is a rule-agnostic format for encoding board game positions
   # with three space-separated fields:
@@ -29,51 +32,48 @@ module Sashite
   #
   # == Examples
   #
-  #   # Parse a FEEN string
-  #   position = Sashite::Feen.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
-  #   position.piece_placement  # => PiecePlacement object
-  #   position.hands            # => Hands object
-  #   position.style_turn       # => StyleTurn object
+  #   # Parse a FEEN string into a Qi::Position
+  #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
+  #   position.board   # => [["l","n","s","g","k^","g","s","n","l"], ...]
+  #   position.hands   # => { first: [], second: [] }
+  #   position.styles  # => { first: "S", second: "s" }
+  #   position.turn    # => :first
   #
-  #   # Serialize back to FEEN
-  #   position.to_s  # => "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s"
+  #   # Serialize a Qi::Position to a FEEN string
+  #   Sashite::Feen.dump(position)
+  #   # => "lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s"
   #
   #   # Validate a FEEN string
-  #   Sashite::Feen.valid?("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")  # => true
+  #   Sashite::Feen.valid?("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")  # => true
   #   Sashite::Feen.valid?("invalid")  # => false
-  #
-  #   # Dump structured data to FEEN string
-  #   Sashite::Feen.dump(
-  #     piece_placement: { segments: [[8], [8], ...], separators: ["/", ...] },
-  #     hands: { first: [], second: [] },
-  #     style_turn: { active: "C", inactive: "c" }
-  #   )
-  #   # => "8/8/8/8/8/8/8/8 / C/c"
   #
   # @see https://sashite.dev/specs/feen/1.0.0/
   # @api public
   module Feen
-    # Parses a FEEN string into a Position.
+    # Parses a FEEN string into a Qi::Position.
+    #
+    # Pieces on the board are EPIN token strings; empty squares are nil.
+    # Hands are flat arrays of EPIN token strings.
+    # Styles are SIN token strings.
     #
     # @api public
     # @param feen_string [String] The FEEN string to parse
-    # @return [Position] A new Position instance
+    # @return [Qi::Position] An immutable position object
     # @raise [ParseError] If the string is not a valid FEEN
     #
     # @example Parsing a Chess position
-    #   position = Sashite::Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-    #   position.squares_count  # => 64
-    #   position.pieces_count   # => 32
+    #   position = Sashite::Feen.parse("-rnbqk^bn-r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/-RNBQK^BN-R / C/c")
+    #   position.board[0]  # => ["-r", "n", "b", "q", "k^", "b", "n", "-r"]
+    #   position.turn      # => :first
     #
     # @example Parsing a Shogi position
-    #   position = Sashite::Feen.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
-    #   position.piece_placement.dimensions  # => 2
+    #   position = Sashite::Feen.parse("lnsgk^gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGK^GSNL / S/s")
+    #   position.styles  # => { first: "S", second: "s" }
     #
     # @example Invalid input raises ParseError
     #   Sashite::Feen.parse("invalid")  # => raises ParseError
     def self.parse(feen_string)
-      components = Parser.parse(feen_string)
-      Position.send(:new, **components)
+      Parser.parse(feen_string)
     end
 
     # Reports whether a string is a valid FEEN position.
@@ -83,54 +83,41 @@ module Sashite
     # @return [Boolean] true if valid, false otherwise
     #
     # @example Valid positions
-    #   Sashite::Feen.valid?("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")  # => true
+    #   Sashite::Feen.valid?("-rnbqk^bn-r/+p+p+p+p+p+p+p+p/8/8/8/8/+P+P+P+P+P+P+P+P/-RNBQK^BN-R / C/c")  # => true
     #   Sashite::Feen.valid?("8/8/8/8/8/8/8/8 / C/c")  # => true (empty board)
     #   Sashite::Feen.valid?("k^+p4+PK^ / C/c")        # => true (1D board)
     #
     # @example Invalid positions
-    #   Sashite::Feen.valid?("invalid")        # => false
+    #   Sashite::Feen.valid?("invalid")          # => false
     #   Sashite::Feen.valid?("rkr//PPPP / G/g")  # => false (dimensional coherence)
-    #   Sashite::Feen.valid?(nil)              # => false
-    #   Sashite::Feen.valid?(123)              # => false
+    #   Sashite::Feen.valid?(nil)                # => false
     def self.valid?(feen_string)
       Parser.valid?(feen_string)
     end
 
-    # Serializes structured position data to a FEEN string.
+    # Serializes a Qi::Position to a canonical FEEN string.
+    #
+    # Board pieces must be valid EPIN token strings (or nil for empty squares).
+    # Style values must be valid SIN token strings.
     #
     # @api public
-    # @param piece_placement [Hash] Piece placement with :segments and :separators
-    # @param hands [Hash] Hands with :first and :second
-    # @param style_turn [Hash] Style-turn with :active and :inactive
+    # @param position [Qi::Position] The position to serialize
     # @return [String] Canonical FEEN string
     #
-    # @example Dumping an empty Chess board
-    #   Sashite::Feen.dump(
-    #     piece_placement: {
-    #       segments: [[8], [8], [8], [8], [8], [8], [8], [8]],
-    #       separators: ["/", "/", "/", "/", "/", "/", "/"]
-    #     },
-    #     hands: { first: [], second: [] },
-    #     style_turn: { active: "C", inactive: "c" }
-    #   )
-    #   # => "8/8/8/8/8/8/8/8 / C/c"
+    # @example Round-trip serialization
+    #   position = Sashite::Feen.parse("8/8/8/8/8/8/8/8 / C/c")
+    #   Sashite::Feen.dump(position)  # => "8/8/8/8/8/8/8/8 / C/c"
     #
-    # @example Dumping a position with hands
-    #   Sashite::Feen.dump(
-    #     piece_placement: { segments: [["K", 6, "k"]], separators: [] },
-    #     hands: {
-    #       first: [{ piece: "P", count: 2 }],
-    #       second: [{ piece: "p", count: 1 }]
-    #     },
-    #     style_turn: { active: "S", inactive: "s" }
+    # @example Dumping a manually built position
+    #   position = Qi.new(
+    #     [["K^", nil, nil, nil, nil, nil, nil, "k^"]],
+    #     { first: [], second: [] },
+    #     { first: "C", second: "c" },
+    #     :first
     #   )
-    #   # => "K6k 2P/p S/s"
-    def self.dump(piece_placement:, hands:, style_turn:)
-      Dumper.dump(
-        piece_placement: piece_placement,
-        hands:           hands,
-        style_turn:      style_turn
-      )
+    #   Sashite::Feen.dump(position)  # => "K^6k^ / C/c"
+    def self.dump(position)
+      Dumper.dump(position)
     end
   end
 end

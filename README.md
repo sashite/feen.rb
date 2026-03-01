@@ -42,7 +42,7 @@ gem install sashite-feen
 ## Dependencies
 
 ```ruby
-gem "qi", "~> 13.0"  # Position model
+gem "qi", "~> 13.0.0"  # Position model
 ```
 
 ## Usage

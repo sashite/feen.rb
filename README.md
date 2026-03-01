@@ -42,9 +42,7 @@ gem install sashite-feen
 ## Dependencies
 
 ```ruby
-gem "qi", "~> 13.0"      # Position model
-gem "sashite-epin"       # Extended Piece Identifier Notation
-gem "sashite-sin"        # Style Identifier Notation
+gem "qi", "~> 13.0"  # Position model
 ```
 
 ## Usage
@@ -309,7 +307,7 @@ end
 
 - **Spec conformance**: Strict adherence to FEEN v1.0.0
 - **Qi integration**: Parses to and dumps from `Qi`, the shared position model across Sashité libraries
-- **Pure composition**: Delegates to EPIN and SIN for token handling, Qi for position modeling
+- **Zero external parsing dependencies**: EPIN and SIN validation is inlined for performance; only `Qi` is required at runtime
 - **Canonical output**: `dump` always produces canonical form
 - **Structured errors**: Hierarchical error classes for precise handling
 - **Ruby idioms**: `valid?` predicate, `parse`/`dump` symmetry, `ArgumentError` for invalid input

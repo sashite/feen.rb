@@ -3,8 +3,6 @@ PATH
   specs:
     sashite-feen (0.5.0)
       qi (~> 13.0.0)
-      sashite-epin (~> 2.2.1)
-      sashite-sin (~> 3.1.0)
 
 GEM
   remote: https://rubygems.org/
@@ -33,10 +31,6 @@ GEM
       tsort
     reline (0.6.3)
       io-console (~> 0.5)
-    sashite-epin (2.2.1)
-      sashite-pin (~> 4.1.0)
-    sashite-pin (4.1.0)
-    sashite-sin (3.1.0)
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)

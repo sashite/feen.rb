@@ -8,7 +8,7 @@ puts
 puts "=== Dumper::StyleTurn Tests ==="
 puts
 
-StyleTurn = Sashite::Feen::Dumper::StyleTurn
+ST = Sashite::Feen::Dumper::StyleTurn
 
 # ============================================================================
 # FIRST PLAYER TO MOVE
@@ -16,24 +16,10 @@ StyleTurn = Sashite::Feen::Dumper::StyleTurn
 
 puts "first player to move:"
 
-Test("dumps C/c with first to move") do
-  result = StyleTurn.dump("C", "c", :first)
-  raise "expected 'C/c'" unless result == "C/c"
-end
-
-Test("dumps S/s with first to move") do
-  result = StyleTurn.dump("S", "s", :first)
-  raise "expected 'S/s'" unless result == "S/s"
-end
-
-Test("dumps X/x with first to move") do
-  result = StyleTurn.dump("X", "x", :first)
-  raise "expected 'X/x'" unless result == "X/x"
-end
-
-Test("dumps G/g with first to move") do
-  result = StyleTurn.dump("G", "g", :first)
-  raise "expected 'G/g'" unless result == "G/g"
+Test("active style is first player's") do
+  [%w[C c], %w[S s], %w[X x], %w[G g]].each do |first, second|
+    raise "#{first}/#{second}" unless ST.dump(first, second, :first) == "#{first}/#{second}"
+  end
 end
 
 # ============================================================================
@@ -43,19 +29,10 @@ end
 puts
 puts "second player to move:"
 
-Test("dumps c/C with second to move") do
-  result = StyleTurn.dump("C", "c", :second)
-  raise "expected 'c/C'" unless result == "c/C"
-end
-
-Test("dumps s/S with second to move") do
-  result = StyleTurn.dump("S", "s", :second)
-  raise "expected 's/S'" unless result == "s/S"
-end
-
-Test("dumps x/X with second to move") do
-  result = StyleTurn.dump("X", "x", :second)
-  raise "expected 'x/X'" unless result == "x/X"
+Test("active style is second player's") do
+  [%w[C c], %w[S s], %w[X x]].each do |first, second|
+    raise "#{second}/#{first}" unless ST.dump(first, second, :second) == "#{second}/#{first}"
+  end
 end
 
 # ============================================================================
@@ -65,47 +42,23 @@ end
 puts
 puts "cross-style:"
 
-Test("dumps C/s with first to move") do
-  result = StyleTurn.dump("C", "s", :first)
-  raise "expected 'C/s'" unless result == "C/s"
-end
-
-Test("dumps s/C with second to move") do
-  result = StyleTurn.dump("C", "s", :second)
-  raise "expected 's/C'" unless result == "s/C"
-end
-
-Test("dumps A/z with first to move") do
-  result = StyleTurn.dump("A", "z", :first)
-  raise "expected 'A/z'" unless result == "A/z"
-end
-
-Test("dumps z/A with second to move") do
-  result = StyleTurn.dump("A", "z", :second)
-  raise "expected 'z/A'" unless result == "z/A"
+Test("different letters, both turn directions") do
+  raise unless ST.dump("C", "s", :first)  == "C/s"
+  raise unless ST.dump("C", "s", :second) == "s/C"
+  raise unless ST.dump("A", "z", :first)  == "A/z"
+  raise unless ST.dump("A", "z", :second) == "z/A"
 end
 
 # ============================================================================
-# RETURN TYPE
-# ============================================================================
-
-puts
-puts "return type:"
-
-Test("returns a String") do
-  result = StyleTurn.dump("C", "c", :first)
-  raise "expected String" unless result.is_a?(String)
-end
-
-# ============================================================================
-# MODULE PROPERTIES
+# RETURN TYPE & MODULE PROPERTIES
 # ============================================================================
 
 puts
 puts "module properties:"
 
-Test("module is frozen") do
-  raise "expected frozen" unless StyleTurn.frozen?
+Test("returns String, module is frozen") do
+  raise unless ST.dump("C", "c", :first).is_a?(String)
+  raise unless ST.frozen?
 end
 
 puts

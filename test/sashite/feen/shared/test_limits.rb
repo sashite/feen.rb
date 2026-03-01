@@ -16,16 +16,10 @@ Limits = Sashite::Feen::Limits
 
 puts "constants:"
 
-Test("MAX_STRING_LENGTH is 4096") do
-  raise "wrong value" unless Limits::MAX_STRING_LENGTH == 4_096
-end
-
-Test("MAX_DIMENSIONS is 3") do
-  raise "wrong value" unless Limits::MAX_DIMENSIONS == 3
-end
-
-Test("MAX_DIMENSION_SIZE is 255") do
-  raise "wrong value" unless Limits::MAX_DIMENSION_SIZE == 255
+Test("values match specification") do
+  raise unless Limits::MAX_STRING_LENGTH  == 4_096
+  raise unless Limits::MAX_DIMENSIONS     == 3
+  raise unless Limits::MAX_DIMENSION_SIZE == 255
 end
 
 # ============================================================================
@@ -35,20 +29,11 @@ end
 puts
 puts "immutability:"
 
-Test("module is frozen") do
-  raise "expected frozen" unless Limits.frozen?
-end
-
-Test("MAX_STRING_LENGTH is frozen") do
-  raise "expected frozen" unless Limits::MAX_STRING_LENGTH.frozen?
-end
-
-Test("MAX_DIMENSIONS is frozen") do
-  raise "expected frozen" unless Limits::MAX_DIMENSIONS.frozen?
-end
-
-Test("MAX_DIMENSION_SIZE is frozen") do
-  raise "expected frozen" unless Limits::MAX_DIMENSION_SIZE.frozen?
+Test("module and constants are frozen") do
+  raise unless Limits.frozen?
+  raise unless Limits::MAX_STRING_LENGTH.frozen?
+  raise unless Limits::MAX_DIMENSIONS.frozen?
+  raise unless Limits::MAX_DIMENSION_SIZE.frozen?
 end
 
 puts

@@ -1,10 +1,7 @@
 # frozen_string_literal: true
 
-require "sashite/epin"
-
 require_relative "../shared/ascii"
 require_relative "../shared/limits"
-require_relative "../shared/separators"
 require_relative "../errors/piece_placement_error"
 
 module Sashite
@@ -12,36 +9,11 @@ module Sashite
     module Parser
       # Parser for the FEEN Piece Placement field (Field 1).
       #
-      # Parses a Piece Placement string into a dimensioned board structure:
+      # Parses into a dimensioned board structure:
       # - 1D: flat Array of squares
       # - 2D: Array of rank Arrays
       # - 3D: Array of layer Arrays of rank Arrays
       #
-      # Validates:
-      # - Structural constraints (non-empty, no leading/trailing separators)
-      # - EPIN token validity for each piece
-      # - Empty count canonicality (no leading zeros, no consecutive counts)
-      # - Dimensional coherence (separator hierarchy)
-      # - Dimension limits (max 3 dimensions, max 255 per dimension)
-      # - Shape regularity (all ranks same width within a dimension)
-      #
-      # Provides a dual-path API:
-      # - {.safe_parse} returns nil on invalid input (no exceptions)
-      # - {.parse} raises {PiecePlacementError} on invalid input
-      #
-      # @example 1D board
-      #   PiecePlacement.parse("K^2k^")
-      #   # => ["K^", nil, nil, "k^"]
-      #
-      # @example 2D board
-      #   PiecePlacement.parse("8/8")
-      #   # => [Array.new(8), Array.new(8)]
-      #
-      # @example 3D board
-      #   PiecePlacement.parse("ab/cd//AB/CD")
-      #   # => [[["a","b"],["c","d"]], [["A","B"],["C","D"]]]
-      #
-      # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
       module PiecePlacement
         # Parses a Piece Placement field, returning nil on failure.
@@ -50,18 +22,19 @@ module Sashite
         # @return [Array, nil] Dimensioned board structure or nil
         def self.safe_parse(input)
           return nil if input.empty?
+
+          len = input.bytesize
           return nil if input.getbyte(0) == Ascii::SLASH
-          return nil if input.getbyte(input.bytesize - 1) == Ascii::SLASH
+          return nil if input.getbyte(len - 1) == Ascii::SLASH
 
-          max_sep = max_separator_length(input)
+          max_sep = scan_max_separator(input, len)
           dims = max_sep + 1
-
           return nil if dims > Limits::MAX_DIMENSIONS
 
           case dims
-          when 1 then parse_1d(input)
-          when 2 then parse_2d(input)
-          when 3 then parse_3d(input)
+          when 1 then parse_1d(input, len)
+          when 2 then parse_2d(input, len)
+          when 3 then parse_3d(input, len)
           end
         end
 
@@ -81,145 +54,198 @@ module Sashite
           private
 
           # Finds the maximum separator group length in the input.
-          #
-          # A separator group is a consecutive run of "/" characters.
-          # Returns 0 if no "/" is found (1D board).
-          #
-          # @param input [String] The input string
-          # @return [Integer] Maximum separator group length
-          def max_separator_length(input)
-            max_sep = 0
-            current_sep = 0
+          def scan_max_separator(input, len)
+            max = 0
+            cur = 0
             i = 0
 
-            while i < input.bytesize
+            while i < len
               if input.getbyte(i) == Ascii::SLASH
-                current_sep += 1
+                cur += 1
               else
-                max_sep = current_sep if current_sep > max_sep
-                current_sep = 0
+                max = cur if cur > max
+                cur = 0
               end
-
               i += 1
             end
 
-            # Check trailing group (won't happen if we reject trailing "/",
-            # but kept for safety)
-            max_sep = current_sep if current_sep > max_sep
-
-            max_sep
+            max = cur if cur > max
+            max
           end
 
           # Parses a 1D board (no separators).
-          #
-          # @param input [String] The segment string
-          # @return [Array<String, nil>, nil] Flat array of squares or nil
-          def parse_1d(input)
-            squares = safe_parse_segment(input)
+          def parse_1d(input, len)
+            squares = parse_segment(input, 0, len)
             return nil if squares.nil?
-            return nil if squares.empty?
             return nil if squares.size > Limits::MAX_DIMENSION_SIZE
 
             squares
           end
 
           # Parses a 2D board (ranks separated by "/").
-          #
-          # @param input [String] The Piece Placement string
-          # @return [Array<Array<String, nil>>, nil] Array of rank arrays or nil
-          def parse_2d(input)
-            rank_strs = input.split(Separators::SEGMENT, -1)
-
+          # Scans for "/" byte positions and parses segments by range.
+          def parse_2d(input, len)
             ranks = []
+            seg_start = 0
+            i = 0
 
-            rank_strs.each do |rank_str|
-              squares = safe_parse_segment(rank_str)
-              return nil if squares.nil?
-              return nil if squares.empty?
-              return nil if squares.size > Limits::MAX_DIMENSION_SIZE
+            while i <= len
+              if i == len || input.getbyte(i) == Ascii::SLASH
+                squares = parse_segment(input, seg_start, i)
+                return nil if squares.nil?
+                return nil if squares.size > Limits::MAX_DIMENSION_SIZE
 
-              ranks << squares
+                ranks << squares
+                seg_start = i + 1
+              end
+              i += 1
             end
 
-            return nil if rank_strs.size > Limits::MAX_DIMENSION_SIZE
+            return nil if ranks.size > Limits::MAX_DIMENSION_SIZE
 
             ranks
           end
 
-          # Parses a 3D board (layers separated by "//", ranks by "/").
-          #
-          # @param input [String] The Piece Placement string
-          # @return [Array<Array<Array<String, nil>>>, nil] Nested layers or nil
-          def parse_3d(input)
-            layer_sep = Separators::SEGMENT * 2
-            layer_strs = input.split(layer_sep, -1)
-
+          # Parses a 3D board in a single scan.
+          # Detects "//" layer boundaries and "/" rank boundaries.
+          def parse_3d(input, len)
             layers = []
+            ranks = []
+            seg_start = 0
             ranks_per_layer = nil
+            i = 0
 
-            layer_strs.each do |layer_str|
-              rank_strs = layer_str.split(Separators::SEGMENT, -1)
-
-              # Dimensional coherence: each layer must have >= 2 ranks
-              return nil if rank_strs.size < 2
-
-              if ranks_per_layer.nil?
-                ranks_per_layer = rank_strs.size
-                return nil if ranks_per_layer > Limits::MAX_DIMENSION_SIZE
-              else
-                return nil unless rank_strs.size == ranks_per_layer
-              end
-
-              layer = []
-
-              rank_strs.each do |rank_str|
-                squares = safe_parse_segment(rank_str)
+            while i < len
+              if input.getbyte(i) == Ascii::SLASH
+                # Parse the pending segment
+                squares = parse_segment(input, seg_start, i)
                 return nil if squares.nil?
-                return nil if squares.empty?
                 return nil if squares.size > Limits::MAX_DIMENSION_SIZE
 
-                layer << squares
-              end
+                ranks << squares
 
-              layers << layer
+                # Check for "//" (layer boundary)
+                if (i + 1) < len && input.getbyte(i + 1) == Ascii::SLASH
+                  # Dimensional coherence: each layer must have >= 2 ranks
+                  return nil if ranks.size < 2
+
+                  if ranks_per_layer.nil?
+                    ranks_per_layer = ranks.size
+                    return nil if ranks_per_layer > Limits::MAX_DIMENSION_SIZE
+                  else
+                    return nil unless ranks.size == ranks_per_layer
+                  end
+
+                  layers << ranks
+                  ranks = []
+                  seg_start = i + 2
+                  i += 2
+                else
+                  seg_start = i + 1
+                  i += 1
+                end
+              else
+                i += 1
+              end
             end
 
-            return nil if layer_strs.size > Limits::MAX_DIMENSION_SIZE
+            # Last segment + last layer
+            squares = parse_segment(input, seg_start, len)
+            return nil if squares.nil?
+            return nil if squares.size > Limits::MAX_DIMENSION_SIZE
+
+            ranks << squares
+
+            return nil if ranks.size < 2
+
+            if ranks_per_layer.nil?
+              ranks_per_layer = ranks.size
+              return nil if ranks_per_layer > Limits::MAX_DIMENSION_SIZE
+            else
+              return nil unless ranks.size == ranks_per_layer
+            end
+
+            layers << ranks
+            return nil if layers.size > Limits::MAX_DIMENSION_SIZE
 
             layers
           end
 
-          # Parses a single segment (rank) into an array of squares.
-          #
-          # Squares are either EPIN token strings (pieces) or nil (empty).
-          # Returns nil if parsing fails for any reason.
-          #
-          # @param str [String] The segment string
-          # @return [Array<String, nil>, nil] Parsed squares or nil
-          def safe_parse_segment(str)
-            return nil if str.empty?
+          # Parses a single segment (rank) by byte range [seg_start, seg_stop).
+          # Returns Array of (String | nil) or nil on failure.
+          # Inlines EPIN validation and integer conversion.
+          def parse_segment(input, seg_start, seg_stop)
+            return nil if seg_start >= seg_stop
 
             squares = []
-            pos = 0
+            pos = seg_start
             last_was_empty = false
 
-            while pos < str.bytesize
-              byte = str.getbyte(pos)
+            while pos < seg_stop
+              byte = input.getbyte(pos)
 
-              if Ascii.digit?(byte)
-                # Consecutive empty counts violate canonicality
+              if byte >= Ascii::ZERO && byte <= Ascii::NINE
+                # Empty count token
                 return nil if last_was_empty
 
-                count, pos = safe_parse_empty_count(str, pos)
-                return nil if count.nil?
+                count_start = pos
+                pos += 1
+                while pos < seg_stop
+                  b = input.getbyte(pos)
+                  break unless b >= Ascii::ZERO && b <= Ascii::NINE
+
+                  pos += 1
+                end
+
+                # Leading zeros forbidden
+                return nil if (pos - count_start) > 1 && input.getbyte(count_start) == Ascii::ZERO
+
+                # Inline integer conversion (avoids byteslice + to_i)
+                count = 0
+                j = count_start
+                while j < pos
+                  count = count * 10 + (input.getbyte(j) - Ascii::ZERO)
+                  j += 1
+                end
+
+                return nil if count < 1
 
                 count.times { squares << nil }
                 last_was_empty = true
               else
-                piece, pos = safe_parse_piece(str, pos)
-                return nil if piece.nil?
+                # EPIN token — inline validation: [+-]?[A-Za-z]^?'?
+                piece_start = pos
 
-                squares << piece
+                # Optional state modifier
+                if byte == Ascii::MINUS || byte == Ascii::PLUS
+                  pos += 1
+                  return nil if pos >= seg_stop
+
+                  byte = input.getbyte(pos)
+                end
+
+                # Required letter (bit trick)
+                lowered = byte | 0x20
+                return nil if lowered < Ascii::LOWER_A || lowered > Ascii::LOWER_Z
+
+                pos += 1
+
+                # Optional terminal ^ then optional derivation '
+                if pos < seg_stop
+                  byte = input.getbyte(pos)
+
+                  if byte == Ascii::CARET
+                    pos += 1
+
+                    if pos < seg_stop && input.getbyte(pos) == Ascii::APOSTROPHE
+                      pos += 1
+                    end
+                  elsif byte == Ascii::APOSTROPHE
+                    pos += 1
+                  end
+                end
+
+                squares << input.byteslice(piece_start, pos - piece_start)
                 last_was_empty = false
               end
             end
@@ -227,78 +253,10 @@ module Sashite
             squares
           end
 
-          # Parses an empty count token starting at pos, without raising.
-          #
-          # @param str [String] The string to parse from
-          # @param pos [Integer] Starting byte position
-          # @return [Array(Integer, Integer), Array(nil, nil)]
-          def safe_parse_empty_count(str, pos)
-            start_pos = pos
-            pos += 1 while pos < str.bytesize && Ascii.digit?(str.getbyte(pos))
-
-            count_str = str.byteslice(start_pos, pos - start_pos)
-
-            # Leading zeros are forbidden
-            return [nil, nil] if count_str.bytesize > 1 && count_str.getbyte(0) == Ascii::ZERO
-
-            count = count_str.to_i
-
-            # Empty count must be >= 1
-            return [nil, nil] if count < 1
-
-            [count, pos]
-          end
-
-          # Parses an EPIN token starting at pos, without raising.
-          #
-          # Scans the maximal EPIN structure: [+-]?[A-Za-z]^?'?
-          # Then validates via Epin.valid?.
-          #
-          # @param str [String] The string to parse from
-          # @param pos [Integer] Starting byte position
-          # @return [Array(String, Integer), Array(nil, nil)]
-          def safe_parse_piece(str, pos)
-            start_pos = pos
-            byte = str.getbyte(pos)
-
-            # Optional state modifier: + or -
-            if byte == Ascii::PLUS || byte == Ascii::MINUS
-              pos += 1
-              byte = str.getbyte(pos)
-            end
-
-            # Required letter: A-Z or a-z
-            if Ascii.letter?(byte)
-              pos += 1
-              byte = str.getbyte(pos)
-            end
-
-            # Optional terminal marker: ^
-            if byte == Ascii::CARET
-              pos += 1
-              byte = str.getbyte(pos)
-            end
-
-            # Optional derivation marker: '
-            pos += 1 if byte == Ascii::APOSTROPHE
-
-            epin_str = str.byteslice(start_pos, pos - start_pos)
-
-            return [nil, nil] unless ::Sashite::Epin.valid?(epin_str)
-
-            [epin_str, pos]
-          end
-
           # ----------------------------------------------------------------
-          # Error path: re-validates to produce specific error messages
+          # Error path (cold): re-validates for specific error messages
           # ----------------------------------------------------------------
 
-          # Re-validates input to determine the specific error to raise.
-          #
-          # Only called after safe_parse returned nil.
-          #
-          # @param input [String] The invalid input
-          # @raise [PiecePlacementError] Always raises with a specific message
           def raise_specific_error!(input)
             if input.empty?
               raise PiecePlacementError, PiecePlacementError::EMPTY
@@ -312,7 +270,8 @@ module Sashite
               raise PiecePlacementError, PiecePlacementError::ENDS_WITH_SEPARATOR
             end
 
-            max_sep = max_separator_length(input)
+            len = input.bytesize
+            max_sep = scan_max_separator(input, len)
             dims = max_sep + 1
 
             if dims > Limits::MAX_DIMENSIONS
@@ -320,100 +279,127 @@ module Sashite
             end
 
             case dims
-            when 1 then raise_1d_errors!(input)
-            when 2 then raise_2d_errors!(input)
-            when 3 then raise_3d_errors!(input)
+            when 1 then raise_1d_errors!(input, len)
+            when 2 then raise_2d_errors!(input, len)
+            when 3 then raise_3d_errors!(input, len)
             end
           end
 
-          # Raises the specific error for a 1D board.
-          #
-          # @param input [String] The segment string
-          # @raise [PiecePlacementError]
-          def raise_1d_errors!(input)
-            squares = raise_parse_segment!(input)
+          def raise_1d_errors!(input, len)
+            squares = raise_parse_segment!(input, 0, len)
             raise_dimension_size!(squares.size)
           end
 
-          # Raises the specific error for a 2D board.
-          #
-          # @param input [String] The Piece Placement string
-          # @raise [PiecePlacementError]
-          def raise_2d_errors!(input)
-            rank_strs = input.split(Separators::SEGMENT, -1)
+          def raise_2d_errors!(input, len)
+            seg_start = 0
+            rank_count = 0
+            i = 0
 
-            rank_strs.each do |rank_str|
-              squares = raise_parse_segment!(rank_str)
-              raise_dimension_size!(squares.size)
+            while i <= len
+              if i == len || input.getbyte(i) == Ascii::SLASH
+                squares = raise_parse_segment!(input, seg_start, i)
+                raise_dimension_size!(squares.size)
+                rank_count += 1
+                seg_start = i + 1
+              end
+              i += 1
             end
 
-            raise_dimension_size!(rank_strs.size)
+            raise_dimension_size!(rank_count)
           end
 
-          # Raises the specific error for a 3D board.
-          #
-          # @param input [String] The Piece Placement string
-          # @raise [PiecePlacementError]
-          def raise_3d_errors!(input)
-            layer_sep = Separators::SEGMENT * 2
-            layer_strs = input.split(layer_sep, -1)
+          def raise_3d_errors!(input, len)
+            ranks_in_layer = 0
             ranks_per_layer = nil
+            layer_count = 0
+            seg_start = 0
+            i = 0
 
-            layer_strs.each do |layer_str|
-              rank_strs = layer_str.split(Separators::SEGMENT, -1)
-
-              if rank_strs.size < 2
-                raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
-              end
-
-              if ranks_per_layer.nil?
-                ranks_per_layer = rank_strs.size
-                raise_dimension_size!(ranks_per_layer)
-              elsif rank_strs.size != ranks_per_layer
-                raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
-              end
-
-              rank_strs.each do |rank_str|
-                squares = raise_parse_segment!(rank_str)
+            while i < len
+              if input.getbyte(i) == Ascii::SLASH
+                squares = raise_parse_segment!(input, seg_start, i)
                 raise_dimension_size!(squares.size)
+                ranks_in_layer += 1
+
+                if (i + 1) < len && input.getbyte(i + 1) == Ascii::SLASH
+                  if ranks_in_layer < 2
+                    raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
+                  end
+
+                  if ranks_per_layer.nil?
+                    ranks_per_layer = ranks_in_layer
+                    raise_dimension_size!(ranks_per_layer)
+                  elsif ranks_in_layer != ranks_per_layer
+                    raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
+                  end
+
+                  layer_count += 1
+                  ranks_in_layer = 0
+                  seg_start = i + 2
+                  i += 2
+                else
+                  seg_start = i + 1
+                  i += 1
+                end
+              else
+                i += 1
               end
             end
 
-            raise_dimension_size!(layer_strs.size)
+            # Last segment + last layer
+            squares = raise_parse_segment!(input, seg_start, len)
+            raise_dimension_size!(squares.size)
+            ranks_in_layer += 1
+
+            if ranks_in_layer < 2
+              raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
+            end
+
+            if ranks_per_layer && ranks_in_layer != ranks_per_layer
+              raise PiecePlacementError, PiecePlacementError::DIMENSIONAL_COHERENCE
+            end
+
+            layer_count += 1
+            raise_dimension_size!(layer_count)
           end
 
           # Parses a segment on the error path, raising specific errors.
-          #
-          # @param str [String] The segment string
-          # @return [Array<String, nil>] Parsed squares
-          # @raise [PiecePlacementError]
-          def raise_parse_segment!(str)
-            if str.empty?
+          def raise_parse_segment!(input, seg_start, seg_stop)
+            if seg_start >= seg_stop
               raise PiecePlacementError, PiecePlacementError::EMPTY_SEGMENT
             end
 
             squares = []
-            pos = 0
+            pos = seg_start
             last_was_empty = false
 
-            while pos < str.bytesize
-              byte = str.getbyte(pos)
+            while pos < seg_stop
+              byte = input.getbyte(pos)
 
-              if Ascii.digit?(byte)
+              if byte >= Ascii::ZERO && byte <= Ascii::NINE
                 if last_was_empty
                   raise PiecePlacementError, PiecePlacementError::CONSECUTIVE_EMPTY_COUNTS
                 end
 
-                start_pos = pos
-                pos += 1 while pos < str.bytesize && Ascii.digit?(str.getbyte(pos))
+                count_start = pos
+                pos += 1
+                while pos < seg_stop
+                  b = input.getbyte(pos)
+                  break unless b >= Ascii::ZERO && b <= Ascii::NINE
 
-                count_str = str.byteslice(start_pos, pos - start_pos)
+                  pos += 1
+                end
 
-                if count_str.bytesize > 1 && count_str.getbyte(0) == Ascii::ZERO
+                if (pos - count_start) > 1 && input.getbyte(count_start) == Ascii::ZERO
                   raise PiecePlacementError, PiecePlacementError::INVALID_EMPTY_COUNT
                 end
 
-                count = count_str.to_i
+                count = 0
+                j = count_start
+                while j < pos
+                  count = count * 10 + (input.getbyte(j) - Ascii::ZERO)
+                  j += 1
+                end
 
                 if count < 1
                   raise PiecePlacementError, PiecePlacementError::INVALID_EMPTY_COUNT
@@ -422,33 +408,35 @@ module Sashite
                 count.times { squares << nil }
                 last_was_empty = true
               else
-                start_pos = pos
-                byte = str.getbyte(pos)
+                piece_start = pos
 
-                if byte == Ascii::PLUS || byte == Ascii::MINUS
+                if byte == Ascii::MINUS || byte == Ascii::PLUS
                   pos += 1
-                  byte = str.getbyte(pos)
+                  byte = pos < seg_stop ? input.getbyte(pos) : nil
                 end
 
-                if Ascii.letter?(byte)
+                valid_letter = byte && (byte | 0x20) >= Ascii::LOWER_A && (byte | 0x20) <= Ascii::LOWER_Z
+
+                if valid_letter
                   pos += 1
-                  byte = str.getbyte(pos)
+                  if pos < seg_stop
+                    byte = input.getbyte(pos)
+                    if byte == Ascii::CARET
+                      pos += 1
+                      if pos < seg_stop && input.getbyte(pos) == Ascii::APOSTROPHE
+                        pos += 1
+                      end
+                    elsif byte == Ascii::APOSTROPHE
+                      pos += 1
+                    end
+                  end
                 end
 
-                if byte == Ascii::CARET
-                  pos += 1
-                  byte = str.getbyte(pos)
-                end
-
-                pos += 1 if byte == Ascii::APOSTROPHE
-
-                epin_str = str.byteslice(start_pos, pos - start_pos)
-
-                unless ::Sashite::Epin.valid?(epin_str)
+                unless valid_letter && (pos - piece_start) >= 1
                   raise PiecePlacementError, PiecePlacementError::INVALID_PIECE_TOKEN
                 end
 
-                squares << epin_str
+                squares << input.byteslice(piece_start, pos - piece_start)
                 last_was_empty = false
               end
             end
@@ -456,10 +444,6 @@ module Sashite
             squares
           end
 
-          # Raises if a dimension size exceeds the limit.
-          #
-          # @param size [Integer] The dimension size
-          # @raise [PiecePlacementError] If size exceeds 255
           def raise_dimension_size!(size)
             return if size <= Limits::MAX_DIMENSION_SIZE
 
@@ -467,13 +451,11 @@ module Sashite
           end
         end
 
-        private_class_method :max_separator_length,
+        private_class_method :scan_max_separator,
                              :parse_1d,
                              :parse_2d,
                              :parse_3d,
-                             :safe_parse_segment,
-                             :safe_parse_empty_count,
-                             :safe_parse_piece,
+                             :parse_segment,
                              :raise_specific_error!,
                              :raise_1d_errors!,
                              :raise_2d_errors!,

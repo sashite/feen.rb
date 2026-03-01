@@ -12,175 +12,142 @@ Hands = Sashite::Feen::Parser::Hands
 HandsError = Sashite::Feen::HandsError
 
 # ============================================================================
-# VALID INPUTS - EMPTY HANDS
+# SAFE_PARSE - VALID INPUTS
 # ============================================================================
 
-puts "valid inputs - empty hands:"
+puts "safe_parse - valid inputs:"
+
+Test("empty hands on both sides") do
+  result = Hands.safe_parse("/")
+  raise unless result[:first] == []
+  raise unless result[:second] == []
+end
+
+Test("first hand with pieces, second empty") do
+  result = Hands.safe_parse("2PN/")
+  raise unless result[:first] == ["P", "P", "N"]
+  raise unless result[:second] == []
+end
+
+Test("first empty, second with pieces") do
+  result = Hands.safe_parse("/2pn")
+  raise unless result[:first] == []
+  raise unless result[:second] == ["p", "p", "n"]
+end
+
+Test("both hands with pieces") do
+  result = Hands.safe_parse("2PN/p")
+  raise unless result[:first] == ["P", "P", "N"]
+  raise unless result[:second] == ["p"]
+end
+
+Test("decorated pieces in hands") do
+  result = Hands.safe_parse("+K^'/2-r")
+  raise unless result[:first] == ["+K^'"]
+  raise unless result[:second] == ["-r", "-r"]
+end
+
+Test("complex hands") do
+  result = Hands.safe_parse("3B2PNR/2qp")
+  raise unless result[:first].size == 7
+  raise unless result[:second].size == 3
+end
+
+# ============================================================================
+# SAFE_PARSE - RETURN STRUCTURE
+# ============================================================================
+
+puts
+puts "safe_parse - return structure:"
+
+Test("returns Hash with :first and :second keys") do
+  result = Hands.safe_parse("/")
+  raise unless result.is_a?(Hash)
+  raise unless result.key?(:first)
+  raise unless result.key?(:second)
+end
+
+Test("values are Arrays of Strings") do
+  result = Hands.safe_parse("2BP/r")
+  raise unless result[:first].is_a?(Array)
+  raise unless result[:second].is_a?(Array)
+  raise unless result[:first].all? { |s| s.is_a?(String) }
+  raise unless result[:second].all? { |s| s.is_a?(String) }
+end
+
+# ============================================================================
+# SAFE_PARSE - INVALID INPUTS (returns nil)
+# ============================================================================
+
+puts
+puts "safe_parse - invalid inputs:"
+
+Test("no delimiter returns nil") do
+  raise if Hands.safe_parse("")
+  raise if Hands.safe_parse("P")
+  raise if Hands.safe_parse("2PN")
+end
+
+Test("multiple delimiters returns nil") do
+  raise if Hands.safe_parse("P/N/R")
+  raise if Hands.safe_parse("//")
+  raise if Hands.safe_parse("P//")
+end
+
+Test("invalid hand content returns nil") do
+  raise if Hands.safe_parse("PP/")       # non-aggregated
+  raise if Hands.safe_parse("/PP")       # non-aggregated
+  raise if Hands.safe_parse("0P/")       # invalid count
+  raise if Hands.safe_parse("1P/")       # count 1 forbidden
+  raise if Hands.safe_parse("PB/")       # wrong order
+  raise if Hands.safe_parse("@/")        # invalid token
+end
+
+# ============================================================================
+# PARSE - VALID INPUTS
+# ============================================================================
+
+puts
+puts "parse - valid inputs:"
+
+Test("parses valid hands") do
+  result = Hands.parse("2PN/p")
+  raise unless result[:first] == ["P", "P", "N"]
+  raise unless result[:second] == ["p"]
+end
 
 Test("parses empty hands") do
   result = Hands.parse("/")
-  raise "wrong first" unless result[:first] == []
-  raise "wrong second" unless result[:second] == []
+  raise unless result[:first] == []
+  raise unless result[:second] == []
 end
 
 # ============================================================================
-# VALID INPUTS - FIRST HAND ONLY
-# ============================================================================
-
-puts
-puts "valid inputs - first hand only:"
-
-Test("parses single piece in first hand") do
-  result = Hands.parse("P/")
-  raise "wrong first" unless result[:first] == ["P"]
-  raise "wrong second" unless result[:second] == []
-end
-
-Test("parses multiple pieces in first hand") do
-  result = Hands.parse("2PN/")
-  raise "wrong first" unless result[:first] == ["P", "P", "N"]
-  raise "wrong second" unless result[:second] == []
-end
-
-# ============================================================================
-# VALID INPUTS - SECOND HAND ONLY
+# PARSE - INVALID INPUTS (raises HandsError)
 # ============================================================================
 
 puts
-puts "valid inputs - second hand only:"
-
-Test("parses single piece in second hand") do
-  result = Hands.parse("/p")
-  raise "wrong first" unless result[:first] == []
-  raise "wrong second" unless result[:second] == ["p"]
-end
-
-Test("parses multiple pieces in second hand") do
-  result = Hands.parse("/2pn")
-  raise "wrong first" unless result[:first] == []
-  raise "wrong second" unless result[:second] == ["p", "p", "n"]
-end
-
-# ============================================================================
-# VALID INPUTS - BOTH HANDS
-# ============================================================================
-
-puts
-puts "valid inputs - both hands:"
-
-Test("parses pieces in both hands") do
-  result = Hands.parse("2PN/p")
-  raise "wrong first" unless result[:first] == ["P", "P", "N"]
-  raise "wrong second" unless result[:second] == ["p"]
-end
-
-Test("parses complex hands") do
-  result = Hands.parse("3B2PNR/2qp")
-  raise "wrong first size" unless result[:first].size == 7
-  raise "wrong second size" unless result[:second].size == 3
-end
-
-Test("parses hands with decorated pieces") do
-  result = Hands.parse("+P/+p")
-  raise "wrong first" unless result[:first] == ["+P"]
-  raise "wrong second" unless result[:second] == ["+p"]
-end
-
-# ============================================================================
-# RETURN STRUCTURE
-# ============================================================================
-
-puts
-puts "return structure:"
-
-Test("returns a Hash") do
-  result = Hands.parse("/")
-  raise "expected Hash" unless result.is_a?(Hash)
-end
-
-Test("has :first key") do
-  result = Hands.parse("/")
-  raise "missing :first" unless result.key?(:first)
-end
-
-Test("has :second key") do
-  result = Hands.parse("/")
-  raise "missing :second" unless result.key?(:second)
-end
-
-Test(":first is an Array of Strings") do
-  result = Hands.parse("2PB/")
-  raise "expected Array" unless result[:first].is_a?(Array)
-  raise "expected all Strings" unless result[:first].all? { |p| p.is_a?(String) }
-end
-
-Test(":second is an Array of Strings") do
-  result = Hands.parse("/2pb")
-  raise "expected Array" unless result[:second].is_a?(Array)
-  raise "expected all Strings" unless result[:second].all? { |p| p.is_a?(String) }
-end
-
-# ============================================================================
-# INVALID INPUTS - DELIMITER
-# ============================================================================
-
-puts
-puts "invalid inputs - delimiter:"
+puts "parse - invalid inputs:"
 
 Test("raises for missing delimiter") do
-  Hands.parse("P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
+  ["", "P", "2PN"].each do |input|
+    begin; Hands.parse(input); raise "should raise for #{input.inspect}"
+    rescue HandsError; end
+  end
 end
 
 Test("raises for multiple delimiters") do
-  Hands.parse("P/N/p")
-  raise "should have raised"
-rescue HandsError
-  # Expected
+  ["P/N/R", "//", "P//"].each do |input|
+    begin; Hands.parse(input); raise "should raise for #{input.inspect}"
+    rescue HandsError; end
+  end
 end
 
-Test("raises for empty string") do
-  Hands.parse("")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-# ============================================================================
-# INVALID INPUTS - HAND CONTENT
-# ============================================================================
-
-puts
-puts "invalid inputs - hand content:"
-
-Test("raises for invalid piece in first hand") do
-  Hands.parse("@/")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for invalid piece in second hand") do
-  Hands.parse("/@")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for non-aggregated pieces in first hand") do
-  Hands.parse("PP/")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for non-canonical order in first hand") do
-  Hands.parse("BA/")
-  raise "should have raised"
-rescue HandsError
-  # Expected
+Test("raises for invalid hand content") do
+  ["PP/", "/PP", "0P/", "1P/", "PB/", "@/"].each do |input|
+    begin; Hands.parse(input); raise "should raise for #{input.inspect}"
+    rescue HandsError; end
+  end
 end
 
 # ============================================================================
@@ -191,7 +158,7 @@ puts
 puts "module properties:"
 
 Test("module is frozen") do
-  raise "expected frozen" unless Hands.frozen?
+  raise unless Hands.frozen?
 end
 
 puts

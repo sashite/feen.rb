@@ -16,48 +16,18 @@ Ascii = Sashite::Feen::Ascii
 
 puts "constants:"
 
-Test("ZERO is 0x30") do
-  raise "wrong value" unless Ascii::ZERO == 0x30
-end
-
-Test("NINE is 0x39") do
-  raise "wrong value" unless Ascii::NINE == 0x39
-end
-
-Test("UPPER_A is 0x41") do
-  raise "wrong value" unless Ascii::UPPER_A == 0x41
-end
-
-Test("UPPER_Z is 0x5A") do
-  raise "wrong value" unless Ascii::UPPER_Z == 0x5A
-end
-
-Test("LOWER_A is 0x61") do
-  raise "wrong value" unless Ascii::LOWER_A == 0x61
-end
-
-Test("LOWER_Z is 0x7A") do
-  raise "wrong value" unless Ascii::LOWER_Z == 0x7A
-end
-
-Test("PLUS is 0x2B") do
-  raise "wrong value" unless Ascii::PLUS == 0x2B
-end
-
-Test("MINUS is 0x2D") do
-  raise "wrong value" unless Ascii::MINUS == 0x2D
-end
-
-Test("SLASH is 0x2F") do
-  raise "wrong value" unless Ascii::SLASH == 0x2F
-end
-
-Test("CARET is 0x5E") do
-  raise "wrong value" unless Ascii::CARET == 0x5E
-end
-
-Test("APOSTROPHE is 0x27") do
-  raise "wrong value" unless Ascii::APOSTROPHE == 0x27
+Test("byte values match ASCII table") do
+  raise unless Ascii::ZERO       == 0x30
+  raise unless Ascii::NINE       == 0x39
+  raise unless Ascii::UPPER_A    == 0x41
+  raise unless Ascii::UPPER_Z    == 0x5A
+  raise unless Ascii::LOWER_A    == 0x61
+  raise unless Ascii::LOWER_Z    == 0x7A
+  raise unless Ascii::PLUS       == 0x2B
+  raise unless Ascii::MINUS      == 0x2D
+  raise unless Ascii::SLASH      == 0x2F
+  raise unless Ascii::CARET      == 0x5E
+  raise unless Ascii::APOSTROPHE == 0x27
 end
 
 # ============================================================================
@@ -67,71 +37,56 @@ end
 puts
 puts "digit?:"
 
-Test("returns true for '0'") do
-  raise "expected true" unless Ascii.digit?(0x30)
+Test("true at boundaries and midrange") do
+  raise unless Ascii.digit?(0x30)  # '0'
+  raise unless Ascii.digit?(0x35)  # '5'
+  raise unless Ascii.digit?(0x39)  # '9'
 end
 
-Test("returns true for '5'") do
-  raise "expected true" unless Ascii.digit?(0x35)
+Test("false just outside range") do
+  raise if Ascii.digit?(0x2F)  # '/' = 0x30 - 1
+  raise if Ascii.digit?(0x3A)  # ':' = 0x39 + 1
 end
 
-Test("returns true for '9'") do
-  raise "expected true" unless Ascii.digit?(0x39)
-end
-
-Test("returns false for 'A'") do
-  raise "expected false" if Ascii.digit?(0x41)
-end
-
-Test("returns false for 'a'") do
-  raise "expected false" if Ascii.digit?(0x61)
-end
-
-Test("returns false for '/'") do
-  raise "expected false" if Ascii.digit?(0x2F)
-end
-
-Test("returns false for nil") do
-  raise "expected false" if Ascii.digit?(nil)
+Test("false for letters and nil") do
+  raise if Ascii.digit?(0x41)  # 'A'
+  raise if Ascii.digit?(0x61)  # 'a'
+  raise if Ascii.digit?(nil)
 end
 
 # ============================================================================
-# letter?
+# letter? (bit trick: byte | 0x20 maps A-Z to a-z range)
 # ============================================================================
 
 puts
 puts "letter?:"
 
-Test("returns true for 'A'") do
-  raise "expected true" unless Ascii.letter?(0x41)
+Test("true at all four boundaries") do
+  raise unless Ascii.letter?(0x41)  # 'A'
+  raise unless Ascii.letter?(0x5A)  # 'Z'
+  raise unless Ascii.letter?(0x61)  # 'a'
+  raise unless Ascii.letter?(0x7A)  # 'z'
 end
 
-Test("returns true for 'Z'") do
-  raise "expected true" unless Ascii.letter?(0x5A)
+Test("false just outside letter ranges") do
+  raise if Ascii.letter?(0x40)  # '@' = A - 1
+  raise if Ascii.letter?(0x5B)  # '[' = Z + 1 (bit trick maps to 0x7B > 'z')
+  raise if Ascii.letter?(0x60)  # '`' = a - 1
+  raise if Ascii.letter?(0x7B)  # '{' = z + 1
 end
 
-Test("returns true for 'a'") do
-  raise "expected true" unless Ascii.letter?(0x61)
+Test("false for gap between Z and a") do
+  # 0x5B..0x60 are non-letter chars; bit trick must not produce false positives
+  (0x5B..0x60).each do |byte|
+    raise "false positive for 0x#{byte.to_s(16)}" if Ascii.letter?(byte)
+  end
 end
 
-Test("returns true for 'z'") do
-  raise "expected true" unless Ascii.letter?(0x7A)
-end
-
-Test("returns false for '0'") do
-  raise "expected false" if Ascii.letter?(0x30)
-end
-
-Test("returns false for '+'") do
-  raise "expected false" if Ascii.letter?(0x2B)
-end
-
-Test("returns false for '^'") do
-  raise "expected false" if Ascii.letter?(0x5E)
-end
-
-Test("returns false for nil") do
-  raise "expected false" if Ascii.letter?(nil)
+Test("false for digits, symbols, nil") do
+  raise if Ascii.letter?(0x30)  # '0'
+  raise if Ascii.letter?(0x2B)  # '+'
+  raise if Ascii.letter?(0x5E)  # '^'
+  raise if Ascii.letter?(nil)
 end
 
 # ============================================================================
@@ -141,28 +96,16 @@ end
 puts
 puts "uppercase?:"
 
-Test("returns true for 'A'") do
-  raise "expected true" unless Ascii.uppercase?(0x41)
+Test("true at boundaries and midrange") do
+  raise unless Ascii.uppercase?(0x41)  # 'A'
+  raise unless Ascii.uppercase?(0x4B)  # 'K'
+  raise unless Ascii.uppercase?(0x5A)  # 'Z'
 end
 
-Test("returns true for 'Z'") do
-  raise "expected true" unless Ascii.uppercase?(0x5A)
-end
-
-Test("returns true for 'K'") do
-  raise "expected true" unless Ascii.uppercase?(0x4B)
-end
-
-Test("returns false for 'a'") do
-  raise "expected false" if Ascii.uppercase?(0x61)
-end
-
-Test("returns false for '0'") do
-  raise "expected false" if Ascii.uppercase?(0x30)
-end
-
-Test("returns false for nil") do
-  raise "expected false" if Ascii.uppercase?(nil)
+Test("false for lowercase, digits, nil") do
+  raise if Ascii.uppercase?(0x61)  # 'a'
+  raise if Ascii.uppercase?(0x30)  # '0'
+  raise if Ascii.uppercase?(nil)
 end
 
 # ============================================================================
@@ -172,28 +115,16 @@ end
 puts
 puts "lowercase?:"
 
-Test("returns true for 'a'") do
-  raise "expected true" unless Ascii.lowercase?(0x61)
+Test("true at boundaries and midrange") do
+  raise unless Ascii.lowercase?(0x61)  # 'a'
+  raise unless Ascii.lowercase?(0x6B)  # 'k'
+  raise unless Ascii.lowercase?(0x7A)  # 'z'
 end
 
-Test("returns true for 'z'") do
-  raise "expected true" unless Ascii.lowercase?(0x7A)
-end
-
-Test("returns true for 'k'") do
-  raise "expected true" unless Ascii.lowercase?(0x6B)
-end
-
-Test("returns false for 'A'") do
-  raise "expected false" if Ascii.lowercase?(0x41)
-end
-
-Test("returns false for '0'") do
-  raise "expected false" if Ascii.lowercase?(0x30)
-end
-
-Test("returns false for nil") do
-  raise "expected false" if Ascii.lowercase?(nil)
+Test("false for uppercase, digits, nil") do
+  raise if Ascii.lowercase?(0x41)  # 'A'
+  raise if Ascii.lowercase?(0x30)  # '0'
+  raise if Ascii.lowercase?(nil)
 end
 
 # ============================================================================
@@ -204,7 +135,7 @@ puts
 puts "module properties:"
 
 Test("module is frozen") do
-  raise "expected frozen" unless Ascii.frozen?
+  raise unless Ascii.frozen?
 end
 
 puts

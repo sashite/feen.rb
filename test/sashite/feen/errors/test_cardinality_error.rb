@@ -10,22 +10,20 @@ puts
 
 CardinalityError = Sashite::Feen::CardinalityError
 
+EXPECTED_CONSTANTS = %i[
+  TOO_MANY_PIECES
+].freeze
+
 # ============================================================================
 # INHERITANCE
 # ============================================================================
 
 puts "inheritance:"
 
-Test("inherits from ParseError") do
-  raise "wrong parent" unless CardinalityError < Sashite::Feen::ParseError
-end
-
-Test("inherits from Sashite::Feen::Error") do
-  raise "wrong ancestor" unless CardinalityError < Sashite::Feen::Error
-end
-
-Test("inherits from ArgumentError") do
-  raise "wrong ancestor" unless CardinalityError < ArgumentError
+Test("inherits from ParseError, Error, and ArgumentError") do
+  raise unless CardinalityError < Sashite::Feen::ParseError
+  raise unless CardinalityError < Sashite::Feen::Error
+  raise unless CardinalityError < ArgumentError
 end
 
 # ============================================================================
@@ -35,12 +33,11 @@ end
 puts
 puts "constants:"
 
-Test("TOO_MANY_PIECES is defined") do
-  raise "missing constant" unless CardinalityError.const_defined?(:TOO_MANY_PIECES)
-end
-
-Test("TOO_MANY_PIECES is a String") do
-  raise "wrong type" unless CardinalityError::TOO_MANY_PIECES.is_a?(String)
+Test("all error message constants are defined strings") do
+  EXPECTED_CONSTANTS.each do |const|
+    raise "#{const} missing" unless CardinalityError.const_defined?(const)
+    raise "#{const} not String" unless CardinalityError.const_get(const).is_a?(String)
+  end
 end
 
 # ============================================================================
@@ -50,28 +47,21 @@ end
 puts
 puts "raising:"
 
-Test("can be raised and rescued as CardinalityError") do
-  raise CardinalityError, CardinalityError::TOO_MANY_PIECES
-rescue CardinalityError => e
-  raise "wrong message" unless e.message == CardinalityError::TOO_MANY_PIECES
+Test("raises with correct message for each constant") do
+  EXPECTED_CONSTANTS.each do |const|
+    msg = CardinalityError.const_get(const)
+    begin
+      raise CardinalityError, msg
+    rescue CardinalityError => e
+      raise "wrong message for #{const}" unless e.message == msg
+    end
+  end
 end
 
-Test("can be rescued as ParseError") do
-  raise CardinalityError, "test"
-rescue Sashite::Feen::ParseError
-  # Expected
-end
-
-Test("can be rescued as Sashite::Feen::Error") do
-  raise CardinalityError, "test"
-rescue Sashite::Feen::Error
-  # Expected
-end
-
-Test("can be rescued as ArgumentError") do
-  raise CardinalityError, "test"
-rescue ArgumentError
-  # Expected
+Test("rescuable as all ancestor types") do
+  begin; raise CardinalityError, "test"; rescue Sashite::Feen::ParseError; end
+  begin; raise CardinalityError, "test"; rescue Sashite::Feen::Error; end
+  begin; raise CardinalityError, "test"; rescue ArgumentError; end
 end
 
 # ============================================================================
@@ -82,7 +72,7 @@ puts
 puts "immutability:"
 
 Test("class is frozen") do
-  raise "expected frozen" unless CardinalityError.frozen?
+  raise unless CardinalityError.frozen?
 end
 
 puts

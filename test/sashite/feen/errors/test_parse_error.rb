@@ -16,12 +16,9 @@ ParseError = Sashite::Feen::ParseError
 
 puts "inheritance:"
 
-Test("inherits from Sashite::Feen::Error") do
-  raise "wrong parent" unless ParseError < Sashite::Feen::Error
-end
-
-Test("inherits from ArgumentError") do
-  raise "wrong ancestor" unless ParseError < ArgumentError
+Test("inherits from Error and ArgumentError") do
+  raise unless ParseError < Sashite::Feen::Error
+  raise unless ParseError < ArgumentError
 end
 
 # ============================================================================
@@ -31,20 +28,9 @@ end
 puts
 puts "constants:"
 
-Test("INPUT_TOO_LONG is defined") do
-  raise "missing constant" unless ParseError.const_defined?(:INPUT_TOO_LONG)
-end
-
-Test("INPUT_TOO_LONG is a String") do
-  raise "wrong type" unless ParseError::INPUT_TOO_LONG.is_a?(String)
-end
-
-Test("INVALID_FIELD_COUNT is defined") do
-  raise "missing constant" unless ParseError.const_defined?(:INVALID_FIELD_COUNT)
-end
-
-Test("INVALID_FIELD_COUNT is a String") do
-  raise "wrong type" unless ParseError::INVALID_FIELD_COUNT.is_a?(String)
+Test("error message constants are defined strings") do
+  raise unless ParseError::INPUT_TOO_LONG.is_a?(String)
+  raise unless ParseError::INVALID_FIELD_COUNT.is_a?(String)
 end
 
 # ============================================================================
@@ -54,28 +40,19 @@ end
 puts
 puts "raising:"
 
-Test("can be raised with INPUT_TOO_LONG message") do
-  raise ParseError, ParseError::INPUT_TOO_LONG
-rescue ParseError => e
-  raise "wrong message" unless e.message == ParseError::INPUT_TOO_LONG
+Test("raises and rescues with correct messages") do
+  [ParseError::INPUT_TOO_LONG, ParseError::INVALID_FIELD_COUNT].each do |msg|
+    begin
+      raise ParseError, msg
+    rescue ParseError => e
+      raise "wrong message" unless e.message == msg
+    end
+  end
 end
 
-Test("can be raised with INVALID_FIELD_COUNT message") do
-  raise ParseError, ParseError::INVALID_FIELD_COUNT
-rescue ParseError => e
-  raise "wrong message" unless e.message == ParseError::INVALID_FIELD_COUNT
-end
-
-Test("can be rescued as Sashite::Feen::Error") do
-  raise ParseError, "test"
-rescue Sashite::Feen::Error
-  # Expected
-end
-
-Test("can be rescued as ArgumentError") do
-  raise ParseError, "test"
-rescue ArgumentError
-  # Expected
+Test("rescuable as ancestor types") do
+  begin; raise ParseError, "test"; rescue Sashite::Feen::Error; end
+  begin; raise ParseError, "test"; rescue ArgumentError; end
 end
 
 # ============================================================================
@@ -86,7 +63,7 @@ puts
 puts "immutability:"
 
 Test("class is frozen") do
-  raise "expected frozen" unless ParseError.frozen?
+  raise unless ParseError.frozen?
 end
 
 puts

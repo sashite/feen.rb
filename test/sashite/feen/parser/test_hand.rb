@@ -9,337 +9,166 @@ puts "=== Parser::Hand Tests ==="
 puts
 
 Hand = Sashite::Feen::Parser::Hand
-HandsError = Sashite::Feen::HandsError unless defined?(HandsError)
+HandsError = Sashite::Feen::HandsError
 
 # ============================================================================
-# EMPTY HAND
+# SAFE_PARSE - VALID INPUTS
 # ============================================================================
 
-puts "empty hand:"
+puts "safe_parse - valid inputs:"
 
-Test("parses empty string to empty array") do
-  result = Hand.parse("")
-  raise "expected empty array" unless result == []
+Test("empty string returns empty array") do
+  raise unless Hand.safe_parse("") == []
 end
 
-# ============================================================================
-# SINGLE PIECE (IMPLICIT COUNT = 1)
-# ============================================================================
-
-puts
-puts "single piece:"
-
-Test("parses simple uppercase piece") do
-  result = Hand.parse("P")
-  raise "expected [\"P\"]" unless result == ["P"]
+Test("single pieces with all EPIN decorations") do
+  raise unless Hand.safe_parse("P")    == ["P"]
+  raise unless Hand.safe_parse("p")    == ["p"]
+  raise unless Hand.safe_parse("K^")   == ["K^"]
+  raise unless Hand.safe_parse("+P")   == ["+P"]
+  raise unless Hand.safe_parse("-R")   == ["-R"]
+  raise unless Hand.safe_parse("K'")   == ["K'"]
+  raise unless Hand.safe_parse("+K^'") == ["+K^'"]
 end
 
-Test("parses simple lowercase piece") do
-  result = Hand.parse("p")
-  raise "expected [\"p\"]" unless result == ["p"]
+Test("multiple distinct pieces") do
+  raise unless Hand.safe_parse("BP")  == ["B", "P"]
+  raise unless Hand.safe_parse("BNP") == ["B", "N", "P"]
+  raise unless Hand.safe_parse("Pp")  == ["P", "p"]
 end
 
-Test("parses piece with terminal marker") do
-  result = Hand.parse("K^")
-  raise "expected [\"K^\"]" unless result == ["K^"]
+Test("explicit counts expand pieces") do
+  raise unless Hand.safe_parse("2P")  == ["P", "P"]
+  raise unless Hand.safe_parse("3P")  == ["P", "P", "P"]
+  raise unless Hand.safe_parse("10P").size == 10
+  raise unless Hand.safe_parse("2+P^'") == ["+P^'", "+P^'"]
 end
 
-Test("parses piece with state modifier +") do
-  result = Hand.parse("+P")
-  raise "expected [\"+P\"]" unless result == ["+P"]
-end
-
-Test("parses piece with state modifier -") do
-  result = Hand.parse("-R")
-  raise "expected [\"-R\"]" unless result == ["-R"]
-end
-
-Test("parses piece with derivation marker") do
-  result = Hand.parse("K'")
-  raise "expected [\"K'\"]" unless result == ["K'"]
-end
-
-Test("parses fully decorated piece") do
-  result = Hand.parse("+K^'")
-  raise "expected [\"+K^'\"]" unless result == ["+K^'"]
+Test("mixed counts and singles") do
+  raise unless Hand.safe_parse("2NP")    == ["N", "N", "P"]
+  raise unless Hand.safe_parse("3B2PNR") == ["B", "B", "B", "P", "P", "N", "R"]
+  raise unless Hand.safe_parse("2np")    == ["n", "n", "p"]
 end
 
 # ============================================================================
-# MULTIPLE DISTINCT PIECES (IMPLICIT COUNT)
+# SAFE_PARSE - CANONICAL ORDER (VALID)
 # ============================================================================
 
 puts
-puts "multiple distinct pieces:"
+puts "safe_parse - canonical order:"
 
-Test("parses two distinct pieces") do
-  result = Hand.parse("BP")
-  raise "expected [\"B\", \"P\"]" unless result == ["B", "P"]
+Test("descending multiplicity") do
+  raise unless Hand.safe_parse("3B2P").size == 5
 end
 
-Test("parses three distinct pieces") do
-  result = Hand.parse("BNP")
-  raise "expected [\"B\", \"N\", \"P\"]" unless result == ["B", "N", "P"]
+Test("alphabetical at same count") do
+  raise unless Hand.safe_parse("AB") == ["A", "B"]
 end
 
-Test("parses mixed case pieces") do
-  result = Hand.parse("Pp")
-  raise "expected [\"P\", \"p\"]" unless result == ["P", "p"]
+Test("uppercase before lowercase for same letter") do
+  raise unless Hand.safe_parse("Pp") == ["P", "p"]
 end
 
-# ============================================================================
-# EXPLICIT COUNTS
-# ============================================================================
-
-puts
-puts "explicit counts:"
-
-Test("parses count of 2") do
-  result = Hand.parse("2P")
-  raise "expected [\"P\", \"P\"]" unless result == ["P", "P"]
+Test("state modifier order: diminished < enhanced < normal") do
+  raise unless Hand.safe_parse("-P+PP") == ["-P", "+P", "P"]
 end
 
-Test("parses count of 3") do
-  result = Hand.parse("3P")
-  raise "expected 3 Ps" unless result == ["P", "P", "P"]
+Test("terminal absent before present") do
+  raise unless Hand.safe_parse("PP^") == ["P", "P^"]
 end
 
-Test("parses large count") do
-  result = Hand.parse("10P")
-  raise "expected 10 Ps" unless result.size == 10
-  raise "all should be P" unless result.all? { |p| p == "P" }
-end
-
-Test("parses count with decorated piece") do
-  result = Hand.parse("2+P^'")
-  raise "expected 2 items" unless result.size == 2
-  raise "wrong piece" unless result.all? { |p| p == "+P^'" }
+Test("derivation absent before present") do
+  raise unless Hand.safe_parse("PP'") == ["P", "P'"]
 end
 
 # ============================================================================
-# MIXED COUNTS AND SINGLES
+# SAFE_PARSE - INVALID INPUTS (returns nil)
 # ============================================================================
 
 puts
-puts "mixed counts and singles:"
+puts "safe_parse - invalid inputs:"
 
-Test("parses 2N followed by single P") do
-  result = Hand.parse("2NP")
-  raise "expected [\"N\", \"N\", \"P\"]" unless result == ["N", "N", "P"]
+Test("invalid counts return nil") do
+  raise if Hand.safe_parse("0P")   # count 0
+  raise if Hand.safe_parse("1P")   # count 1 (must be implicit)
+  raise if Hand.safe_parse("02P")  # leading zeros
+  raise if Hand.safe_parse("010P") # leading zeros
 end
 
-Test("parses complex hand") do
-  result = Hand.parse("3B2PNR")
-  raise "expected 7 pieces" unless result.size == 7
-  raise "wrong Bs" unless result[0..2] == ["B", "B", "B"]
-  raise "wrong Ps" unless result[3..4] == ["P", "P"]
-  raise "wrong N" unless result[5] == "N"
-  raise "wrong R" unless result[6] == "R"
+Test("invalid tokens return nil") do
+  raise if Hand.safe_parse("2")  # digit-only, no piece
+  raise if Hand.safe_parse("@")  # invalid character
 end
 
-Test("parses hand with lowercase pieces") do
-  result = Hand.parse("2np")
-  raise "expected [\"n\", \"n\", \"p\"]" unless result == ["n", "n", "p"]
+Test("non-aggregated duplicates return nil") do
+  raise if Hand.safe_parse("PP")
+  raise if Hand.safe_parse("K^K^")
+  raise if Hand.safe_parse("P'P'")
+  raise if Hand.safe_parse("+K^'+K^'")
+  raise if Hand.safe_parse("+P+P")
+end
+
+Test("non-canonical order returns nil") do
+  raise if Hand.safe_parse("P^P")  # terminal present before absent
+  raise if Hand.safe_parse("P'P")  # derivation present before absent
+  raise if Hand.safe_parse("2P3B") # ascending count
+  raise if Hand.safe_parse("PB")   # wrong letter order
+  raise if Hand.safe_parse("pP")   # lowercase before uppercase
 end
 
 # ============================================================================
-# RETURN STRUCTURE
+# PARSE - VALID INPUTS
 # ============================================================================
 
 puts
-puts "return structure:"
+puts "parse - valid inputs:"
 
-Test("returns an Array") do
-  result = Hand.parse("P")
-  raise "expected Array" unless result.is_a?(Array)
-end
-
-Test("array contains Strings") do
+Test("returns expanded Array of Strings") do
   result = Hand.parse("2BP")
-  raise "expected all Strings" unless result.all? { |item| item.is_a?(String) }
+  raise unless result.is_a?(Array)
+  raise unless result.all? { |item| item.is_a?(String) }
+  raise unless result == ["B", "B", "P"]
 end
 
 Test("empty hand returns empty Array") do
   result = Hand.parse("")
-  raise "expected Array" unless result.is_a?(Array)
-  raise "expected empty" unless result.empty?
+  raise unless result.is_a?(Array)
+  raise unless result.empty?
 end
 
 # ============================================================================
-# INVALID INPUTS - COUNT
-# ============================================================================
-
-puts
-puts "invalid inputs - count:"
-
-Test("raises for count of 0") do
-  Hand.parse("0P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for count of 1") do
-  Hand.parse("1P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for leading zeros") do
-  Hand.parse("02P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for leading zeros on larger count") do
-  Hand.parse("010P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-# ============================================================================
-# INVALID INPUTS - PIECE TOKEN
+# PARSE - INVALID INPUTS (raises HandsError)
 # ============================================================================
 
 puts
-puts "invalid inputs - piece token:"
+puts "parse - invalid inputs:"
 
-Test("raises for digit-only token") do
-  Hand.parse("2")
-  raise "should have raised"
-rescue HandsError
-  # Expected
+Test("raises for invalid counts") do
+  ["0P", "1P", "02P", "010P"].each do |input|
+    begin; Hand.parse(input); raise "should raise for #{input}"
+    rescue HandsError; end
+  end
 end
 
-Test("raises for invalid character") do
-  Hand.parse("@")
-  raise "should have raised"
-rescue HandsError
-  # Expected
+Test("raises for invalid tokens") do
+  ["2", "@"].each do |input|
+    begin; Hand.parse(input); raise "should raise for #{input}"
+    rescue HandsError; end
+  end
 end
 
-# ============================================================================
-# INVALID INPUTS - AGGREGATION
-# ============================================================================
-
-puts
-puts "invalid inputs - aggregation:"
-
-Test("raises for non-aggregated pieces with terminal marker") do
-  Hand.parse("K^K^")
-  raise "should have raised"
-rescue HandsError
-  # Expected
+Test("raises for non-aggregated duplicates") do
+  ["PP", "K^K^", "+P+P"].each do |input|
+    begin; Hand.parse(input); raise "should raise for #{input}"
+    rescue HandsError; end
+  end
 end
 
-Test("raises for non-aggregated pieces with derivation marker") do
-  Hand.parse("P'P'")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for non-aggregated fully decorated pieces") do
-  Hand.parse("+K^'+K^'")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for duplicate pieces not aggregated") do
-  Hand.parse("PP")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises for duplicate decorated pieces not aggregated") do
-  Hand.parse("+P+P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-# ============================================================================
-# INVALID INPUTS - CANONICAL ORDER
-# ============================================================================
-
-puts
-puts "invalid inputs - canonical order:"
-
-Test("raises when terminal present comes before absent") do
-  Hand.parse("P^P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises when derivation present comes before absent") do
-  Hand.parse("P'P")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises when lower count comes before higher count") do
-  Hand.parse("2P3B")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises when letter order is wrong") do
-  Hand.parse("PB")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-Test("raises when lowercase comes before uppercase for same letter") do
-  Hand.parse("pP")
-  raise "should have raised"
-rescue HandsError
-  # Expected
-end
-
-# ============================================================================
-# CANONICAL ORDER - VALID EXAMPLES
-# ============================================================================
-
-puts
-puts "canonical order - valid examples:"
-
-Test("accepts descending multiplicity") do
-  result = Hand.parse("3B2P")
-  raise "expected 5 pieces" unless result.size == 5
-end
-
-Test("accepts alphabetical order at same count") do
-  result = Hand.parse("AB")
-  raise "expected [\"A\", \"B\"]" unless result == ["A", "B"]
-end
-
-Test("accepts uppercase before lowercase for same letter") do
-  result = Hand.parse("Pp")
-  raise "expected [\"P\", \"p\"]" unless result == ["P", "p"]
-end
-
-Test("accepts diminished before enhanced before normal") do
-  result = Hand.parse("-P+PP")
-  raise "expected 3 pieces" unless result.size == 3
-  raise "wrong order" unless result == ["-P", "+P", "P"]
-end
-
-Test("accepts absent terminal before present terminal") do
-  result = Hand.parse("PP^")
-  raise "expected [\"P\", \"P^\"]" unless result == ["P", "P^"]
-end
-
-Test("accepts absent derivation before present derivation") do
-  result = Hand.parse("PP'")
-  raise "expected [\"P\", \"P'\"]" unless result == ["P", "P'"]
+Test("raises for non-canonical order") do
+  ["P^P", "2P3B", "PB", "pP"].each do |input|
+    begin; Hand.parse(input); raise "should raise for #{input}"
+    rescue HandsError; end
+  end
 end
 
 # ============================================================================
@@ -350,7 +179,7 @@ puts
 puts "module properties:"
 
 Test("module is frozen") do
-  raise "expected frozen" unless Hand.frozen?
+  raise unless Hand.frozen?
 end
 
 puts

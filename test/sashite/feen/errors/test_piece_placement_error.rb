@@ -16,16 +16,10 @@ PiecePlacementError = Sashite::Feen::PiecePlacementError
 
 puts "inheritance:"
 
-Test("inherits from ParseError") do
-  raise "wrong parent" unless PiecePlacementError < Sashite::Feen::ParseError
-end
-
-Test("inherits from Sashite::Feen::Error") do
-  raise "wrong ancestor" unless PiecePlacementError < Sashite::Feen::Error
-end
-
-Test("inherits from ArgumentError") do
-  raise "wrong ancestor" unless PiecePlacementError < ArgumentError
+Test("inherits from ParseError, Error, and ArgumentError") do
+  raise unless PiecePlacementError < Sashite::Feen::ParseError
+  raise unless PiecePlacementError < Sashite::Feen::Error
+  raise unless PiecePlacementError < ArgumentError
 end
 
 # ============================================================================
@@ -35,7 +29,7 @@ end
 puts
 puts "constants:"
 
-expected_constants = %i[
+EXPECTED_CONSTANTS = %i[
   EMPTY
   STARTS_WITH_SEPARATOR
   ENDS_WITH_SEPARATOR
@@ -48,13 +42,10 @@ expected_constants = %i[
   DIMENSION_SIZE_EXCEEDED
 ].freeze
 
-expected_constants.each do |const|
-  Test("#{const} is defined") do
-    raise "missing constant" unless PiecePlacementError.const_defined?(const)
-  end
-
-  Test("#{const} is a String") do
-    raise "wrong type" unless PiecePlacementError.const_get(const).is_a?(String)
+Test("all error message constants are defined strings") do
+  EXPECTED_CONSTANTS.each do |const|
+    raise "#{const} missing" unless PiecePlacementError.const_defined?(const)
+    raise "#{const} not String" unless PiecePlacementError.const_get(const).is_a?(String)
   end
 end
 
@@ -65,28 +56,21 @@ end
 puts
 puts "raising:"
 
-Test("can be raised and rescued as PiecePlacementError") do
-  raise PiecePlacementError, PiecePlacementError::EMPTY
-rescue PiecePlacementError => e
-  raise "wrong message" unless e.message == PiecePlacementError::EMPTY
+Test("raises with correct message for each constant") do
+  EXPECTED_CONSTANTS.each do |const|
+    msg = PiecePlacementError.const_get(const)
+    begin
+      raise PiecePlacementError, msg
+    rescue PiecePlacementError => e
+      raise "wrong message for #{const}" unless e.message == msg
+    end
+  end
 end
 
-Test("can be rescued as ParseError") do
-  raise PiecePlacementError, "test"
-rescue Sashite::Feen::ParseError
-  # Expected
-end
-
-Test("can be rescued as Sashite::Feen::Error") do
-  raise PiecePlacementError, "test"
-rescue Sashite::Feen::Error
-  # Expected
-end
-
-Test("can be rescued as ArgumentError") do
-  raise PiecePlacementError, "test"
-rescue ArgumentError
-  # Expected
+Test("rescuable as all ancestor types") do
+  begin; raise PiecePlacementError, "test"; rescue Sashite::Feen::ParseError; end
+  begin; raise PiecePlacementError, "test"; rescue Sashite::Feen::Error; end
+  begin; raise PiecePlacementError, "test"; rescue ArgumentError; end
 end
 
 # ============================================================================
@@ -97,7 +81,7 @@ puts
 puts "immutability:"
 
 Test("class is frozen") do
-  raise "expected frozen" unless PiecePlacementError.frozen?
+  raise unless PiecePlacementError.frozen?
 end
 
 puts

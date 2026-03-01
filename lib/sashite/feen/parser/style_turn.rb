@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-require "sashite/sin"
-
 require_relative "../shared/ascii"
-require_relative "../shared/separators"
 require_relative "../errors/style_turn_error"
 
 module Sashite
@@ -11,132 +8,98 @@ module Sashite
     module Parser
       # Parser for the FEEN Style-Turn field (Field 3).
       #
-      # Format:
+      # Format: <ACTIVE-STYLE>/<INACTIVE-STYLE>
+      # Each style is a valid SIN token (exactly one ASCII letter).
+      # The two tokens must be of opposite case.
       #
-      #   <ACTIVE-STYLE>/<INACTIVE-STYLE>
-      #
-      # Where each STYLE is a valid SIN token (exactly one ASCII letter).
-      # The two tokens MUST be of opposite case:
-      # - Uppercase → first player's style
-      # - Lowercase → second player's style
-      #
-      # Turn is determined by position: the left token is the active player.
-      #
-      # Provides a dual-path API:
-      # - {.safe_parse} returns nil on invalid input (no exceptions)
-      # - {.parse} raises {StyleTurnError} on invalid input
-      #
-      # @example Parsing first player to move
-      #   StyleTurn.safe_parse("C/c")
-      #   # => { styles: { first: "C", second: "c" }, turn: :first }
-      #
-      # @example Parsing second player to move
-      #   StyleTurn.safe_parse("c/C")
-      #   # => { styles: { first: "C", second: "c" }, turn: :second }
-      #
-      # @example Invalid input
-      #   StyleTurn.safe_parse("C/C")
-      #   # => nil
-      #
-      # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
       module StyleTurn
-        # Parses a Style-Turn field string, returning nil on failure.
+        # Parses a Style-Turn field, returning nil on failure.
         #
         # @param input [String] The Style-Turn field string
-        # @return [Hash{Symbol => Object}, nil]
-        #   { styles: { first: String, second: String }, turn: Symbol } or nil
+        # @return [Hash, nil]
         def self.safe_parse(input)
-          # Must contain exactly one "/" delimiter
-          slash_pos = nil
-          i = 0
+          # Exactly 3 bytes: letter "/" letter
+          return nil unless input.bytesize == 3
 
-          while i < input.bytesize
-            if input.getbyte(i) == Ascii::SLASH
-              return nil unless slash_pos.nil?
+          return nil unless input.getbyte(1) == Ascii::SLASH
 
-              slash_pos = i
-            end
+          active_byte = input.getbyte(0)
+          inactive_byte = input.getbyte(2)
 
-            i += 1
-          end
+          # Both must be ASCII letters (inline SIN validation)
+          active_lowered = active_byte | 0x20
+          return nil if active_lowered < Ascii::LOWER_A || active_lowered > Ascii::LOWER_Z
 
-          return nil if slash_pos.nil?
-
-          active_str = input.byteslice(0, slash_pos)
-          inactive_str = input.byteslice(slash_pos + 1, input.bytesize - slash_pos - 1)
-
-          # Both tokens must be valid SIN identifiers
-          return nil unless ::Sashite::Sin.valid?(active_str)
-          return nil unless ::Sashite::Sin.valid?(inactive_str)
-
-          active_byte = active_str.getbyte(0)
-          inactive_byte = inactive_str.getbyte(0)
+          inactive_lowered = inactive_byte | 0x20
+          return nil if inactive_lowered < Ascii::LOWER_A || inactive_lowered > Ascii::LOWER_Z
 
           # Must be opposite case
-          active_upper = Ascii.uppercase?(active_byte)
-          inactive_upper = Ascii.uppercase?(inactive_byte)
-
+          active_upper = active_byte < Ascii::LOWER_A
+          inactive_upper = inactive_byte < Ascii::LOWER_A
           return nil if active_upper == inactive_upper
 
+          active_str = input.byteslice(0, 1)
+          inactive_str = input.byteslice(2, 1)
+
           if active_upper
-            # Active is uppercase → first player to move
             { styles: { first: active_str, second: inactive_str }, turn: :first }
           else
-            # Active is lowercase → second player to move
             { styles: { first: inactive_str, second: active_str }, turn: :second }
           end
         end
 
-        # Parses a Style-Turn field string, raising on failure.
+        # Parses a Style-Turn field, raising on failure.
         #
         # @param input [String] The Style-Turn field string
-        # @return [Hash{Symbol => Object}]
-        #   { styles: { first: String, second: String }, turn: Symbol }
+        # @return [Hash]
         # @raise [StyleTurnError] If the input is not valid
         def self.parse(input)
           result = safe_parse(input)
           return result unless result.nil?
 
-          # Re-validate to produce the specific error message
           raise_specific_error!(input)
         end
 
         class << self
           private
 
-          # Re-validates input to determine the specific error to raise.
-          #
-          # This method is only called on the error path (after safe_parse
-          # returned nil), so its cost is acceptable.
-          #
-          # @param input [String] The invalid input
-          # @raise [StyleTurnError] Always raises with a specific message
           def raise_specific_error!(input)
-            # Check delimiter
-            parts = input.split(Separators::SEGMENT, -1)
+            # Find single slash delimiter
+            slash_pos = nil
+            i = 0
+            len = input.bytesize
 
-            unless parts.size == 2
-              raise StyleTurnError, StyleTurnError::INVALID_DELIMITER
+            while i < len
+              if input.getbyte(i) == Ascii::SLASH
+                raise StyleTurnError, StyleTurnError::INVALID_DELIMITER if slash_pos
+
+                slash_pos = i
+              end
+              i += 1
             end
 
-            active_str, inactive_str = parts
+            raise StyleTurnError, StyleTurnError::INVALID_DELIMITER unless slash_pos
 
-            # Check each token
-            unless ::Sashite::Sin.valid?(active_str)
+            # Validate each SIN token (single ASCII letter)
+            unless slash_pos == 1 && valid_sin_byte?(input.getbyte(0))
               raise StyleTurnError, StyleTurnError::INVALID_STYLE_TOKEN
             end
 
-            unless ::Sashite::Sin.valid?(inactive_str)
+            unless (len - slash_pos - 1) == 1 && valid_sin_byte?(input.getbyte(slash_pos + 1))
               raise StyleTurnError, StyleTurnError::INVALID_STYLE_TOKEN
             end
 
-            # Must be opposite case
             raise StyleTurnError, StyleTurnError::SAME_CASE
+          end
+
+          def valid_sin_byte?(byte)
+            byte && (byte | 0x20) >= Ascii::LOWER_A && (byte | 0x20) <= Ascii::LOWER_Z
           end
         end
 
-        private_class_method :raise_specific_error!
+        private_class_method :raise_specific_error!,
+                             :valid_sin_byte?
 
         freeze
       end

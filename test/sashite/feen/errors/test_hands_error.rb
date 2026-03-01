@@ -8,7 +8,7 @@ puts
 puts "=== HandsError Tests ==="
 puts
 
-HandsError = Sashite::Feen::HandsError
+HandsError = Sashite::Feen::HandsError unless defined?(HandsError)
 
 # ============================================================================
 # INHERITANCE
@@ -16,15 +16,15 @@ HandsError = Sashite::Feen::HandsError
 
 puts "inheritance:"
 
-run_test("inherits from ParseError") do
+Test("inherits from ParseError") do
   raise "wrong parent" unless HandsError < Sashite::Feen::ParseError
 end
 
-run_test("inherits from Sashite::Feen::Error") do
+Test("inherits from Sashite::Feen::Error") do
   raise "wrong ancestor" unless HandsError < Sashite::Feen::Error
 end
 
-run_test("inherits from ArgumentError") do
+Test("inherits from ArgumentError") do
   raise "wrong ancestor" unless HandsError < ArgumentError
 end
 
@@ -35,7 +35,7 @@ end
 puts
 puts "constants:"
 
-EXPECTED_CONSTANTS = %i[
+expected_constants = %i[
   INVALID_DELIMITER
   INVALID_COUNT
   INVALID_PIECE_TOKEN
@@ -43,12 +43,12 @@ EXPECTED_CONSTANTS = %i[
   NOT_CANONICAL
 ].freeze
 
-EXPECTED_CONSTANTS.each do |const|
-  run_test("#{const} is defined") do
+expected_constants.each do |const|
+  Test("#{const} is defined") do
     raise "missing constant" unless HandsError.const_defined?(const)
   end
 
-  run_test("#{const} is a String") do
+  Test("#{const} is a String") do
     raise "wrong type" unless HandsError.const_get(const).is_a?(String)
   end
 end
@@ -60,25 +60,25 @@ end
 puts
 puts "raising:"
 
-run_test("can be raised and rescued as HandsError") do
+Test("can be raised and rescued as HandsError") do
   raise HandsError, HandsError::INVALID_DELIMITER
 rescue HandsError => e
   raise "wrong message" unless e.message == HandsError::INVALID_DELIMITER
 end
 
-run_test("can be rescued as ParseError") do
+Test("can be rescued as ParseError") do
   raise HandsError, "test"
 rescue Sashite::Feen::ParseError
   # Expected
 end
 
-run_test("can be rescued as Sashite::Feen::Error") do
+Test("can be rescued as Sashite::Feen::Error") do
   raise HandsError, "test"
 rescue Sashite::Feen::Error
   # Expected
 end
 
-run_test("can be rescued as ArgumentError") do
+Test("can be rescued as ArgumentError") do
   raise HandsError, "test"
 rescue ArgumentError
   # Expected
@@ -91,7 +91,7 @@ end
 puts
 puts "immutability:"
 
-run_test("class is frozen") do
+Test("class is frozen") do
   raise "expected frozen" unless HandsError.frozen?
 end
 

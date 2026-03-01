@@ -8,22 +8,22 @@ module Sashite
     module Dumper
       # Serializer for the FEEN Hands field (Field 2).
       #
-      # Converts Qi::Position's hands (flat arrays of EPIN token strings)
-      # into the canonical FEEN Hands string:
+      # Converts a Qi position's hands (piece → count maps) into the
+      # canonical FEEN Hands string:
       #
       #   <FIRST-HAND>/<SECOND-HAND>
       #
-      # Serialization involves:
-      # 1. Aggregating identical EPIN tokens with counts
-      # 2. Sorting items according to canonical ordering rules
-      # 3. Formatting with multiplicity prefixes (count >= 2)
+      # Since Qi v13 stores hands as +{String => Integer}+ maps, pieces are
+      # already aggregated. Serialization involves:
+      # 1. Sorting items according to canonical ordering rules
+      # 2. Formatting with multiplicity prefixes (count >= 2)
       #
       # @example Empty hands
-      #   Hands.dump({ first: [], second: [] })
+      #   Hands.dump({}, {})
       #   # => "/"
       #
       # @example Hands with pieces
-      #   Hands.dump({ first: ["P", "P", "N"], second: ["p"] })
+      #   Hands.dump({ "P" => 2, "N" => 1 }, { "p" => 1 })
       #   # => "2PN/p"
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
@@ -31,11 +31,12 @@ module Sashite
       module Hands
         # Serializes hands to a FEEN Hands field string.
         #
-        # @param hands [Hash] Hash with :first and :second (arrays of EPIN strings)
+        # @param first_player_hand [Hash{String => Integer}] First player's pieces
+        # @param second_player_hand [Hash{String => Integer}] Second player's pieces
         # @return [String] Canonical Hands field string
-        def self.dump(hands)
-          first_str = dump_hand(hands[:first])
-          second_str = dump_hand(hands[:second])
+        def self.dump(first_player_hand, second_player_hand)
+          first_str = dump_hand(first_player_hand)
+          second_str = dump_hand(second_player_hand)
 
           "#{first_str}#{Separators::SEGMENT}#{second_str}"
         end
@@ -45,12 +46,12 @@ module Sashite
 
           # Serializes a single hand to a canonical string.
           #
-          # @param pieces [Array<String>] Flat array of EPIN token strings
+          # @param hand [Hash{String => Integer}] Piece → count map
           # @return [String] Canonical hand string
-          def dump_hand(pieces)
-            return "" if pieces.empty?
+          def dump_hand(hand)
+            return "" if hand.empty?
 
-            items = aggregate(pieces)
+            items = hand.map { |piece, count| [count, piece] }
             items.sort! { |a, b| compare_items(a, b) }
 
             result = String.new
@@ -59,18 +60,6 @@ module Sashite
               result << piece
             end
             result
-          end
-
-          # Aggregates identical EPIN tokens into [count, piece] pairs.
-          #
-          # @param pieces [Array<String>] Flat array of EPIN token strings
-          # @return [Array<Array(Integer, String)>] Aggregated [count, piece] pairs
-          def aggregate(pieces)
-            counts = Hash.new(0)
-
-            pieces.each { |piece| counts[piece] += 1 }
-
-            counts.map { |piece, count| [count, piece] }
           end
 
           # Compares two hand items according to canonical ordering rules.
@@ -185,7 +174,6 @@ module Sashite
         end
 
         private_class_method :dump_hand,
-                             :aggregate,
                              :compare_items,
                              :compare_pieces,
                              :decompose,

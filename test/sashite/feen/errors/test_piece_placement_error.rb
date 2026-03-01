@@ -16,15 +16,15 @@ PiecePlacementError = Sashite::Feen::PiecePlacementError
 
 puts "inheritance:"
 
-run_test("inherits from ParseError") do
+Test("inherits from ParseError") do
   raise "wrong parent" unless PiecePlacementError < Sashite::Feen::ParseError
 end
 
-run_test("inherits from Sashite::Feen::Error") do
+Test("inherits from Sashite::Feen::Error") do
   raise "wrong ancestor" unless PiecePlacementError < Sashite::Feen::Error
 end
 
-run_test("inherits from ArgumentError") do
+Test("inherits from ArgumentError") do
   raise "wrong ancestor" unless PiecePlacementError < ArgumentError
 end
 
@@ -35,7 +35,7 @@ end
 puts
 puts "constants:"
 
-EXPECTED_CONSTANTS = %i[
+expected_constants = %i[
   EMPTY
   STARTS_WITH_SEPARATOR
   ENDS_WITH_SEPARATOR
@@ -48,12 +48,12 @@ EXPECTED_CONSTANTS = %i[
   DIMENSION_SIZE_EXCEEDED
 ].freeze
 
-EXPECTED_CONSTANTS.each do |const|
-  run_test("#{const} is defined") do
+expected_constants.each do |const|
+  Test("#{const} is defined") do
     raise "missing constant" unless PiecePlacementError.const_defined?(const)
   end
 
-  run_test("#{const} is a String") do
+  Test("#{const} is a String") do
     raise "wrong type" unless PiecePlacementError.const_get(const).is_a?(String)
   end
 end
@@ -65,25 +65,25 @@ end
 puts
 puts "raising:"
 
-run_test("can be raised and rescued as PiecePlacementError") do
+Test("can be raised and rescued as PiecePlacementError") do
   raise PiecePlacementError, PiecePlacementError::EMPTY
 rescue PiecePlacementError => e
   raise "wrong message" unless e.message == PiecePlacementError::EMPTY
 end
 
-run_test("can be rescued as ParseError") do
+Test("can be rescued as ParseError") do
   raise PiecePlacementError, "test"
 rescue Sashite::Feen::ParseError
   # Expected
 end
 
-run_test("can be rescued as Sashite::Feen::Error") do
+Test("can be rescued as Sashite::Feen::Error") do
   raise PiecePlacementError, "test"
 rescue Sashite::Feen::Error
   # Expected
 end
 
-run_test("can be rescued as ArgumentError") do
+Test("can be rescued as ArgumentError") do
   raise PiecePlacementError, "test"
 rescue ArgumentError
   # Expected
@@ -96,7 +96,7 @@ end
 puts
 puts "immutability:"
 
-run_test("class is frozen") do
+Test("class is frozen") do
   raise "expected frozen" unless PiecePlacementError.frozen?
 end
 

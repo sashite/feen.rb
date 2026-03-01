@@ -16,11 +16,11 @@ Separators = Sashite::Feen::Separators
 
 puts "constants:"
 
-run_test("FIELD is a space") do
+Test("FIELD is a space") do
   raise "wrong value" unless Separators::FIELD == " "
 end
 
-run_test("SEGMENT is a slash") do
+Test("SEGMENT is a slash") do
   raise "wrong value" unless Separators::SEGMENT == "/"
 end
 
@@ -31,15 +31,15 @@ end
 puts
 puts "immutability:"
 
-run_test("module is frozen") do
+Test("module is frozen") do
   raise "expected frozen" unless Separators.frozen?
 end
 
-run_test("FIELD is frozen") do
+Test("FIELD is frozen") do
   raise "expected frozen" unless Separators::FIELD.frozen?
 end
 
-run_test("SEGMENT is frozen") do
+Test("SEGMENT is frozen") do
   raise "expected frozen" unless Separators::SEGMENT.frozen?
 end
 

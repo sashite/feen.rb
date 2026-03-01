@@ -7,83 +7,116 @@ module Sashite
     module Dumper
       # Serializer for the FEEN Piece Placement field (Field 1).
       #
-      # Converts a Qi::Position board (nested Array of String/nil) into
-      # the canonical FEEN Piece Placement string with:
+      # Converts a Qi position's flat board and shape into the canonical
+      # FEEN Piece Placement string with:
       # - Run-length encoding for consecutive empty squares (nil)
       # - Dimensional separators ("/" for ranks, "//" for layers, etc.)
       #
-      # == Board Structures
+      # Operates directly on the flat board array without allocating
+      # intermediate nested structures.
       #
-      # - 1D: flat Array         → "K^2k^"
-      # - 2D: Array of Arrays    → "8/8/8/8/8/8/8/8"
-      # - 3D: Array³             → "ab/cd//AB/CD"
+      # == Examples by dimensionality
       #
-      # @example 1D board
-      #   PiecePlacement.dump(["K^", nil, nil, "k^"])
-      #   # => "K^2k^"
-      #
-      # @example 2D empty board
-      #   PiecePlacement.dump(Array.new(8) { Array.new(8) })
-      #   # => "8/8/8/8/8/8/8/8"
-      #
-      # @example 3D board
-      #   PiecePlacement.dump([[["a","b"],["c","d"]],[["A","B"],["C","D"]]])
-      #   # => "ab/cd//AB/CD"
+      # - 1D shape [4]:       board = ["K^", nil, nil, "k^"]       → "K^2k^"
+      # - 2D shape [8, 8]:    board = [nil]*64                     → "8/8/8/8/8/8/8/8"
+      # - 3D shape [2, 2, 2]: board = ["a","b","c","d","A","B","C","D"] → "ab/cd//AB/CD"
       #
       # @see https://sashite.dev/specs/feen/1.0.0/
       # @api private
       module PiecePlacement
-        # Serializes a board array to a FEEN Piece Placement field string.
+        # Serializes a flat board to a FEEN Piece Placement field string.
         #
-        # @param board [Array] Nested board array (1D, 2D, or 3D)
+        # @param board [Array<String, nil>] Flat board array (row-major order)
+        # @param shape [Array<Integer>] Board dimensions (e.g. [8, 8])
         # @return [String] Canonical Piece Placement field string
-        def self.dump(board)
-          serialize(board, depth(board))
+        def self.dump(board, shape)
+          case shape.size
+          when 1
+            dump_rank(board, 0, shape[0])
+          when 2
+            dump_2d(board, shape[0], shape[1])
+          when 3
+            dump_3d(board, shape[0], shape[1], shape[2])
+          end
         end
 
         class << self
           private
 
-          # Determines the dimensionality of the board.
+          # Serializes a 2D board (ranks separated by "/").
           #
-          # - 1D: board[0] is not an Array (flat list of squares)
-          # - 2D: board[0] is an Array but board[0][0] is not
-          # - 3D: board[0][0] is an Array
-          #
-          # @param board [Array] The board to inspect
-          # @return [Integer] Dimensionality (1, 2, or 3)
-          def depth(board)
-            return 1 unless ::Array === board[0]
-            return 2 unless ::Array === board[0][0]
-
-            3
-          end
-
-          # Recursively serializes a board structure at a given dimension level.
-          #
-          # @param structure [Array] Board structure at current level
-          # @param dim [Integer] Current dimensionality
+          # @param board [Array] Flat board array
+          # @param ranks [Integer] Number of ranks
+          # @param files [Integer] Number of files per rank
           # @return [String] Serialized string
-          def serialize(structure, dim)
-            if dim == 1
-              dump_rank(structure)
-            else
-              separator = Separators::SEGMENT * (dim - 1)
+          def dump_2d(board, ranks, files)
+            result = String.new
+            offset = 0
 
-              structure.map { |sub| serialize(sub, dim - 1) }.join(separator)
+            ranks.times do |i|
+              result << Separators::SEGMENT if i > 0
+              dump_rank_into(result, board, offset, files)
+              offset += files
             end
+
+            result
           end
 
-          # Serializes a single rank (flat array of String/nil) with
-          # run-length encoding for consecutive empty squares.
+          # Serializes a 3D board (ranks separated by "/", layers by "//").
           #
-          # @param rank [Array<String, nil>] Flat rank array
-          # @return [String] Serialized rank string
-          def dump_rank(rank)
+          # @param board [Array] Flat board array
+          # @param layers [Integer] Number of layers
+          # @param ranks [Integer] Number of ranks per layer
+          # @param files [Integer] Number of files per rank
+          # @return [String] Serialized string
+          def dump_3d(board, layers, ranks, files)
             result = String.new
-            empty_count = 0
+            offset = 0
 
-            rank.each do |square|
+            layers.times do |li|
+              if li > 0
+                result << Separators::SEGMENT
+                result << Separators::SEGMENT
+              end
+
+              ranks.times do |ri|
+                result << Separators::SEGMENT if ri > 0
+                dump_rank_into(result, board, offset, files)
+                offset += files
+              end
+            end
+
+            result
+          end
+
+          # Serializes a single rank with run-length encoding, returning a new string.
+          #
+          # Used for 1D boards (top-level call).
+          #
+          # @param board [Array<String, nil>] Flat board array
+          # @param offset [Integer] Starting index in the flat array
+          # @param length [Integer] Number of squares in this rank
+          # @return [String] Serialized rank string
+          def dump_rank(board, offset, length)
+            result = String.new
+            dump_rank_into(result, board, offset, length)
+            result
+          end
+
+          # Appends a run-length-encoded rank directly into an existing buffer.
+          #
+          # @param result [String] Buffer to append to
+          # @param board [Array<String, nil>] Flat board array
+          # @param offset [Integer] Starting index in the flat array
+          # @param length [Integer] Number of squares in this rank
+          # @return [void]
+          def dump_rank_into(result, board, offset, length)
+            empty_count = 0
+            stop = offset + length
+
+            while offset < stop
+              square = board[offset]
+
               if square.nil?
                 empty_count += 1
               else
@@ -94,17 +127,18 @@ module Sashite
 
                 result << square
               end
+
+              offset += 1
             end
 
             result << empty_count.to_s if empty_count > 0
-
-            result
           end
         end
 
-        private_class_method :depth,
-                             :serialize,
-                             :dump_rank
+        private_class_method :dump_2d,
+                             :dump_3d,
+                             :dump_rank,
+                             :dump_rank_into
 
         freeze
       end

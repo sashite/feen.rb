@@ -16,15 +16,15 @@ CardinalityError = Sashite::Feen::CardinalityError
 
 puts "inheritance:"
 
-run_test("inherits from ParseError") do
+Test("inherits from ParseError") do
   raise "wrong parent" unless CardinalityError < Sashite::Feen::ParseError
 end
 
-run_test("inherits from Sashite::Feen::Error") do
+Test("inherits from Sashite::Feen::Error") do
   raise "wrong ancestor" unless CardinalityError < Sashite::Feen::Error
 end
 
-run_test("inherits from ArgumentError") do
+Test("inherits from ArgumentError") do
   raise "wrong ancestor" unless CardinalityError < ArgumentError
 end
 
@@ -35,11 +35,11 @@ end
 puts
 puts "constants:"
 
-run_test("TOO_MANY_PIECES is defined") do
+Test("TOO_MANY_PIECES is defined") do
   raise "missing constant" unless CardinalityError.const_defined?(:TOO_MANY_PIECES)
 end
 
-run_test("TOO_MANY_PIECES is a String") do
+Test("TOO_MANY_PIECES is a String") do
   raise "wrong type" unless CardinalityError::TOO_MANY_PIECES.is_a?(String)
 end
 
@@ -50,25 +50,25 @@ end
 puts
 puts "raising:"
 
-run_test("can be raised and rescued as CardinalityError") do
+Test("can be raised and rescued as CardinalityError") do
   raise CardinalityError, CardinalityError::TOO_MANY_PIECES
 rescue CardinalityError => e
   raise "wrong message" unless e.message == CardinalityError::TOO_MANY_PIECES
 end
 
-run_test("can be rescued as ParseError") do
+Test("can be rescued as ParseError") do
   raise CardinalityError, "test"
 rescue Sashite::Feen::ParseError
   # Expected
 end
 
-run_test("can be rescued as Sashite::Feen::Error") do
+Test("can be rescued as Sashite::Feen::Error") do
   raise CardinalityError, "test"
 rescue Sashite::Feen::Error
   # Expected
 end
 
-run_test("can be rescued as ArgumentError") do
+Test("can be rescued as ArgumentError") do
   raise CardinalityError, "test"
 rescue ArgumentError
   # Expected
@@ -81,7 +81,7 @@ end
 puts
 puts "immutability:"
 
-run_test("class is frozen") do
+Test("class is frozen") do
   raise "expected frozen" unless CardinalityError.frozen?
 end
 

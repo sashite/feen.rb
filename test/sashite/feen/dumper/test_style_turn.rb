@@ -16,23 +16,23 @@ StyleTurn = Sashite::Feen::Dumper::StyleTurn
 
 puts "first player to move:"
 
-run_test("dumps C/c with first to move") do
-  result = StyleTurn.dump({ first: "C", second: "c" }, :first)
+Test("dumps C/c with first to move") do
+  result = StyleTurn.dump("C", "c", :first)
   raise "expected 'C/c'" unless result == "C/c"
 end
 
-run_test("dumps S/s with first to move") do
-  result = StyleTurn.dump({ first: "S", second: "s" }, :first)
+Test("dumps S/s with first to move") do
+  result = StyleTurn.dump("S", "s", :first)
   raise "expected 'S/s'" unless result == "S/s"
 end
 
-run_test("dumps X/x with first to move") do
-  result = StyleTurn.dump({ first: "X", second: "x" }, :first)
+Test("dumps X/x with first to move") do
+  result = StyleTurn.dump("X", "x", :first)
   raise "expected 'X/x'" unless result == "X/x"
 end
 
-run_test("dumps G/g with first to move") do
-  result = StyleTurn.dump({ first: "G", second: "g" }, :first)
+Test("dumps G/g with first to move") do
+  result = StyleTurn.dump("G", "g", :first)
   raise "expected 'G/g'" unless result == "G/g"
 end
 
@@ -43,18 +43,18 @@ end
 puts
 puts "second player to move:"
 
-run_test("dumps c/C with second to move") do
-  result = StyleTurn.dump({ first: "C", second: "c" }, :second)
+Test("dumps c/C with second to move") do
+  result = StyleTurn.dump("C", "c", :second)
   raise "expected 'c/C'" unless result == "c/C"
 end
 
-run_test("dumps s/S with second to move") do
-  result = StyleTurn.dump({ first: "S", second: "s" }, :second)
+Test("dumps s/S with second to move") do
+  result = StyleTurn.dump("S", "s", :second)
   raise "expected 's/S'" unless result == "s/S"
 end
 
-run_test("dumps x/X with second to move") do
-  result = StyleTurn.dump({ first: "X", second: "x" }, :second)
+Test("dumps x/X with second to move") do
+  result = StyleTurn.dump("X", "x", :second)
   raise "expected 'x/X'" unless result == "x/X"
 end
 
@@ -65,23 +65,23 @@ end
 puts
 puts "cross-style:"
 
-run_test("dumps C/s with first to move") do
-  result = StyleTurn.dump({ first: "C", second: "s" }, :first)
+Test("dumps C/s with first to move") do
+  result = StyleTurn.dump("C", "s", :first)
   raise "expected 'C/s'" unless result == "C/s"
 end
 
-run_test("dumps s/C with second to move") do
-  result = StyleTurn.dump({ first: "C", second: "s" }, :second)
+Test("dumps s/C with second to move") do
+  result = StyleTurn.dump("C", "s", :second)
   raise "expected 's/C'" unless result == "s/C"
 end
 
-run_test("dumps A/z with first to move") do
-  result = StyleTurn.dump({ first: "A", second: "z" }, :first)
+Test("dumps A/z with first to move") do
+  result = StyleTurn.dump("A", "z", :first)
   raise "expected 'A/z'" unless result == "A/z"
 end
 
-run_test("dumps z/A with second to move") do
-  result = StyleTurn.dump({ first: "A", second: "z" }, :second)
+Test("dumps z/A with second to move") do
+  result = StyleTurn.dump("A", "z", :second)
   raise "expected 'z/A'" unless result == "z/A"
 end
 
@@ -92,8 +92,8 @@ end
 puts
 puts "return type:"
 
-run_test("returns a String") do
-  result = StyleTurn.dump({ first: "C", second: "c" }, :first)
+Test("returns a String") do
+  result = StyleTurn.dump("C", "c", :first)
   raise "expected String" unless result.is_a?(String)
 end
 
@@ -104,7 +104,7 @@ end
 puts
 puts "module properties:"
 
-run_test("module is frozen") do
+Test("module is frozen") do
   raise "expected frozen" unless StyleTurn.frozen?
 end
 

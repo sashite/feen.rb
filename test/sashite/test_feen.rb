@@ -16,55 +16,56 @@ Feen = Sashite::Feen
 
 puts "parse - valid inputs:"
 
-run_test("parses minimal FEEN string") do
+Test("parses minimal FEEN string") do
   position = Feen.parse("K / C/c")
-  raise "wrong type" unless position.is_a?(Qi::Position)
+  raise "wrong type" unless position.is_a?(Qi)
 end
 
-run_test("parses Chess initial position") do
+Test("parses Chess initial position") do
   position = Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-  flat = position.board.flatten
-  raise "wrong squares" unless flat.size == 64
-  raise "wrong pieces" unless flat.compact.size == 32
+  raise "wrong squares" unless position.board.size == 64
+  raise "wrong pieces" unless position.board.compact.size == 32
+  raise "wrong shape" unless position.shape == [8, 8]
 end
 
-run_test("parses Shogi initial position") do
+Test("parses Shogi initial position") do
   position = Feen.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
-  flat = position.board.flatten
-  raise "wrong squares" unless flat.size == 81
-  raise "wrong pieces" unless flat.compact.size == 40
+  raise "wrong squares" unless position.board.size == 81
+  raise "wrong pieces" unless position.board.compact.size == 40
+  raise "wrong shape" unless position.shape == [9, 9]
 end
 
-run_test("parses Xiangqi initial position") do
+Test("parses Xiangqi initial position") do
   position = Feen.parse("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR / X/x")
-  flat = position.board.flatten
-  raise "wrong squares" unless flat.size == 90
+  raise "wrong squares" unless position.board.size == 90
+  raise "wrong shape" unless position.shape == [10, 9]
 end
 
-run_test("parses position with pieces in hands") do
+Test("parses position with pieces in hands") do
   position = Feen.parse("8/8/8/8/8/8/8/8 3B2PNR/2qp C/c")
-  raise "wrong first hand" unless position.hands[:first].size == 7
-  raise "wrong second hand" unless position.hands[:second].size == 3
+  raise "wrong first hand" unless position.first_player_hand.values.sum == 7
+  raise "wrong second hand" unless position.second_player_hand.values.sum == 3
 end
 
-run_test("parses 3D position") do
+Test("parses 3D position") do
   position = Feen.parse("4/4//4/4 / C/c")
-  raise "expected 3D" unless position.board[0][0].is_a?(Array)
+  raise "expected flat board" if position.board[0].is_a?(Array)
+  raise "wrong shape" unless position.shape == [2, 2, 4]
 end
 
-run_test("parses cross-style game") do
+Test("parses cross-style game") do
   position = Feen.parse("K / C/s")
-  raise "wrong first style" unless position.styles[:first] == "C"
-  raise "wrong second style" unless position.styles[:second] == "s"
+  raise "wrong first style" unless position.first_player_style == "C"
+  raise "wrong second style" unless position.second_player_style == "s"
   raise "wrong turn" unless position.turn == :first
 end
 
-run_test("parses position with second to move") do
+Test("parses position with second to move") do
   position = Feen.parse("K / c/C")
   raise "should be second to move" unless position.turn == :second
 end
 
-run_test("parses position with EPIN modifiers") do
+Test("parses position with EPIN modifiers") do
   position = Feen.parse("+K^'-q^' / C/c")
   pieces = position.board.compact
   raise "wrong pieces" unless pieces.size == 2
@@ -72,10 +73,11 @@ run_test("parses position with EPIN modifiers") do
   raise "wrong second piece" unless pieces[1] == "-q^'"
 end
 
-run_test("parses 1D board") do
+Test("parses 1D board") do
   position = Feen.parse("K2Q3R / C/c")
   raise "expected flat array" if position.board[0].is_a?(Array)
   raise "wrong size" unless position.board.size == 8
+  raise "wrong shape" unless position.shape == [8]
 end
 
 # ============================================================================
@@ -85,49 +87,49 @@ end
 puts
 puts "parse - invalid inputs:"
 
-run_test("raises for empty string") do
+Test("raises for empty string") do
   Feen.parse("")
   raise "should have raised"
 rescue Feen::ParseError
   # Expected
 end
 
-run_test("raises for wrong field count") do
+Test("raises for wrong field count") do
   Feen.parse("K")
   raise "should have raised"
 rescue Feen::ParseError => e
   raise "wrong message" unless e.message.include?("field")
 end
 
-run_test("raises for invalid piece placement") do
+Test("raises for invalid piece placement") do
   Feen.parse("/K / C/c")
   raise "should have raised"
 rescue Feen::PiecePlacementError
   # Expected
 end
 
-run_test("raises for invalid hands") do
+Test("raises for invalid hands") do
   Feen.parse("K PP/ C/c")
   raise "should have raised"
 rescue Feen::HandsError
   # Expected
 end
 
-run_test("raises for invalid style-turn") do
+Test("raises for invalid style-turn") do
   Feen.parse("K / C/C")
   raise "should have raised"
 rescue Feen::StyleTurnError
   # Expected
 end
 
-run_test("raises for too many pieces") do
+Test("raises for too many pieces") do
   Feen.parse("K 2P/ C/c")
   raise "should have raised"
 rescue Feen::CardinalityError
   # Expected
 end
 
-run_test("raises for string too long") do
+Test("raises for string too long") do
   long_string = "K" * 4097 + " / C/c"
   Feen.parse(long_string)
   raise "should have raised"
@@ -135,7 +137,7 @@ rescue Feen::ParseError
   # Expected
 end
 
-run_test("all errors inherit from Feen::Error") do
+Test("all errors inherit from Feen::Error") do
   begin
     Feen.parse("invalid")
   rescue Feen::Error
@@ -143,7 +145,7 @@ run_test("all errors inherit from Feen::Error") do
   end
 end
 
-run_test("all errors inherit from ArgumentError") do
+Test("all errors inherit from ArgumentError") do
   begin
     Feen.parse("invalid")
   rescue ArgumentError
@@ -158,47 +160,47 @@ end
 puts
 puts "valid? - true cases:"
 
-run_test("returns true for minimal FEEN") do
+Test("returns true for minimal FEEN") do
   raise "should be valid" unless Feen.valid?("K / C/c")
 end
 
-run_test("returns true for Chess initial position") do
+Test("returns true for Chess initial position") do
   raise "should be valid" unless Feen.valid?("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
 end
 
-run_test("returns true for Shogi initial position") do
+Test("returns true for Shogi initial position") do
   raise "should be valid" unless Feen.valid?("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
 end
 
-run_test("returns true for Xiangqi initial position") do
+Test("returns true for Xiangqi initial position") do
   raise "should be valid" unless Feen.valid?("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR / X/x")
 end
 
-run_test("returns true for position with hands") do
+Test("returns true for position with hands") do
   raise "should be valid" unless Feen.valid?("8/8/8/8/8/8/8/8 3B2PNR/2qp C/c")
 end
 
-run_test("returns true for 3D position") do
+Test("returns true for 3D position") do
   raise "should be valid" unless Feen.valid?("4/4//4/4 / C/c")
 end
 
-run_test("returns true for cross-style game") do
+Test("returns true for cross-style game") do
   raise "should be valid" unless Feen.valid?("K / C/s")
 end
 
-run_test("returns true for second to move") do
+Test("returns true for second to move") do
   raise "should be valid" unless Feen.valid?("K / c/C")
 end
 
-run_test("returns true for empty board") do
+Test("returns true for empty board") do
   raise "should be valid" unless Feen.valid?("8 / C/c")
 end
 
-run_test("returns true for 1D board") do
+Test("returns true for 1D board") do
   raise "should be valid" unless Feen.valid?("K2Q3R / C/c")
 end
 
-run_test("returns true for position with EPIN modifiers") do
+Test("returns true for position with EPIN modifiers") do
   raise "should be valid" unless Feen.valid?("+K^'-q^' / C/c")
 end
 
@@ -209,79 +211,79 @@ end
 puts
 puts "valid? - false cases:"
 
-run_test("returns false for nil") do
+Test("returns false for nil") do
   raise "should be invalid" if Feen.valid?(nil)
 end
 
-run_test("returns false for Integer") do
+Test("returns false for Integer") do
   raise "should be invalid" if Feen.valid?(123)
 end
 
-run_test("returns false for Symbol") do
+Test("returns false for Symbol") do
   raise "should be invalid" if Feen.valid?(:symbol)
 end
 
-run_test("returns false for Array") do
+Test("returns false for Array") do
   raise "should be invalid" if Feen.valid?([])
 end
 
-run_test("returns false for Hash") do
+Test("returns false for Hash") do
   raise "should be invalid" if Feen.valid?({})
 end
 
-run_test("returns false for empty string") do
+Test("returns false for empty string") do
   raise "should be invalid" if Feen.valid?("")
 end
 
-run_test("returns false for one field") do
+Test("returns false for one field") do
   raise "should be invalid" if Feen.valid?("K")
 end
 
-run_test("returns false for two fields") do
+Test("returns false for two fields") do
   raise "should be invalid" if Feen.valid?("K /")
 end
 
-run_test("returns false for four fields") do
+Test("returns false for four fields") do
   raise "should be invalid" if Feen.valid?("K / C/c extra")
 end
 
-run_test("returns false for invalid piece placement") do
+Test("returns false for invalid piece placement") do
   raise "should be invalid" if Feen.valid?("/K / C/c")
 end
 
-run_test("returns false for invalid character in piece placement") do
+Test("returns false for invalid character in piece placement") do
   raise "should be invalid" if Feen.valid?("K@Q / C/c")
 end
 
-run_test("returns false for invalid hands") do
+Test("returns false for invalid hands") do
   raise "should be invalid" if Feen.valid?("K PP/ C/c")
 end
 
-run_test("returns false for invalid style-turn") do
+Test("returns false for invalid style-turn") do
   raise "should be invalid" if Feen.valid?("K / C/C")
 end
 
-run_test("returns false for too many pieces") do
+Test("returns false for too many pieces") do
   raise "should be invalid" if Feen.valid?("K 2P/ C/c")
 end
 
-run_test("returns false for string too long") do
+Test("returns false for string too long") do
   raise "should be invalid" if Feen.valid?("K" * 4097 + " / C/c")
 end
 
-run_test("returns false for dimension size exceeded") do
+Test("returns false for dimension size exceeded") do
   raise "should be invalid" if Feen.valid?("256 / C/c")
 end
 
-run_test("returns false for exceeding dimensions") do
+Test("returns false for exceeding dimensions") do
   raise "should be invalid" if Feen.valid?("1/1//1/1///1/1//1/1////1 / C/c")
 end
 
-run_test("returns false for invalid empty count") do
+Test("returns false for invalid empty count") do
   raise "should be invalid" if Feen.valid?("0 / C/c")
 end
 
-run_test("returns false for leading zeros in empty count") do
+Test("returns false for leading zeros in empty count") do
   raise "should be invalid" if Feen.valid?("01 / C/c")
 end
 
@@ -292,7 +294,7 @@ end
 puts
 puts "valid? safety:"
 
-run_test("valid? never raises") do
+Test("valid? never raises") do
   inputs = [nil, 123, :symbol, [], {}, "", "invalid", "K", "K / C/C", "x" * 10_000]
   inputs.each do |input|
     begin
@@ -311,31 +313,30 @@ end
 puts
 puts "dump:"
 
-run_test("dumps a Qi::Position to String") do
+Test("dumps a Qi position to String") do
   position = Feen.parse("K / C/c")
   result = Feen.dump(position)
   raise "expected String" unless result.is_a?(String)
 end
 
-run_test("dumps minimal position") do
-  position = Qi.new(["K"], { first: [], second: [] }, { first: "C", second: "c" }, :first)
+Test("dumps minimal position") do
+  position = Qi.new([1], first_player_style: "C", second_player_style: "c")
+    .board_diff(0 => "K")
   result = Feen.dump(position)
   raise "expected 'K / C/c'" unless result == "K / C/c"
 end
 
-run_test("dumps position with hands") do
-  position = Qi.new(
-    Array.new(8),
-    { first: ["P", "P"], second: ["p"] },
-    { first: "S", second: "s" },
-    :first
-  )
+Test("dumps position with hands") do
+  position = Qi.new([8], first_player_style: "S", second_player_style: "s")
+    .first_player_hand_diff("P": 2)
+    .second_player_hand_diff("p": 1)
   result = Feen.dump(position)
   raise "expected '8 2P/p S/s'" unless result == "8 2P/p S/s"
 end
 
-run_test("dumps returns String") do
-  position = Qi.new(["K"], { first: [], second: [] }, { first: "C", second: "c" }, :first)
+Test("dumps returns String") do
+  position = Qi.new([1], first_player_style: "C", second_player_style: "c")
+    .board_diff(0 => "K")
   result = Feen.dump(position)
   raise "expected String" unless result.is_a?(String)
 end
@@ -363,7 +364,7 @@ round_trip_cases = [
 ]
 
 round_trip_cases.each do |feen|
-  run_test("round-trip: #{feen}") do
+  Test("round-trip: #{feen}") do
     position = Feen.parse(feen)
     result = Feen.dump(position)
     raise "round-trip failed: expected '#{feen}', got '#{result}'" unless result == feen
@@ -377,58 +378,47 @@ end
 puts
 puts "round-trip (build -> dump -> parse):"
 
-run_test("1D position round-trips") do
-  original = Qi.new(
-    ["K", nil, nil, nil, nil, nil, nil, "k"],
-    { first: [], second: [] },
-    { first: "C", second: "c" },
-    :first
-  )
+Test("1D position round-trips") do
+  original = Qi.new([8], first_player_style: "C", second_player_style: "c")
+    .board_diff(0 => "K", 7 => "k")
   feen = Feen.dump(original)
   restored = Feen.parse(feen)
   raise "board mismatch" unless restored.board == original.board
-  raise "hands mismatch" unless restored.hands == original.hands
-  raise "styles mismatch" unless restored.styles == original.styles
+  raise "first hand mismatch" unless restored.first_player_hand == original.first_player_hand
+  raise "second hand mismatch" unless restored.second_player_hand == original.second_player_hand
+  raise "first style mismatch" unless restored.first_player_style == original.first_player_style
+  raise "second style mismatch" unless restored.second_player_style == original.second_player_style
   raise "turn mismatch" unless restored.turn == original.turn
 end
 
-run_test("2D position round-trips") do
-  original = Qi.new(
-    [["K", nil, nil, nil, nil, nil, nil, "k"], Array.new(8)],
-    { first: [], second: [] },
-    { first: "C", second: "c" },
-    :first
-  )
+Test("2D position round-trips") do
+  original = Qi.new([2, 8], first_player_style: "C", second_player_style: "c")
+    .board_diff(0 => "K", 7 => "k")
   feen = Feen.dump(original)
   restored = Feen.parse(feen)
   raise "board mismatch" unless restored.board == original.board
-  raise "hands mismatch" unless restored.hands == original.hands
-  raise "styles mismatch" unless restored.styles == original.styles
+  raise "shape mismatch" unless restored.shape == original.shape
   raise "turn mismatch" unless restored.turn == original.turn
 end
 
-run_test("position with hands round-trips") do
-  original = Qi.new(
-    Array.new(8) { Array.new(8) },
-    { first: ["B", "B", "B", "P", "P", "N", "R"], second: ["q", "q", "p"] },
-    { first: "C", second: "c" },
-    :first
-  )
+Test("position with hands round-trips") do
+  original = Qi.new([8, 8], first_player_style: "C", second_player_style: "c")
+    .first_player_hand_diff("B": 3, "P": 2, "N": 1, "R": 1)
+    .second_player_hand_diff("q": 2, "p": 1)
   feen = Feen.dump(original)
   restored = Feen.parse(feen)
-  raise "hands mismatch" unless restored.hands == original.hands
+  raise "first hand mismatch" unless restored.first_player_hand == original.first_player_hand
+  raise "second hand mismatch" unless restored.second_player_hand == original.second_player_hand
 end
 
-run_test("3D position round-trips") do
-  original = Qi.new(
-    [[["a", "b"], ["c", "d"]], [["A", "B"], ["C", "D"]]],
-    { first: [], second: [] },
-    { first: "C", second: "c" },
-    :first
-  )
+Test("3D position round-trips") do
+  original = Qi.new([2, 2, 2], first_player_style: "C", second_player_style: "c")
+    .board_diff(0 => "a", 1 => "b", 2 => "c", 3 => "d",
+                4 => "A", 5 => "B", 6 => "C", 7 => "D")
   feen = Feen.dump(original)
   restored = Feen.parse(feen)
   raise "board mismatch" unless restored.board == original.board
+  raise "shape mismatch" unless restored.shape == original.shape
 end
 
 # ============================================================================
@@ -438,27 +428,27 @@ end
 puts
 puts "error hierarchy:"
 
-run_test("Error inherits from ArgumentError") do
+Test("Error inherits from ArgumentError") do
   raise "wrong parent" unless Feen::Error < ArgumentError
 end
 
-run_test("ParseError inherits from Error") do
+Test("ParseError inherits from Error") do
   raise "wrong parent" unless Feen::ParseError < Feen::Error
 end
 
-run_test("PiecePlacementError inherits from ParseError") do
+Test("PiecePlacementError inherits from ParseError") do
   raise "wrong parent" unless Feen::PiecePlacementError < Feen::ParseError
 end
 
-run_test("HandsError inherits from ParseError") do
+Test("HandsError inherits from ParseError") do
   raise "wrong parent" unless Feen::HandsError < Feen::ParseError
 end
 
-run_test("StyleTurnError inherits from ParseError") do
+Test("StyleTurnError inherits from ParseError") do
   raise "wrong parent" unless Feen::StyleTurnError < Feen::ParseError
 end
 
-run_test("CardinalityError inherits from ParseError") do
+Test("CardinalityError inherits from ParseError") do
   raise "wrong parent" unless Feen::CardinalityError < Feen::ParseError
 end
 
@@ -469,31 +459,31 @@ end
 puts
 puts "module structure:"
 
-run_test("Feen is a Module") do
+Test("Feen is a Module") do
   raise "wrong type" unless Feen.is_a?(Module)
 end
 
-run_test("Feen is nested under Sashite") do
+Test("Feen is nested under Sashite") do
   raise "wrong nesting" unless Sashite.const_defined?(:Feen)
 end
 
-run_test("Feen responds to parse") do
+Test("Feen responds to parse") do
   raise "should respond to parse" unless Feen.respond_to?(:parse)
 end
 
-run_test("Feen responds to valid?") do
+Test("Feen responds to valid?") do
   raise "should respond to valid?" unless Feen.respond_to?(:valid?)
 end
 
-run_test("Feen responds to dump") do
+Test("Feen responds to dump") do
   raise "should respond to dump" unless Feen.respond_to?(:dump)
 end
 
-run_test("Parser is accessible") do
+Test("Parser is accessible") do
   raise "missing Parser" unless defined?(Feen::Parser)
 end
 
-run_test("Dumper is accessible") do
+Test("Dumper is accessible") do
   raise "missing Dumper" unless defined?(Feen::Dumper)
 end
 
@@ -504,15 +494,15 @@ end
 puts
 puts "external dependencies:"
 
-run_test("Qi is loaded") do
+Test("Qi is loaded") do
   raise "missing Qi" unless defined?(Qi)
 end
 
-run_test("Epin is loaded") do
+Test("Epin is loaded") do
   raise "missing Epin" unless defined?(Sashite::Epin)
 end
 
-run_test("Sin is loaded") do
+Test("Sin is loaded") do
   raise "missing Sin" unless defined?(Sashite::Sin)
 end
 
@@ -523,30 +513,30 @@ end
 puts
 puts "multiple game types:"
 
-run_test("supports Chess") do
+Test("supports Chess") do
   position = Feen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR / C/c")
-  raise "wrong style" unless position.styles[:first] == "C"
+  raise "wrong style" unless position.first_player_style == "C"
 end
 
-run_test("supports Shogi") do
+Test("supports Shogi") do
   position = Feen.parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL / S/s")
-  raise "wrong style" unless position.styles[:first] == "S"
+  raise "wrong style" unless position.first_player_style == "S"
 end
 
-run_test("supports Xiangqi") do
+Test("supports Xiangqi") do
   position = Feen.parse("rheagaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAGAEHR / X/x")
-  raise "wrong style" unless position.styles[:first] == "X"
+  raise "wrong style" unless position.first_player_style == "X"
 end
 
-run_test("supports Go") do
+Test("supports Go") do
   position = Feen.parse("9/9/9/9/9/9/9/9/9 / G/g")
-  raise "wrong style" unless position.styles[:first] == "G"
+  raise "wrong style" unless position.first_player_style == "G"
 end
 
-run_test("supports cross-style games") do
+Test("supports cross-style games") do
   position = Feen.parse("K / C/s")
-  raise "wrong first" unless position.styles[:first] == "C"
-  raise "wrong second" unless position.styles[:second] == "s"
+  raise "wrong first" unless position.first_player_style == "C"
+  raise "wrong second" unless position.second_player_style == "s"
 end
 
 puts
